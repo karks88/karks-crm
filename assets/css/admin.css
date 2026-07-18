@@ -1,0 +1,64 @@
+.kcrm-wrap .kcrm-company-switcher {
+	margin: 12px 0;
+}
+
+.kcrm-wrap .kcrm-company-switcher select {
+	min-width: 220px;
+}
+
+.kcrm-dashboard-cards {
+	display: flex;
+	gap: 16px;
+	margin: 16px 0 24px;
+	flex-wrap: wrap;
+}
+
+.kcrm-card {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 16px 24px;
+	min-width: 160px;
+}
+
+.kcrm-card-number {
+	display: block;
+	font-size: 28px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.kcrm-card-label {
+	display: block;
+	color: #646970;
+	font-size: 13px;
+	text-transform: uppercase;
+	letter-spacing: .02em;
+}
+
+.kcrm-status {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	background: #f0f0f1;
+	font-size: 12px;
+}
+
+.kcrm-status-paid { background: #d4f4dd; color: #1a7a3a; }
+.kcrm-status-partial { background: #fff3cd; color: #8a6100; }
+.kcrm-status-sent { background: #d9e8fb; color: #1c4c8c; }
+.kcrm-status-open { background: #fde8d2; color: #9a5b12; }
+.kcrm-status-void { background: #f0f0f1; color: #787c82; text-decoration: line-through; }
+.kcrm-status-draft { background: #f0f0f1; color: #50575e; }
+.kcrm-status-active { background: #d4f4dd; color: #1a7a3a; }
+.kcrm-status-inactive { background: #f0f0f1; color: #787c82; }
+
+#kcrm-line-items .kcrm-item-amount {
+	text-align: right;
+	font-weight: 600;
+}
+
+#kcrm-line-items select,
+#kcrm-line-items input {
+	width: 100%;
+}

@@ -1,0 +1,13 @@
+{
+    "name": "karks/karks-crm",
+    "description": "Karks CRM WordPress plugin",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=7.4",
+        "dompdf/dompdf": "^3.0"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

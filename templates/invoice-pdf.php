@@ -1,0 +1,185 @@
+<?php
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Invoice PDF template. Rendered inside KCRM_PDF::stream_invoice(), which
+ * defines: $invoice, $company, $customer, $items, $payments, $balance_due, $logo_data.
+ */
+
+$currency = $company && $company->currency ? $company->currency : 'USD';
+$statuses = KCRM_Invoice::statuses();
+
+$format_money = function ( $amount ) use ( $currency ) {
+	return $currency . ' ' . number_format( (float) $amount, 2 );
+};
+?>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+	body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #222; }
+	.header { width: 100%; margin-bottom: 24px; }
+	.header table { width: 100%; border-collapse: collapse; }
+	.header td { vertical-align: top; }
+	.logo img { max-width: 180px; max-height: 90px; }
+	.company-name { font-size: 18px; font-weight: bold; }
+	.invoice-title { font-size: 24px; font-weight: bold; text-align: right; color: #444; }
+	.invoice-meta { text-align: right; margin-top: 6px; }
+	.addresses { width: 100%; margin: 20px 0; }
+	.addresses table { width: 100%; }
+	.addresses td { width: 50%; vertical-align: top; }
+	.addresses h4 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; color: #888; }
+	table.items { width: 100%; border-collapse: collapse; margin-top: 10px; }
+	table.items th { text-align: left; background: #f2f2f2; padding: 6px 8px; font-size: 11px; text-transform: uppercase; color: #555; }
+	table.items td { padding: 6px 8px; border-bottom: 1px solid #eee; }
+	.text-right { text-align: right; }
+	table.totals { width: 260px; margin-left: auto; margin-top: 12px; border-collapse: collapse; }
+	table.totals td { padding: 4px 8px; }
+	table.totals tr.total-row td { font-weight: bold; border-top: 2px solid #333; font-size: 14px; }
+	.status-badge { display: inline-block; padding: 3px 10px; border-radius: 3px; background: #eee; font-size: 11px; text-transform: uppercase; }
+	.notes { margin-top: 24px; }
+	.payments { margin-top: 20px; }
+	.payments table { width: 100%; border-collapse: collapse; }
+	.payments th, .payments td { padding: 4px 8px; border-bottom: 1px solid #eee; font-size: 11px; }
+	.invoice-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 11px; color: #555; }
+</style>
+</head>
+<body>
+
+<div class="header">
+	<table>
+		<tr>
+			<td class="logo">
+				<?php if ( $logo_data ) : ?>
+					<img src="<?php echo esc_attr( $logo_data ); ?>" alt="<?php echo esc_attr( $company->name ); ?>">
+				<?php else : ?>
+					<div class="company-name"><?php echo esc_html( $company->name ); ?></div>
+				<?php endif; ?>
+			</td>
+			<td>
+				<div class="invoice-title"><?php esc_html_e( 'INVOICE', 'karks-crm' ); ?></div>
+				<div class="invoice-meta">
+					<div><strong><?php echo esc_html( $invoice->invoice_number ); ?></strong></div>
+					<div><?php echo esc_html( KCRM_Invoice::type_label( $invoice ) ); ?></div>
+					<div><?php esc_html_e( 'Issued:', 'karks-crm' ); ?> <?php echo esc_html( $invoice->issue_date ); ?></div>
+					<?php if ( $invoice->due_date ) : ?>
+						<div><?php esc_html_e( 'Due:', 'karks-crm' ); ?> <?php echo esc_html( $invoice->due_date ); ?></div>
+					<?php endif; ?>
+					<div><span class="status-badge"><?php echo esc_html( $statuses[ $invoice->status ] ?? $invoice->status ); ?></span></div>
+				</div>
+			</td>
+		</tr>
+	</table>
+</div>
+
+<div class="addresses">
+	<table>
+		<tr>
+			<td>
+				<h4><?php esc_html_e( 'From', 'karks-crm' ); ?></h4>
+				<div><?php echo esc_html( $company->name ); ?></div>
+				<?php if ( $company->address_street ) : ?><div><?php echo esc_html( $company->address_street ); ?></div><?php endif; ?>
+				<div>
+					<?php echo esc_html( trim( implode( ', ', array_filter( array( $company->address_city, $company->address_state ) ) ) ) ); ?>
+					<?php echo esc_html( $company->address_postal_code ); ?>
+				</div>
+				<?php if ( $company->phone ) : ?><div><?php echo esc_html( $company->phone ); ?></div><?php endif; ?>
+				<?php if ( $company->email ) : ?><div><?php echo esc_html( $company->email ); ?></div><?php endif; ?>
+			</td>
+			<td>
+				<h4><?php esc_html_e( 'Bill To', 'karks-crm' ); ?></h4>
+				<div><?php echo esc_html( $customer->company_name ); ?></div>
+				<?php if ( $customer->contact_person ) : ?><div><?php echo esc_html( $customer->contact_person ); ?></div><?php endif; ?>
+				<?php if ( $customer->address_street ) : ?><div><?php echo esc_html( $customer->address_street ); ?></div><?php endif; ?>
+				<div>
+					<?php echo esc_html( trim( implode( ', ', array_filter( array( $customer->address_city, $customer->address_state ) ) ) ) ); ?>
+					<?php echo esc_html( $customer->address_postal_code ); ?>
+				</div>
+				<?php if ( $customer->email ) : ?><div><?php echo esc_html( $customer->email ); ?></div><?php endif; ?>
+			</td>
+		</tr>
+	</table>
+</div>
+
+<table class="items">
+	<thead>
+		<tr>
+			<th><?php esc_html_e( 'Description', 'karks-crm' ); ?></th>
+			<th class="text-right"><?php esc_html_e( 'Qty/Hours', 'karks-crm' ); ?></th>
+			<th class="text-right"><?php esc_html_e( 'Rate', 'karks-crm' ); ?></th>
+			<th class="text-right"><?php esc_html_e( 'Amount', 'karks-crm' ); ?></th>
+		</tr>
+	</thead>
+	<tbody>
+		<?php foreach ( $items as $item ) : ?>
+			<tr>
+				<td><?php echo esc_html( $item->description ); ?></td>
+				<td class="text-right"><?php echo esc_html( number_format( (float) $item->quantity, 2 ) ); ?></td>
+				<td class="text-right"><?php echo esc_html( $format_money( $item->rate ) ); ?></td>
+				<td class="text-right"><?php echo esc_html( $format_money( $item->amount ) ); ?></td>
+			</tr>
+		<?php endforeach; ?>
+	</tbody>
+</table>
+
+<table class="totals">
+	<tr>
+		<td><?php esc_html_e( 'Subtotal', 'karks-crm' ); ?></td>
+		<td class="text-right"><?php echo esc_html( $format_money( $invoice->subtotal ) ); ?></td>
+	</tr>
+	<tr>
+		<td><?php echo esc_html( sprintf( __( 'Tax (%s%%)', 'karks-crm' ), rtrim( rtrim( number_format( (float) $invoice->tax_rate, 3 ), '0' ), '.' ) ) ); ?></td>
+		<td class="text-right"><?php echo esc_html( $format_money( $invoice->tax_amount ) ); ?></td>
+	</tr>
+	<tr class="total-row">
+		<td><?php esc_html_e( 'Total', 'karks-crm' ); ?></td>
+		<td class="text-right"><?php echo esc_html( $format_money( $invoice->total ) ); ?></td>
+	</tr>
+	<tr>
+		<td><?php esc_html_e( 'Balance Due', 'karks-crm' ); ?></td>
+		<td class="text-right"><?php echo esc_html( $format_money( $balance_due ) ); ?></td>
+	</tr>
+</table>
+
+<?php if ( ! empty( $payments ) ) : ?>
+<div class="payments">
+	<h4><?php esc_html_e( 'Payments Received', 'karks-crm' ); ?></h4>
+	<table>
+		<thead>
+			<tr>
+				<th><?php esc_html_e( 'Date', 'karks-crm' ); ?></th>
+				<th><?php esc_html_e( 'Method', 'karks-crm' ); ?></th>
+				<th class="text-right"><?php esc_html_e( 'Amount', 'karks-crm' ); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+			<?php foreach ( $payments as $payment ) : ?>
+				<tr>
+					<td><?php echo esc_html( $payment->payment_date ); ?></td>
+					<td><?php echo esc_html( $payment->method ); ?></td>
+					<td class="text-right"><?php echo esc_html( $format_money( $payment->amount ) ); ?></td>
+				</tr>
+			<?php endforeach; ?>
+		</tbody>
+	</table>
+</div>
+<?php endif; ?>
+
+<?php if ( ! empty( $invoice->notes ) ) : ?>
+<div class="notes">
+	<h4><?php esc_html_e( 'Notes', 'karks-crm' ); ?></h4>
+	<div><?php echo nl2br( esc_html( $invoice->notes ) ); ?></div>
+</div>
+<?php endif; ?>
+
+<?php if ( $company && ! empty( $company->invoice_footer ) ) : ?>
+<div class="invoice-footer">
+	<?php echo nl2br( esc_html( $company->invoice_footer ) ); ?>
+</div>
+<?php endif; ?>
+
+</body>
+</html>
