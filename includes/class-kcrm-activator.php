@@ -61,6 +61,7 @@ class KCRM_Activator {
 		$sql[] = "CREATE TABLE $customers (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			company_id BIGINT UNSIGNED NOT NULL,
+			parent_customer_id BIGINT UNSIGNED NULL,
 			company_name VARCHAR(255) NOT NULL,
 			contact_person VARCHAR(255) NULL,
 			secondary_contact_person VARCHAR(255) NULL,
@@ -76,7 +77,8 @@ class KCRM_Activator {
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
-			KEY company_id (company_id)
+			KEY company_id (company_id),
+			KEY parent_customer_id (parent_customer_id)
 		) $charset_collate;";
 
 		$sql[] = "CREATE TABLE $services (

@@ -7,7 +7,6 @@ class KCRM_Invoice extends KCRM_Model_Base {
 
 	const STATUS_DRAFT   = 'draft';
 	const STATUS_OPEN    = 'open';
-	const STATUS_SENT    = 'sent';
 	const STATUS_PARTIAL = 'partial';
 	const STATUS_PAID    = 'paid';
 	const STATUS_VOID    = 'void';
@@ -77,7 +76,6 @@ class KCRM_Invoice extends KCRM_Model_Base {
 		return array(
 			self::STATUS_DRAFT   => __( 'Draft', 'karks-crm' ),
 			self::STATUS_OPEN    => __( 'Open', 'karks-crm' ),
-			self::STATUS_SENT    => __( 'Sent', 'karks-crm' ),
 			self::STATUS_PARTIAL => __( 'Partially Paid', 'karks-crm' ),
 			self::STATUS_PAID    => __( 'Paid', 'karks-crm' ),
 			self::STATUS_VOID    => __( 'Void', 'karks-crm' ),
@@ -90,6 +88,73 @@ class KCRM_Invoice extends KCRM_Model_Base {
 
 	public static function for_customer( $customer_id, $order_by = 'issue_date DESC, id DESC' ) {
 		return self::where( array( 'customer_id' => $customer_id ), $order_by );
+	}
+
+	/** Statuses shown by default on the customer profile's invoice list. */
+	public static function default_customer_statuses() {
+		return array( self::STATUS_DRAFT, self::STATUS_OPEN, self::STATUS_PARTIAL );
+	}
+
+	/**
+	 * @param array|null $statuses Limit to these statuses, or null for all statuses.
+	 */
+	public static function for_customer_with_statuses( $customer_id, $statuses = null, $order_by = 'issue_date DESC, id DESC' ) {
+		global $wpdb;
+
+		if ( null === $statuses ) {
+			return self::for_customer( $customer_id, $order_by );
+		}
+
+		if ( empty( $statuses ) ) {
+			return array();
+		}
+
+		$table        = self::table();
+		$placeholders = implode( ', ', array_fill( 0, count( $statuses ), '%s' ) );
+		$params       = array_merge( array( $customer_id ), array_values( $statuses ) );
+
+		$sql = $wpdb->prepare(
+			"SELECT * FROM $table WHERE customer_id = %d AND status IN ($placeholders) ORDER BY $order_by",
+			$params
+		);
+
+		return $wpdb->get_results( $sql );
+	}
+
+	/**
+	 * Same as for_customer_with_statuses() but across a set of customer ids
+	 * (a customer plus its Jobs), for the profile's rolled-up invoice list.
+	 *
+	 * @param array      $customer_ids
+	 * @param array|null $statuses Limit to these statuses, or null for all statuses.
+	 */
+	public static function for_customers_with_statuses( array $customer_ids, $statuses = null, $order_by = 'issue_date DESC, id DESC' ) {
+		global $wpdb;
+
+		$customer_ids = array_filter( array_map( 'absint', $customer_ids ) );
+		if ( empty( $customer_ids ) ) {
+			return array();
+		}
+
+		if ( is_array( $statuses ) && empty( $statuses ) ) {
+			return array();
+		}
+
+		$table                  = self::table();
+		$customer_placeholders  = implode( ', ', array_fill( 0, count( $customer_ids ), '%d' ) );
+		$params                 = $customer_ids;
+
+		$sql = "SELECT * FROM $table WHERE customer_id IN ($customer_placeholders)";
+
+		if ( is_array( $statuses ) ) {
+			$status_placeholders = implode( ', ', array_fill( 0, count( $statuses ), '%s' ) );
+			$sql                .= " AND status IN ($status_placeholders)";
+			$params              = array_merge( $params, array_values( $statuses ) );
+		}
+
+		$sql .= " ORDER BY $order_by";
+
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	public static function create( $data ) {
@@ -144,7 +209,7 @@ class KCRM_Invoice extends KCRM_Model_Base {
 	 */
 	public static function refresh_payment_status( $invoice_id ) {
 		$invoice = self::find( $invoice_id );
-		$manual_statuses = array( self::STATUS_DRAFT, self::STATUS_SENT, self::STATUS_VOID );
+		$manual_statuses = array( self::STATUS_DRAFT, self::STATUS_VOID );
 		if ( ! $invoice || in_array( $invoice->status, $manual_statuses, true ) ) {
 			return;
 		}

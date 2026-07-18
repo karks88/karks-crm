@@ -265,7 +265,7 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 								</a>
 							</strong>
 						</td>
-						<td><?php echo esc_html( $customer ? $customer->company_name : '' ); ?></td>
+						<td><?php echo esc_html( $customer ? KCRM_Customer::display_name( $customer ) : '' ); ?></td>
 						<td><?php echo esc_html( $invoice->issue_date ); ?></td>
 						<td><?php echo esc_html( $invoice->due_date ); ?></td>
 						<td><?php echo esc_html( number_format_i18n( (float) $invoice->total, 2 ) ); ?></td>
@@ -353,7 +353,7 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 							<option value=""><?php esc_html_e( '— Select a customer —', 'karks-crm' ); ?></option>
 							<?php foreach ( $customers as $customer ) : ?>
 								<option value="<?php echo esc_attr( $customer->id ); ?>" <?php selected( $preselect_customer, (int) $customer->id ); ?>>
-									<?php echo esc_html( $customer->company_name ); ?>
+									<?php echo esc_html( KCRM_Customer::display_name( $customer ) ); ?>
 								</option>
 							<?php endforeach; ?>
 						</select>

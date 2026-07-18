@@ -13,8 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'KCRM_VERSION', '0.3.0' );
-define( 'KCRM_DB_VERSION', '1.2.0' );
+define( 'KCRM_VERSION', '0.4.0' );
+define( 'KCRM_DB_VERSION', '1.3.0' );
 define( 'KCRM_PLUGIN_FILE', __FILE__ );
 define( 'KCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -25,6 +25,7 @@ if ( file_exists( KCRM_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-activator.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-db.php';
+require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-csv-import.php';
 
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-model-base.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-company.php';

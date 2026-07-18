@@ -46,7 +46,6 @@
 
 .kcrm-status-paid { background: #d4f4dd; color: #1a7a3a; }
 .kcrm-status-partial { background: #fff3cd; color: #8a6100; }
-.kcrm-status-sent { background: #d9e8fb; color: #1c4c8c; }
 .kcrm-status-open { background: #fde8d2; color: #9a5b12; }
 .kcrm-status-void { background: #f0f0f1; color: #787c82; text-decoration: line-through; }
 .kcrm-status-draft { background: #f0f0f1; color: #50575e; }
@@ -61,4 +60,13 @@
 #kcrm-line-items select,
 #kcrm-line-items input {
 	width: 100%;
+}
+
+.kcrm-job-row {
+	background: #f6f7f7;
+}
+
+.kcrm-job-row td:first-child {
+	padding-left: 24px;
+	color: #50575e;
 }

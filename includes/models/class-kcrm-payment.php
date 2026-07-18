@@ -38,6 +38,59 @@ class KCRM_Payment extends KCRM_Model_Base {
 		);
 	}
 
+	/** Lifetime total paid by a customer. */
+	public static function total_for_customer( $customer_id ) {
+		global $wpdb;
+		$table = self::table();
+		return (float) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COALESCE(SUM(amount), 0) FROM $table WHERE customer_id = %d", $customer_id )
+		);
+	}
+
+	/** Total paid by a customer within a given calendar year (based on payment_date). */
+	public static function total_for_customer_in_year( $customer_id, $year ) {
+		global $wpdb;
+		$table = self::table();
+		return (float) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COALESCE(SUM(amount), 0) FROM $table WHERE customer_id = %d AND YEAR(payment_date) = %d", $customer_id, $year )
+		);
+	}
+
+	/** Lifetime total paid across a set of customer ids (a customer plus its Jobs). */
+	public static function total_for_customers( array $customer_ids ) {
+		global $wpdb;
+
+		$customer_ids = array_filter( array_map( 'absint', $customer_ids ) );
+		if ( empty( $customer_ids ) ) {
+			return 0.0;
+		}
+
+		$table        = self::table();
+		$placeholders = implode( ', ', array_fill( 0, count( $customer_ids ), '%d' ) );
+
+		return (float) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COALESCE(SUM(amount), 0) FROM $table WHERE customer_id IN ($placeholders)", $customer_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		);
+	}
+
+	/** Total paid within a given calendar year across a set of customer ids (a customer plus its Jobs). */
+	public static function total_for_customers_in_year( array $customer_ids, $year ) {
+		global $wpdb;
+
+		$customer_ids = array_filter( array_map( 'absint', $customer_ids ) );
+		if ( empty( $customer_ids ) ) {
+			return 0.0;
+		}
+
+		$table        = self::table();
+		$placeholders = implode( ', ', array_fill( 0, count( $customer_ids ), '%d' ) );
+		$params       = array_merge( $customer_ids, array( $year ) );
+
+		return (float) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COALESCE(SUM(amount), 0) FROM $table WHERE customer_id IN ($placeholders) AND YEAR(payment_date) = %d", $params ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		);
+	}
+
 	/**
 	 * Record a payment, then let the invoice recompute its status.
 	 */
