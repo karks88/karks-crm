@@ -3,26 +3,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class KCRM_Admin_Customers extends KCRM_Customers_Controller {
+class KCRM_Front_Customers extends KCRM_Customers_Controller {
 
-	use KCRM_Admin_Screen_Trait;
+	use KCRM_Front_Screen_Trait;
 
 	public function render() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
 		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
 
-		echo '<div class="wrap kcrm-wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Customers', 'karks-crm' ) . '</h1>';
-		if ( 'list' === $view ) {
-			printf( ' <a href="%s" class="page-title-action">%s</a>', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
-			printf( ' <a href="%s" class="page-title-action">%s</a>', esc_url( $this->screen_url( array( 'view' => 'import' ) ) ), esc_html__( 'Import from CSV', 'karks-crm' ) );
-		}
-		echo '<hr class="wp-header-end">';
+		echo '<div class="kcrm-front-screen">';
+		$this->render_heading( $view );
 
 		$this->company_switcher();
+
+		if ( 'list' === $view ) {
+			printf( '<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s">%s</a> ', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
+			printf( '<a class="kcrm-button" href="%s">%s</a></div>', esc_url( $this->screen_url( array( 'view' => 'import' ) ) ), esc_html__( 'Import from CSV', 'karks-crm' ) );
+		}
+
 		$this->render_notice_from_query();
 
 		if ( ! $this->current_company_id() ) {
-			echo '<p>' . esc_html__( 'Create a company first under Karks CRM → Companies.', 'karks-crm' ) . '</p></div>';
+			echo '<p>' . esc_html__( 'Create a company first under Companies.', 'karks-crm' ) . '</p></div>';
 			return;
 		}
 
@@ -35,6 +37,31 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 		}
 
 		echo '</div>';
+	}
+
+	/** Renders the H2 -- linked back to the list once we're off it, with the customer's name appended when editing one. */
+	private function render_heading( $view ) {
+		$label = __( 'Customers', 'karks-crm' );
+
+		if ( 'list' === $view ) {
+			echo '<h2>' . esc_html( $label ) . '</h2>';
+			return;
+		}
+
+		$link = sprintf( '<a href="%s">%s</a>', esc_url( $this->screen_url() ), esc_html( $label ) );
+
+		if ( 'edit' === $view ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param, no state change.
+			$id       = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+			$customer = $id ? KCRM_Customer::find( $id ) : null;
+
+			if ( $customer ) {
+				echo '<h2>' . $link . ': ' . esc_html( KCRM_Customer::display_name( $customer ) ) . '</h2>';
+				return;
+			}
+		}
+
+		echo '<h2>' . $link . '</h2>';
 	}
 
 	private function render_import() {
@@ -54,18 +81,15 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 
 	private function render_import_upload() {
 		?>
-		<h2><?php esc_html_e( 'Import Customers from CSV', 'karks-crm' ); ?></h2>
 		<p><?php esc_html_e( "Upload a CSV export (e.g. from QuickBooks) and you'll be able to choose which columns map to which fields before anything is imported. Rows sharing the same company name only import once, and companies that already exist here are skipped automatically — it's safe to re-run.", 'karks-crm' ); ?></p>
-		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>" enctype="multipart/form-data">
+		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>" enctype="multipart/form-data" class="kcrm-front-form">
 			<?php wp_nonce_field( 'kcrm_import_upload' ); ?>
 			<input type="hidden" name="kcrm_action" value="import_upload">
-			<table class="form-table">
-				<tr>
-					<th><label for="import_file"><?php esc_html_e( 'CSV File', 'karks-crm' ); ?></label></th>
-					<td><input type="file" name="import_file" id="import_file" accept=".csv" required></td>
-				</tr>
-			</table>
-			<?php submit_button( __( 'Upload & Continue', 'karks-crm' ) ); ?>
+			<p>
+				<label for="import_file"><?php esc_html_e( 'CSV File', 'karks-crm' ); ?></label>
+				<input type="file" name="import_file" id="import_file" accept=".csv" required>
+			</p>
+			<p><button type="submit" class="kcrm-button kcrm-button-primary"><?php esc_html_e( 'Upload & Continue', 'karks-crm' ); ?></button></p>
 		</form>
 		<?php
 	}
@@ -75,68 +99,59 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 
 		if ( ! $path ) {
 			echo '<p>' . esc_html__( 'That upload could not be found — it may have expired. Please upload the file again.', 'karks-crm' ) . '</p>';
-			printf( '<p><a class="button" href="%s">%s</a></p>', esc_url( $this->screen_url( array( 'view' => 'import' ) ) ), esc_html__( 'Start Over', 'karks-crm' ) );
+			printf( '<div class="kcrm-button-group"><a class="kcrm-button" href="%s">%s</a></div>', esc_url( $this->screen_url( array( 'view' => 'import' ) ) ), esc_html__( 'Start Over', 'karks-crm' ) );
 			return;
 		}
 
 		$header = KCRM_CSV_Import::read_header( $path );
 		$fields = $this->import_fields();
 		?>
-		<h2><?php esc_html_e( 'Map CSV Columns', 'karks-crm' ); ?></h2>
 		<p><?php esc_html_e( "Choose which column in your file maps to each customer field. We've guessed a few based on common column names — double check before importing.", 'karks-crm' ); ?></p>
-		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>">
+		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>" class="kcrm-front-form">
 			<?php wp_nonce_field( 'kcrm_import_run' ); ?>
 			<input type="hidden" name="kcrm_action" value="import_run">
 			<input type="hidden" name="file" value="<?php echo esc_attr( $token ); ?>">
-			<table class="form-table">
-				<?php foreach ( $fields as $key => $field ) : ?>
-					<?php $guess = $this->guess_column( $header, $field['guess'] ); ?>
-					<tr>
-						<th>
-							<label for="map_<?php echo esc_attr( $key ); ?>">
-								<?php echo esc_html( $field['label'] ); ?><?php echo ! empty( $field['required'] ) ? ' *' : ''; ?>
-							</label>
-						</th>
-						<td>
-							<select name="map[<?php echo esc_attr( $key ); ?>]" id="map_<?php echo esc_attr( $key ); ?>">
-								<option value="-1"><?php esc_html_e( '— Skip —', 'karks-crm' ); ?></option>
-								<?php foreach ( $header as $i => $label ) : ?>
-									<option value="<?php echo esc_attr( $i ); ?>" <?php selected( $guess, $i ); ?>>
-										<?php echo esc_html( $this->column_label( $label, $i ) ); ?>
-									</option>
-								<?php endforeach; ?>
-							</select>
-						</td>
-					</tr>
-				<?php endforeach; ?>
-				<?php list( $address_from_guess, $address_to_guess ) = $this->guess_address_range( $header ); ?>
-				<tr>
-					<th><?php esc_html_e( 'Address Block', 'karks-crm' ); ?></th>
-					<td>
-						<?php esc_html_e( 'From', 'karks-crm' ); ?>
-						<select name="map[address_from]">
-							<option value="-1"><?php esc_html_e( '— Skip —', 'karks-crm' ); ?></option>
-							<?php foreach ( $header as $i => $label ) : ?>
-								<option value="<?php echo esc_attr( $i ); ?>" <?php selected( $address_from_guess, $i ); ?>>
-									<?php echo esc_html( $this->column_label( $label, $i ) ); ?>
-								</option>
-							<?php endforeach; ?>
-						</select>
-						<?php esc_html_e( 'To', 'karks-crm' ); ?>
-						<select name="map[address_to]">
-							<option value="-1"><?php esc_html_e( '— Skip —', 'karks-crm' ); ?></option>
-							<?php foreach ( $header as $i => $label ) : ?>
-								<option value="<?php echo esc_attr( $i ); ?>" <?php selected( $address_to_guess, $i ); ?>>
-									<?php echo esc_html( $this->column_label( $label, $i ) ); ?>
-								</option>
-							<?php endforeach; ?>
-						</select>
-						<p class="description"><?php esc_html_e( 'The range of columns making up the address (street, suite, city/state/zip). We scan this range for the line that looks like a city/state/zip and treat everything before it as the street — handles QuickBooks-style address blocks whose line count varies row to row.', 'karks-crm' ); ?></p>
-					</td>
-				</tr>
-			</table>
+			<?php foreach ( $fields as $key => $field ) : ?>
+				<?php $guess = $this->guess_column( $header, $field['guess'] ); ?>
+				<p>
+					<label for="map_<?php echo esc_attr( $key ); ?>">
+						<?php echo esc_html( $field['label'] ); ?><?php echo ! empty( $field['required'] ) ? ' *' : ''; ?>
+					</label>
+					<select name="map[<?php echo esc_attr( $key ); ?>]" id="map_<?php echo esc_attr( $key ); ?>">
+						<option value="-1"><?php esc_html_e( '— Skip —', 'karks-crm' ); ?></option>
+						<?php foreach ( $header as $i => $label ) : ?>
+							<option value="<?php echo esc_attr( $i ); ?>" <?php selected( $guess, $i ); ?>>
+								<?php echo esc_html( $this->column_label( $label, $i ) ); ?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+				</p>
+			<?php endforeach; ?>
+			<?php list( $address_from_guess, $address_to_guess ) = $this->guess_address_range( $header ); ?>
+			<p>
+				<label><?php esc_html_e( 'Address Block', 'karks-crm' ); ?></label>
+				<?php esc_html_e( 'From', 'karks-crm' ); ?>
+				<select name="map[address_from]">
+					<option value="-1"><?php esc_html_e( '— Skip —', 'karks-crm' ); ?></option>
+					<?php foreach ( $header as $i => $label ) : ?>
+						<option value="<?php echo esc_attr( $i ); ?>" <?php selected( $address_from_guess, $i ); ?>>
+							<?php echo esc_html( $this->column_label( $label, $i ) ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+				<?php esc_html_e( 'To', 'karks-crm' ); ?>
+				<select name="map[address_to]">
+					<option value="-1"><?php esc_html_e( '— Skip —', 'karks-crm' ); ?></option>
+					<?php foreach ( $header as $i => $label ) : ?>
+						<option value="<?php echo esc_attr( $i ); ?>" <?php selected( $address_to_guess, $i ); ?>>
+							<?php echo esc_html( $this->column_label( $label, $i ) ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+				<br><small><?php esc_html_e( 'The range of columns making up the address (street, suite, city/state/zip). We scan this range for the line that looks like a city/state/zip and treat everything before it as the street — handles QuickBooks-style address blocks whose line count varies row to row.', 'karks-crm' ); ?></small>
+			</p>
 			<p class="description">* <?php esc_html_e( 'Required. Rows with a blank value in this column are skipped.', 'karks-crm' ); ?></p>
-			<?php submit_button( __( 'Import Customers', 'karks-crm' ) ); ?>
+			<p><button type="submit" class="kcrm-button kcrm-button-primary"><?php esc_html_e( 'Import Customers', 'karks-crm' ); ?></button></p>
 		</form>
 		<?php
 	}
@@ -151,7 +166,6 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display counters, no state change.
 		$skipped_existing = isset( $_GET['skipped_existing'] ) ? absint( $_GET['skipped_existing'] ) : 0;
 		?>
-		<h2><?php esc_html_e( 'Import Complete', 'karks-crm' ); ?></h2>
 		<ul>
 			<li>
 				<?php
@@ -178,7 +192,7 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 				?>
 			</li>
 		</ul>
-		<p><a class="button button-primary" href="<?php echo esc_url( $this->screen_url() ); ?>"><?php esc_html_e( 'View Customers', 'karks-crm' ); ?></a></p>
+		<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="<?php echo esc_url( $this->screen_url() ); ?>"><?php esc_html_e( 'View Customers', 'karks-crm' ); ?></a></div>
 		<?php
 	}
 
@@ -199,7 +213,7 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 			)
 		);
 		?>
-		<table class="wp-list-table widefat fixed striped">
+		<table class="kcrm-front-table">
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Company Name', 'karks-crm' ); ?></th>
@@ -237,12 +251,12 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 							</strong>
 							<?php if ( $jobs ) : ?>
 								<br>
-								<span class="description">
+								<small>
 									<?php
 									/* translators: %d: number of Jobs under this customer. */
 									echo esc_html( sprintf( _n( '%d Job', '%d Jobs', count( $jobs ), 'karks-crm' ), count( $jobs ) ) );
 									?>
-								</span>
+								</small>
 							<?php endif; ?>
 						</td>
 						<td><?php echo esc_html( $customer->contact_person ); ?></td>
@@ -253,7 +267,7 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 						<td>
 							<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $customer->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
 							|
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices&view=add&customer_id=' . $customer->id ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
+							<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $customer->id ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
 							|
 							<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $customer->id ) ), 'kcrm_delete_customer_' . $customer->id ) ); ?>"
 								onclick="return confirm('<?php echo esc_js( $jobs ? __( 'Delete this customer and all of its Jobs?', 'karks-crm' ) : __( 'Delete this customer?', 'karks-crm' ) ); ?>');">
@@ -278,7 +292,7 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 							<td>
 								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $job->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
 								|
-								<a href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices&view=add&customer_id=' . $job->id ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
+								<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $job->id ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
 								|
 								<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $job->id ) ), 'kcrm_delete_customer_' . $job->id ) ); ?>"
 									onclick="return confirm('<?php echo esc_js( __( 'Delete this Job?', 'karks-crm' ) ); ?>');">
@@ -313,86 +327,80 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 		$preselect_parent = isset( $_GET['parent_id'] ) ? absint( $_GET['parent_id'] ) : ( $customer ? (int) $customer->parent_customer_id : 0 );
 		$parent_options   = $has_jobs ? array() : KCRM_Customer::top_level_for_company( $this->current_company_id() );
 		?>
-		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>">
+		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>" class="kcrm-front-form">
 			<?php wp_nonce_field( 'kcrm_save_customer' ); ?>
 			<input type="hidden" name="kcrm_action" value="save_customer">
 			<input type="hidden" name="id" value="<?php echo esc_attr( $id ); ?>">
 
-			<table class="form-table">
-				<tr>
-					<th><label for="status"><?php esc_html_e( 'Status', 'karks-crm' ); ?></label></th>
-					<td>
-						<select name="status" id="status">
-							<?php foreach ( KCRM_Customer::statuses() as $key => $label ) : ?>
-								<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $customer ? $customer->status : KCRM_Customer::STATUS_ACTIVE, $key ); ?>><?php echo esc_html( $label ); ?></option>
-							<?php endforeach; ?>
-						</select>
-					</td>
-				</tr>
-				<?php if ( ! $has_jobs ) : ?>
-					<tr>
-						<th><label for="parent_customer_id"><?php esc_html_e( 'This is a Job of', 'karks-crm' ); ?></label></th>
-						<td>
-							<select name="parent_customer_id" id="parent_customer_id">
-								<option value="0"><?php esc_html_e( '— None (top-level customer) —', 'karks-crm' ); ?></option>
-								<?php foreach ( $parent_options as $option ) : ?>
-									<?php if ( (int) $option->id === $id ) { continue; } ?>
-									<option value="<?php echo esc_attr( $option->id ); ?>" <?php selected( $preselect_parent, (int) $option->id ); ?>>
-										<?php echo esc_html( $option->company_name ); ?>
-									</option>
-								<?php endforeach; ?>
-							</select>
-							<p class="description"><?php esc_html_e( 'Optional. Use this for a specific project or division under an existing customer (like QuickBooks Jobs) — its own address, invoices, and revenue are tracked separately, and roll up into the parent customer\'s totals.', 'karks-crm' ); ?></p>
-						</td>
-					</tr>
-				<?php endif; ?>
-				<tr>
-					<th><label for="company_name"><?php esc_html_e( 'Company Name', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="company_name" id="company_name" value="<?php echo esc_attr( $v( 'company_name' ) ); ?>" required></td>
-				</tr>
-				<tr>
-					<th><label for="contact_person"><?php esc_html_e( 'Contact Person', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="contact_person" id="contact_person" value="<?php echo esc_attr( $v( 'contact_person' ) ); ?>"></td>
-				</tr>
-				<tr>
-					<th><label for="secondary_contact_person"><?php esc_html_e( 'Secondary Contact Person', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="secondary_contact_person" id="secondary_contact_person" value="<?php echo esc_attr( $v( 'secondary_contact_person' ) ); ?>"></td>
-				</tr>
-				<tr>
-					<th><label for="address_street"><?php esc_html_e( 'Street Address', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_street" id="address_street" value="<?php echo esc_attr( $v( 'address_street' ) ); ?>"></td>
-				</tr>
-				<tr>
-					<th><label for="address_city"><?php esc_html_e( 'City', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_city" id="address_city" value="<?php echo esc_attr( $v( 'address_city' ) ); ?>"></td>
-				</tr>
-				<tr>
-					<th><label for="address_state"><?php esc_html_e( 'State', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_state" id="address_state" value="<?php echo esc_attr( $v( 'address_state' ) ); ?>"></td>
-				</tr>
-				<tr>
-					<th><label for="address_postal_code"><?php esc_html_e( 'Postal Code', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_postal_code" id="address_postal_code" value="<?php echo esc_attr( $v( 'address_postal_code' ) ); ?>"></td>
-				</tr>
-				<tr>
-					<th><label for="phone"><?php esc_html_e( 'Phone Number', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="phone" id="phone" value="<?php echo esc_attr( $v( 'phone' ) ); ?>"></td>
-				</tr>
-				<tr>
-					<th><label for="email"><?php esc_html_e( 'Email Address', 'karks-crm' ); ?></label></th>
-					<td><input type="email" class="regular-text" name="email" id="email" value="<?php echo esc_attr( $v( 'email' ) ); ?>"></td>
-				</tr>
-				<tr>
-					<th><label for="secondary_email"><?php esc_html_e( 'Secondary Email Address', 'karks-crm' ); ?></label></th>
-					<td><input type="email" class="regular-text" name="secondary_email" id="secondary_email" value="<?php echo esc_attr( $v( 'secondary_email' ) ); ?>"></td>
-				</tr>
-				<tr>
-					<th><label for="notes"><?php esc_html_e( 'Notes', 'karks-crm' ); ?></label></th>
-					<td><textarea class="large-text" rows="4" name="notes" id="notes"><?php echo esc_textarea( $notes ); ?></textarea></td>
-				</tr>
-			</table>
+			<p>
+				<label for="status"><?php esc_html_e( 'Status', 'karks-crm' ); ?></label>
+				<select name="status" id="status">
+					<?php foreach ( KCRM_Customer::statuses() as $key => $label ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $customer ? $customer->status : KCRM_Customer::STATUS_ACTIVE, $key ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</p>
+			<?php if ( ! $has_jobs ) : ?>
+				<p>
+					<label for="parent_customer_id"><?php esc_html_e( 'This is a Job of', 'karks-crm' ); ?></label>
+					<select name="parent_customer_id" id="parent_customer_id">
+						<option value="0"><?php esc_html_e( '— None (top-level customer) —', 'karks-crm' ); ?></option>
+						<?php foreach ( $parent_options as $option ) : ?>
+							<?php if ( (int) $option->id === $id ) { continue; } ?>
+							<option value="<?php echo esc_attr( $option->id ); ?>" <?php selected( $preselect_parent, (int) $option->id ); ?>>
+								<?php echo esc_html( $option->company_name ); ?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+					<br><small><?php esc_html_e( 'Optional. Use this for a specific project or division under an existing customer (like QuickBooks Jobs) — its own address, invoices, and revenue are tracked separately, and roll up into the parent customer\'s totals.', 'karks-crm' ); ?></small>
+				</p>
+			<?php endif; ?>
+			<p>
+				<label for="company_name"><?php esc_html_e( 'Company Name', 'karks-crm' ); ?></label>
+				<input type="text" name="company_name" id="company_name" value="<?php echo esc_attr( $v( 'company_name' ) ); ?>" required>
+			</p>
+			<p>
+				<label for="contact_person"><?php esc_html_e( 'Contact Person', 'karks-crm' ); ?></label>
+				<input type="text" name="contact_person" id="contact_person" value="<?php echo esc_attr( $v( 'contact_person' ) ); ?>">
+			</p>
+			<p>
+				<label for="secondary_contact_person"><?php esc_html_e( 'Secondary Contact Person', 'karks-crm' ); ?></label>
+				<input type="text" name="secondary_contact_person" id="secondary_contact_person" value="<?php echo esc_attr( $v( 'secondary_contact_person' ) ); ?>">
+			</p>
+			<p>
+				<label for="address_street"><?php esc_html_e( 'Street Address', 'karks-crm' ); ?></label>
+				<input type="text" name="address_street" id="address_street" value="<?php echo esc_attr( $v( 'address_street' ) ); ?>">
+			</p>
+			<p>
+				<label for="address_city"><?php esc_html_e( 'City', 'karks-crm' ); ?></label>
+				<input type="text" name="address_city" id="address_city" value="<?php echo esc_attr( $v( 'address_city' ) ); ?>">
+			</p>
+			<p>
+				<label for="address_state"><?php esc_html_e( 'State', 'karks-crm' ); ?></label>
+				<input type="text" name="address_state" id="address_state" value="<?php echo esc_attr( $v( 'address_state' ) ); ?>">
+			</p>
+			<p>
+				<label for="address_postal_code"><?php esc_html_e( 'Postal Code', 'karks-crm' ); ?></label>
+				<input type="text" name="address_postal_code" id="address_postal_code" value="<?php echo esc_attr( $v( 'address_postal_code' ) ); ?>">
+			</p>
+			<p>
+				<label for="phone"><?php esc_html_e( 'Phone Number', 'karks-crm' ); ?></label>
+				<input type="text" name="phone" id="phone" value="<?php echo esc_attr( $v( 'phone' ) ); ?>">
+			</p>
+			<p>
+				<label for="email"><?php esc_html_e( 'Email Address', 'karks-crm' ); ?></label>
+				<input type="email" name="email" id="email" value="<?php echo esc_attr( $v( 'email' ) ); ?>">
+			</p>
+			<p>
+				<label for="secondary_email"><?php esc_html_e( 'Secondary Email Address', 'karks-crm' ); ?></label>
+				<input type="email" name="secondary_email" id="secondary_email" value="<?php echo esc_attr( $v( 'secondary_email' ) ); ?>">
+			</p>
+			<p>
+				<label for="notes"><?php esc_html_e( 'Notes', 'karks-crm' ); ?></label>
+				<textarea rows="4" name="notes" id="notes"><?php echo esc_textarea( $notes ); ?></textarea>
+			</p>
 
-			<?php submit_button( $id ? __( 'Update Customer', 'karks-crm' ) : __( 'Add Customer', 'karks-crm' ) ); ?>
+			<p><button type="submit" class="kcrm-button kcrm-button-primary"><?php echo esc_html( $id ? __( 'Update Customer', 'karks-crm' ) : __( 'Add Customer', 'karks-crm' ) ); ?></button></p>
 		</form>
 
 		<?php if ( $customer ) : ?>
@@ -412,12 +420,12 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 	private function render_jobs_section( $customer ) {
 		$jobs = KCRM_Customer::jobs_for( $customer->id );
 		?>
-		<h2><?php esc_html_e( 'Jobs', 'karks-crm' ); ?></h2>
-		<p>
-			<a class="button" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'add', 'parent_id' => $customer->id ) ) ); ?>"><?php esc_html_e( '+ Add Job', 'karks-crm' ); ?></a>
-		</p>
+		<h3><?php esc_html_e( 'Jobs', 'karks-crm' ); ?></h3>
+		<div class="kcrm-button-group">
+			<a class="kcrm-button" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'add', 'parent_id' => $customer->id ) ) ); ?>"><?php esc_html_e( '+ Add Job', 'karks-crm' ); ?></a>
+		</div>
 		<?php if ( $jobs ) : ?>
-			<table class="wp-list-table widefat fixed striped" style="max-width:700px;">
+			<table class="kcrm-front-table">
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'Job', 'karks-crm' ); ?></th>
@@ -441,13 +449,13 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 
 	/** @param array $customer_ids The customer plus its Jobs (rolled up), when it has any. */
 	private function render_revenue_section( array $customer_ids, $is_rollup ) {
-		$this_year        = (int) current_time( 'Y' );
-		$last_year        = $this_year - 1;
-		$this_year_total  = KCRM_Payment::total_for_customers_in_year( $customer_ids, $this_year );
-		$last_year_total  = KCRM_Payment::total_for_customers_in_year( $customer_ids, $last_year );
-		$lifetime_total   = KCRM_Payment::total_for_customers( $customer_ids );
+		$this_year       = (int) current_time( 'Y' );
+		$last_year       = $this_year - 1;
+		$this_year_total = KCRM_Payment::total_for_customers_in_year( $customer_ids, $this_year );
+		$last_year_total = KCRM_Payment::total_for_customers_in_year( $customer_ids, $last_year );
+		$lifetime_total  = KCRM_Payment::total_for_customers( $customer_ids );
 		?>
-		<h2><?php esc_html_e( 'Revenue', 'karks-crm' ); ?></h2>
+		<h3><?php esc_html_e( 'Revenue', 'karks-crm' ); ?></h3>
 		<?php if ( $is_rollup ) : ?>
 			<p class="description"><?php esc_html_e( 'Includes this customer and all of its Jobs.', 'karks-crm' ); ?></p>
 		<?php endif; ?>
@@ -491,23 +499,22 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 
 		$toggle_url = $show_all ? remove_query_arg( 'kcrm_invoice_filter' ) : add_query_arg( 'kcrm_invoice_filter', 'all' );
 		?>
-		<h2><?php esc_html_e( 'Invoices', 'karks-crm' ); ?></h2>
+		<h3><?php esc_html_e( 'Invoices', 'karks-crm' ); ?></h3>
 		<p class="description"><?php esc_html_e( 'Invoices with a status of Draft, Open, and Partially Paid are displayed by default.', 'karks-crm' ); ?></p>
 		<?php if ( $is_rollup ) : ?>
 			<p class="description"><?php esc_html_e( 'Includes this customer and all of its Jobs.', 'karks-crm' ); ?></p>
 		<?php endif; ?>
-		<p>
-			<a href="<?php echo esc_url( $toggle_url ); ?>">
+		<div class="kcrm-button-group">
+			<a class="kcrm-button" href="<?php echo esc_url( $toggle_url ); ?>">
 				<?php
 				echo $show_all
 					? esc_html__( 'Show default statuses only (Draft, Open, Partially Paid)', 'karks-crm' )
 					: esc_html__( 'Show invoices with all statuses', 'karks-crm' );
 				?>
 			</a>
-			|
-			<a href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices&view=add&customer_id=' . $primary_customer_id ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
-		</p>
-		<table class="wp-list-table widefat fixed striped" style="max-width:900px;">
+			<a class="kcrm-button kcrm-button-primary" href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $primary_customer_id ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
+		</div>
+		<table class="kcrm-front-table">
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Invoice #', 'karks-crm' ); ?></th>
@@ -530,7 +537,7 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 					<tr>
 						<td>
 							<strong>
-								<a href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices&view=edit&id=' . $invoice->id ) ); ?>">
+								<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'edit', 'id' => $invoice->id ) ) ); ?>">
 									<?php echo esc_html( $invoice->invoice_number ); ?>
 								</a>
 							</strong>

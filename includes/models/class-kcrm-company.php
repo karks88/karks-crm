@@ -24,6 +24,9 @@ class KCRM_Company extends KCRM_Model_Base {
 			'default_tax_rate'     => '%f',
 			'currency'             => '%s',
 			'invoice_footer'       => '%s',
+			'accepted_payment_types' => '%s',
+			'payment_links'        => '%s',
+			'check_payable_to'     => '%s',
 			'created_at'           => '%s',
 			'updated_at'           => '%s',
 		);
@@ -31,6 +34,38 @@ class KCRM_Company extends KCRM_Model_Base {
 
 	public static function all_ordered() {
 		return self::where( array(), 'name ASC' );
+	}
+
+	/** Fixed list of payment types offerable in "Accepted Payment Types". */
+	public static function payment_types() {
+		return array(
+			'credit_card' => __( 'Credit Card', 'karks-crm' ),
+			'ach'         => __( 'ACH / Bank Transfer', 'karks-crm' ),
+			'paypal'      => __( 'PayPal', 'karks-crm' ),
+			'venmo'       => __( 'Venmo', 'karks-crm' ),
+			'zelle'       => __( 'Zelle', 'karks-crm' ),
+			'check'       => __( 'Check', 'karks-crm' ),
+			'cash'        => __( 'Cash', 'karks-crm' ),
+			'other'       => __( 'Other', 'karks-crm' ),
+		);
+	}
+
+	/** @return string[] The subset of payment_types() keys this company accepts. */
+	public static function accepted_payment_type_keys( $company ) {
+		if ( ! $company || empty( $company->accepted_payment_types ) ) {
+			return array();
+		}
+		$keys = array_map( 'trim', explode( ',', $company->accepted_payment_types ) );
+		return array_values( array_intersect( $keys, array_keys( self::payment_types() ) ) );
+	}
+
+	/** @return array[] List of ['label' => string, 'url' => string] payment links for this company. */
+	public static function payment_links( $company ) {
+		if ( ! $company || empty( $company->payment_links ) ) {
+			return array();
+		}
+		$decoded = json_decode( $company->payment_links, true );
+		return is_array( $decoded ) ? $decoded : array();
 	}
 
 	public static function create( $data ) {

@@ -24,7 +24,7 @@ $kcrm_format_money = function ( $amount ) use ( $kcrm_currency ) {
 	.header { width: 100%; margin-bottom: 24px; }
 	.header table { width: 100%; border-collapse: collapse; }
 	.header td { vertical-align: top; }
-	.logo img { max-width: 180px; max-height: 90px; }
+	.logo img { max-width: 200px; max-height: 110px; }
 	.company-name { font-size: 18px; font-weight: bold; }
 	.invoice-title { font-size: 24px; font-weight: bold; text-align: right; color: #444; }
 	.invoice-meta { text-align: right; margin-top: 6px; }
@@ -34,7 +34,7 @@ $kcrm_format_money = function ( $amount ) use ( $kcrm_currency ) {
 	.addresses h4 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; color: #888; }
 	table.items { width: 100%; border-collapse: collapse; margin-top: 10px; }
 	table.items th { text-align: left; background: #f2f2f2; padding: 6px 8px; font-size: 11px; text-transform: uppercase; color: #555; }
-	table.items td { padding: 6px 8px; border-bottom: 1px solid #eee; }
+	table.items td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; }
 	.text-right { text-align: right; }
 	table.totals { width: 260px; margin-left: auto; margin-top: 12px; border-collapse: collapse; }
 	table.totals td { padding: 4px 8px; }
@@ -45,6 +45,10 @@ $kcrm_format_money = function ( $amount ) use ( $kcrm_currency ) {
 	.payments table { width: 100%; border-collapse: collapse; }
 	.payments th, .payments td { padding: 4px 8px; border-bottom: 1px solid #eee; font-size: 11px; }
 	.invoice-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 11px; color: #555; }
+	.payment-options { margin-top: 20px; }
+	.payment-options .payment-links a { display: inline-block; margin: 4px 12px 4px 0; padding: 4px 10px; border: 1px solid #333; border-radius: 3px; background: #222; color: #fff; text-decoration: none; }
+	.payment-options .payment-links .link-icon { margin-left: 4px; font-weight: bold; }
+	.payment-options .check-payable-to { margin: 1em 0; font-size: 16px; }
 </style>
 </head>
 <body>
@@ -170,6 +174,41 @@ $kcrm_format_money = function ( $amount ) use ( $kcrm_currency ) {
 			<?php endforeach; ?>
 		</tbody>
 	</table>
+</div>
+<?php endif; ?>
+
+<?php
+$kcrm_payment_type_keys     = KCRM_Company::accepted_payment_type_keys( $company );
+$kcrm_payment_links         = KCRM_Company::payment_links( $company );
+$kcrm_payment_types         = KCRM_Company::payment_types();
+$kcrm_show_check_payable_to = in_array( 'check', $kcrm_payment_type_keys, true ) && ! empty( $company->check_payable_to );
+?>
+<?php if ( ! empty( $kcrm_payment_type_keys ) || ! empty( $kcrm_payment_links ) ) : ?>
+<div class="payment-options">
+	<h4><?php esc_html_e( 'Payment Options', 'karks-crm' ); ?></h4>
+	<?php if ( ! empty( $kcrm_payment_type_keys ) ) : ?>
+		<div>
+			<?php
+			echo esc_html( implode( ', ', array_map( static function ( $key ) use ( $kcrm_payment_types ) {
+				return $kcrm_payment_types[ $key ] ?? $key;
+			}, $kcrm_payment_type_keys ) ) );
+			?>
+		</div>
+	<?php endif; ?>
+	<?php if ( $kcrm_show_check_payable_to ) : ?>
+		<div class="check-payable-to">
+			<?php esc_html_e( 'Make checks payable to:', 'karks-crm' ); ?>
+			<strong><?php echo esc_html( $company->check_payable_to ); ?></strong>
+		</div>
+	<?php endif; ?>
+	<?php if ( ! empty( $kcrm_payment_links ) ) : ?>
+		<div class="payment-links">
+			<?php foreach ( $kcrm_payment_links as $kcrm_link ) : ?>
+				<?php if ( empty( $kcrm_link['url'] ) ) { continue; } ?>
+				<a href="<?php echo esc_url( $kcrm_link['url'] ); ?>"><?php echo esc_html( $kcrm_link['label'] ? $kcrm_link['label'] : $kcrm_link['url'] ); ?> <span class="link-icon">&gt;&gt;</span></a>
+			<?php endforeach; ?>
+		</div>
+	<?php endif; ?>
 </div>
 <?php endif; ?>
 

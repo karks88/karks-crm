@@ -3,7 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-base.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-companies.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-customers.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-services.php';
@@ -13,11 +12,15 @@ require_once KCRM_PLUGIN_DIR . 'includes/pdf/class-kcrm-pdf.php';
 
 class KCRM_Plugin {
 
-	/** @var array<string,KCRM_Admin_Base> */
+	/** @var array<string,KCRM_Controller_Base> */
 	private $screens = array();
 
 	public function run() {
-		KCRM_Activator::maybe_upgrade();
+		// Deferred to init (priority 20, after KCRM_Front registers its rewrite
+		// endpoints at the default priority) since maybe_upgrade() may call
+		// wp_insert_post()/flush_rewrite_rules(), neither of which is safe to
+		// call this early (plugins_loaded runs before $wp_rewrite exists).
+		add_action( 'init', array( 'KCRM_Activator', 'maybe_upgrade' ), 20 );
 
 		$this->screens = array(
 			'dashboard' => new KCRM_Admin_Dashboard(),
@@ -37,29 +40,40 @@ class KCRM_Plugin {
 		add_menu_page(
 			__( 'Karks CRM', 'karks-crm' ),
 			__( 'Karks CRM', 'karks-crm' ),
-			'manage_options',
+			KCRM_CAPABILITY,
 			'karks-crm',
 			array( $this->screens['dashboard'], 'render' ),
 			'dashicons-groups',
 			26
 		);
 
-		add_submenu_page( 'karks-crm', __( 'Dashboard', 'karks-crm' ), __( 'Dashboard', 'karks-crm' ), 'manage_options', 'karks-crm', array( $this->screens['dashboard'], 'render' ) );
-		add_submenu_page( 'karks-crm', __( 'Customers', 'karks-crm' ), __( 'Customers', 'karks-crm' ), 'manage_options', 'karks-crm-customers', array( $this->screens['customers'], 'render' ) );
-		add_submenu_page( 'karks-crm', __( 'Services', 'karks-crm' ), __( 'Services', 'karks-crm' ), 'manage_options', 'karks-crm-services', array( $this->screens['services'], 'render' ) );
-		add_submenu_page( 'karks-crm', __( 'Invoices', 'karks-crm' ), __( 'Invoices', 'karks-crm' ), 'manage_options', 'karks-crm-invoices', array( $this->screens['invoices'], 'render' ) );
-		add_submenu_page( 'karks-crm', __( 'Companies', 'karks-crm' ), __( 'Companies', 'karks-crm' ), 'manage_options', 'karks-crm-companies', array( $this->screens['companies'], 'render' ) );
+		add_submenu_page( 'karks-crm', __( 'Dashboard', 'karks-crm' ), __( 'Dashboard', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm', array( $this->screens['dashboard'], 'render' ) );
+		add_submenu_page( 'karks-crm', __( 'Customers', 'karks-crm' ), __( 'Customers', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-customers', array( $this->screens['customers'], 'render' ) );
+		add_submenu_page( 'karks-crm', __( 'Services', 'karks-crm' ), __( 'Services', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-services', array( $this->screens['services'], 'render' ) );
+		add_submenu_page( 'karks-crm', __( 'Invoices', 'karks-crm' ), __( 'Invoices', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-invoices', array( $this->screens['invoices'], 'render' ) );
+		add_submenu_page( 'karks-crm', __( 'Companies', 'karks-crm' ), __( 'Companies', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-companies', array( $this->screens['companies'], 'render' ) );
 	}
 
 	/**
-	 * Each screen may process its own form submissions before any HTML is sent.
+	 * The screen matching the current admin page processes its own form
+	 * submissions before any HTML is sent. Only that one screen is called --
+	 * several screens share generic query args (action=delete&id=), and
+	 * check_admin_referer() wp_die()s on a mismatched nonce, so calling
+	 * every screen's handle_actions() unconditionally would let the wrong
+	 * screen's delete() 403 the real request.
 	 */
 	public function handle_screen_actions() {
-		if ( ! is_admin() || ! current_user_can( 'manage_options' ) ) {
+		if ( ! is_admin() || ! current_user_can( KCRM_CAPABILITY ) ) {
 			return;
 		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route dispatch; real nonce checks happen in the handler methods below.
+		$page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
 		foreach ( $this->screens as $screen ) {
-			$screen->handle_actions();
+			if ( $page === $screen::PAGE ) {
+				$screen->handle_actions();
+				return;
+			}
 		}
 	}
 

@@ -3,14 +3,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class KCRM_Admin_Dashboard extends KCRM_Admin_Base {
+class KCRM_Admin_Dashboard extends KCRM_Controller_Base {
+
+	use KCRM_Admin_Screen_Trait;
 
 	const PAGE = 'karks-crm';
 
 	public function render() {
 		echo '<div class="wrap kcrm-wrap"><h1>' . esc_html__( 'Karks CRM', 'karks-crm' ) . '</h1>';
 
-		$this->company_switcher( self::PAGE );
+		$this->company_switcher();
 		$this->render_notice_from_query();
 
 		$company_id = $this->current_company_id();

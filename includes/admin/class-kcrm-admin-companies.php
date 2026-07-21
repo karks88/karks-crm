@@ -3,63 +3,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class KCRM_Admin_Companies extends KCRM_Admin_Base {
+class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 
-	const PAGE = 'karks-crm-companies';
-
-	public function handle_actions() {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; save() verifies the nonce itself.
-		if ( isset( $_POST['kcrm_action'] ) && 'save_company' === $_POST['kcrm_action'] ) {
-			$this->save();
-		}
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete() verifies the nonce itself.
-		if ( isset( $_GET['action'], $_GET['id'] ) && 'delete' === $_GET['action'] && isset( $_GET['page'] ) && self::PAGE === $_GET['page'] ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete() verifies the nonce itself.
-			$this->delete( absint( $_GET['id'] ) );
-		}
-	}
-
-	private function save() {
-		check_admin_referer( 'kcrm_save_company' );
-
-		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
-
-		$data = array(
-			'name'                => sanitize_text_field( wp_unslash( $_POST['name'] ?? '' ) ),
-			'email'               => sanitize_email( wp_unslash( $_POST['email'] ?? '' ) ),
-			'phone'               => sanitize_text_field( wp_unslash( $_POST['phone'] ?? '' ) ),
-			'address_street'      => sanitize_text_field( wp_unslash( $_POST['address_street'] ?? '' ) ),
-			'address_city'        => sanitize_text_field( wp_unslash( $_POST['address_city'] ?? '' ) ),
-			'address_state'       => sanitize_text_field( wp_unslash( $_POST['address_state'] ?? '' ) ),
-			'address_postal_code' => sanitize_text_field( wp_unslash( $_POST['address_postal_code'] ?? '' ) ),
-			'logo_attachment_id'  => isset( $_POST['logo_attachment_id'] ) ? absint( $_POST['logo_attachment_id'] ) : 0,
-			'invoice_prefix'      => sanitize_text_field( wp_unslash( $_POST['invoice_prefix'] ?? 'INV-' ) ),
-			'next_invoice_number' => isset( $_POST['next_invoice_number'] ) ? max( 1, absint( $_POST['next_invoice_number'] ) ) : 1,
-			'default_tax_rate'    => isset( $_POST['default_tax_rate'] ) ? (float) $_POST['default_tax_rate'] : 0,
-			'currency'            => sanitize_text_field( wp_unslash( $_POST['currency'] ?? 'USD' ) ),
-			'invoice_footer'      => sanitize_textarea_field( wp_unslash( $_POST['invoice_footer'] ?? '' ) ),
-		);
-
-		if ( '' === $data['name'] ) {
-			$this->redirect( array( 'page' => self::PAGE, 'view' => $id ? 'edit' : 'add', 'id' => $id, 'kcrm_notice' => 'error' ) );
-		}
-
-		if ( $id ) {
-			KCRM_Company::save( $id, $data );
-		} else {
-			$id = KCRM_Company::create( $data );
-			update_user_meta( get_current_user_id(), KCRM_Context::META_KEY, $id );
-		}
-
-		$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'saved' ) );
-	}
-
-	private function delete( $id ) {
-		check_admin_referer( 'kcrm_delete_company_' . $id );
-		KCRM_Company::delete( $id );
-		$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'deleted' ) );
-	}
+	use KCRM_Admin_Screen_Trait;
 
 	public function render() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
@@ -67,7 +13,7 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 		echo '<div class="wrap kcrm-wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Companies', 'karks-crm' ) . '</h1>';
 
 		if ( 'list' === $view ) {
-			printf( ' <a href="%s" class="page-title-action">%s</a>', esc_url( admin_url( 'admin.php?page=' . self::PAGE . '&view=add' ) ), esc_html__( 'Add New', 'karks-crm' ) );
+			printf( ' <a href="%s" class="page-title-action">%s</a>', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
 		}
 		echo '<hr class="wp-header-end">';
 
@@ -103,7 +49,7 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 					<tr>
 						<td>
 							<strong>
-								<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE . '&view=edit&id=' . $company->id ) ); ?>">
+								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $company->id ) ) ); ?>">
 									<?php echo esc_html( $company->name ); ?>
 								</a>
 							</strong>
@@ -112,9 +58,9 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 						<td><?php echo esc_html( $company->phone ); ?></td>
 						<td><?php echo esc_html( $company->invoice_prefix ); ?></td>
 						<td>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE . '&view=edit&id=' . $company->id ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
+							<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $company->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
 							|
-							<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=' . self::PAGE . '&action=delete&id=' . $company->id ), 'kcrm_delete_company_' . $company->id ) ); ?>"
+							<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $company->id ) ), 'kcrm_delete_company_' . $company->id ) ); ?>"
 								onclick="return confirm('<?php echo esc_js( __( 'Delete this company and switch to another? Customers, services, and invoices under it will remain in the database but hidden.', 'karks-crm' ) ); ?>');">
 								<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
 							</a>
@@ -140,7 +86,7 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 			return $company ? $company->$field : $default;
 		};
 		?>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE ) ); ?>">
+		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>">
 			<?php wp_nonce_field( 'kcrm_save_company' ); ?>
 			<input type="hidden" name="kcrm_action" value="save_company">
 			<input type="hidden" name="id" value="<?php echo esc_attr( $id ); ?>">
@@ -215,6 +161,56 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 						<p class="description"><?php esc_html_e( 'Custom text shown at the bottom of every PDF invoice for this company (e.g. payment terms, bank details, a thank-you note).', 'karks-crm' ); ?></p>
 					</td>
 				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Accepted Payment Types', 'karks-crm' ); ?></th>
+					<td>
+						<?php $kcrm_accepted_types = KCRM_Company::accepted_payment_type_keys( $company ); ?>
+						<?php foreach ( KCRM_Company::payment_types() as $kcrm_type_key => $kcrm_type_label ) : ?>
+							<label style="display:inline-block;margin:0 16px 8px 0;">
+								<input type="checkbox" name="accepted_payment_types[]" class="kcrm-payment-type-checkbox" data-type="<?php echo esc_attr( $kcrm_type_key ); ?>" value="<?php echo esc_attr( $kcrm_type_key ); ?>" <?php checked( in_array( $kcrm_type_key, $kcrm_accepted_types, true ) ); ?>>
+								<?php echo esc_html( $kcrm_type_label ); ?>
+							</label>
+						<?php endforeach; ?>
+					</td>
+				</tr>
+				<tr id="kcrm-check-payable-to-row" style="<?php echo in_array( 'check', $kcrm_accepted_types, true ) ? '' : 'display:none;'; ?>">
+					<th><label for="check_payable_to"><?php esc_html_e( 'Make Checks Payable To', 'karks-crm' ); ?></label></th>
+					<td>
+						<input type="text" class="regular-text" name="check_payable_to" id="check_payable_to" value="<?php echo esc_attr( $company ? $company->check_payable_to : '' ); ?>">
+						<p class="description"><?php esc_html_e( 'Printed in larger type on PDF invoices so checks aren\'t mistakenly made out to the wrong name.', 'karks-crm' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Payment Links', 'karks-crm' ); ?></th>
+					<td>
+						<table class="widefat" style="max-width:600px;">
+							<thead>
+								<tr>
+									<th><?php esc_html_e( 'Label', 'karks-crm' ); ?></th>
+									<th><?php esc_html_e( 'URL', 'karks-crm' ); ?></th>
+									<th></th>
+								</tr>
+							</thead>
+							<tbody id="kcrm-payment-links-body">
+								<?php
+								$kcrm_payment_links = KCRM_Company::payment_links( $company );
+								if ( empty( $kcrm_payment_links ) ) {
+									$kcrm_payment_links = array( array( 'label' => '', 'url' => '' ) );
+								}
+								?>
+								<?php foreach ( $kcrm_payment_links as $kcrm_link ) : ?>
+									<tr class="kcrm-payment-link-row">
+										<td><input type="text" name="payment_link_label[]" value="<?php echo esc_attr( $kcrm_link['label'] ?? '' ); ?>" placeholder="<?php esc_attr_e( 'e.g. PayPal', 'karks-crm' ); ?>"></td>
+										<td><input type="url" name="payment_link_url[]" value="<?php echo esc_attr( $kcrm_link['url'] ?? '' ); ?>" placeholder="https://" class="regular-text"></td>
+										<td><button type="button" class="button kcrm-remove-payment-link">&times;</button></td>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+						<p><button type="button" class="button" id="kcrm-add-payment-link"><?php esc_html_e( '+ Add Link', 'karks-crm' ); ?></button></p>
+						<p class="description"><?php esc_html_e( 'Shown on invoices as quick ways for customers to pay online (e.g. a PayPal.me link, Stripe payment link).', 'karks-crm' ); ?></p>
+					</td>
+				</tr>
 			</table>
 
 			<?php submit_button( $id ? __( 'Update Company', 'karks-crm' ) : __( 'Add Company', 'karks-crm' ) ); ?>
@@ -237,6 +233,9 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 				$('#logo_attachment_id').val('');
 				$('#kcrm-logo-preview').empty();
 				$(this).hide();
+			});
+			$('.kcrm-payment-type-checkbox[data-type="check"]').on('change', function(){
+				$('#kcrm-check-payable-to-row').toggle(this.checked);
 			});
 		});
 		</script>

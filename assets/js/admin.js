@@ -75,9 +75,20 @@
 		$('#kcrm-invoice-type-other-row').toggle(type === 'other');
 	}
 
+	function toggleMethodOtherField() {
+		var $select = $('#method');
+		if (!$select.length || 'select' !== $select.prop('tagName').toLowerCase()) {
+			return;
+		}
+		$('#kcrm-method-other-row').toggle($select.val() === '__other__');
+	}
+
 	$(function () {
 		$('#invoice_type').on('change', toggleInvoiceTypeFields);
 		toggleInvoiceTypeFields();
+
+		$('#method').on('change', toggleMethodOtherField);
+		toggleMethodOtherField();
 
 		var $body = $('#kcrm-line-items-body');
 		if (!$body.length) {
@@ -101,6 +112,35 @@
 			$body.append($template);
 			bindRow($template);
 			recalcTotals();
+		});
+	});
+
+	function bindPaymentLinkRow($row) {
+		$row.find('.kcrm-remove-payment-link').on('click', function () {
+			var $rows = $('#kcrm-payment-links-body .kcrm-payment-link-row');
+			if ($rows.length > 1) {
+				$row.remove();
+			} else {
+				$row.find('input').val('');
+			}
+		});
+	}
+
+	$(function () {
+		var $linksBody = $('#kcrm-payment-links-body');
+		if (!$linksBody.length) {
+			return;
+		}
+
+		$linksBody.find('.kcrm-payment-link-row').each(function () {
+			bindPaymentLinkRow($(this));
+		});
+
+		$('#kcrm-add-payment-link').on('click', function () {
+			var $template = $linksBody.find('.kcrm-payment-link-row').first().clone();
+			$template.find('input').val('');
+			$linksBody.append($template);
+			bindPaymentLinkRow($template);
 		});
 	});
 })(jQuery);

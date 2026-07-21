@@ -17,10 +17,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'KCRM_VERSION', '0.4.0' );
-define( 'KCRM_DB_VERSION', '1.3.0' );
+define( 'KCRM_DB_VERSION', '1.5.0' );
 define( 'KCRM_PLUGIN_FILE', __FILE__ );
 define( 'KCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+/**
+ * Capability required to manage companies/customers/services/invoices,
+ * in wp-admin or on the front end. Granted to Administrators and to the
+ * kcrm_manager role (see KCRM_Activator::add_role_and_caps()).
+ */
+define( 'KCRM_CAPABILITY', 'kcrm_manage' );
 
 if ( file_exists( KCRM_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once KCRM_PLUGIN_DIR . 'vendor/autoload.php';
@@ -38,8 +45,15 @@ require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice-item.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-payment.php';
 
-require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-context.php';
+require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-controller-base.php';
+require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-companies-controller.php';
+require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-customers-controller.php';
+require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-services-controller.php';
+require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-invoices-controller.php';
+
+require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm.php';
+require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-front.php';
 
 register_activation_hook( __FILE__, array( 'KCRM_Activator', 'activate' ) );
 
@@ -49,5 +63,8 @@ register_activation_hook( __FILE__, array( 'KCRM_Activator', 'activate' ) );
 function kcrm_run() {
 	$plugin = new KCRM_Plugin();
 	$plugin->run();
+
+	$front = new KCRM_Front();
+	$front->run();
 }
 add_action( 'plugins_loaded', 'kcrm_run' );

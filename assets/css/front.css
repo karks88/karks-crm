@@ -1,0 +1,218 @@
+.kcrm-front {
+	max-width: 1200px;
+	margin: 0 auto;
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+.kcrm-front-nav {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+	margin-bottom: 20px;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.kcrm-front-nav a {
+	display: inline-block;
+	font-size: 1.125rem;
+	padding: 10px 2.5em;
+	text-decoration: none;
+	border-bottom: 3px solid transparent;
+	color: #50575e;
+}
+
+.kcrm-front-nav a.is-active {
+	border-bottom-color: #2271b1;
+	color: #2271b1;
+	font-weight: 600;
+}
+
+.kcrm-front .notice {
+	padding: 10px 14px;
+	margin: 0 0 2.5em;
+	border-left: 4px solid #dcdcde;
+	background: #fff;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+}
+
+.kcrm-front .notice-success { border-left-color: #1a7a3a; }
+.kcrm-front .notice-error { border-left-color: #b32d2e; }
+
+.kcrm-front .kcrm-company-switcher {
+	margin: 0 0 3.5em;
+}
+
+.kcrm-front .kcrm-company-switcher select {
+	min-width: 220px;
+}
+
+.kcrm-front-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 12px 0 3.5em;
+}
+
+.kcrm-front-table th,
+.kcrm-front-table td {
+	text-align: left;
+	padding: 8px 10px;
+	border-bottom: 1px solid #eee;
+}
+
+.kcrm-front-table th {
+	background: #f6f7f7;
+	font-size: 12px;
+	text-transform: uppercase;
+	color: #646970;
+}
+
+.kcrm-front-table tr:hover {
+	background: #FFFFCC;
+}
+
+.kcrm-front-form p {
+	margin: 0 0 14px;
+}
+
+.kcrm-front-form label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.kcrm-front-form input[type=text],
+.kcrm-front-form input[type=email],
+.kcrm-front-form input[type=number],
+.kcrm-front-form input[type=date],
+.kcrm-front-form input[type=month],
+.kcrm-front-form select,
+.kcrm-front-form textarea {
+	width: 100%;
+	max-width: 480px;
+	padding: 8px;
+	border: 1px solid #8c8f94;
+	border-radius: 3px;
+}
+
+.kcrm-button-group {
+	margin: 2.5em 0;
+}
+
+.kcrm-button {
+	display: inline-block;
+	padding: 8px 2.5em;
+	border: 1px solid #2271b1;
+	border-radius: 3px;
+	background: #f6f7f7;
+	color: #2271b1;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.kcrm-button-primary {
+	background: #2271b1;
+	color: #fff;
+}
+
+.kcrm-dashboard-cards {
+	display: flex;
+	gap: 2.5em;
+	margin: 2.5em 0 24px;
+	flex-wrap: wrap;
+}
+
+.kcrm-card {
+	display: block;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 2.5em 24px;
+	min-width: 160px;
+	text-decoration: none;
+	color: inherit;
+}
+
+a.kcrm-card:hover,
+a.kcrm-card:focus {
+	border-color: #2271b1;
+}
+
+.kcrm-card-number {
+	display: block;
+	font-size: 28px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.kcrm-card-label {
+	display: block;
+	color: #646970;
+	font-size: 13px;
+	text-transform: uppercase;
+	letter-spacing: .02em;
+}
+
+.kcrm-status {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	background: #f0f0f1;
+	font-size: 12px;
+}
+
+.kcrm-status-paid { background: #d4f4dd; color: #1a7a3a; }
+.kcrm-status-partial { background: #fff3cd; color: #8a6100; }
+.kcrm-status-open { background: #fde8d2; color: #9a5b12; }
+.kcrm-status-void { background: #f0f0f1; color: #787c82; text-decoration: line-through; }
+.kcrm-status-draft { background: #f0f0f1; color: #50575e; }
+.kcrm-status-active { background: #d4f4dd; color: #1a7a3a; }
+.kcrm-status-inactive { background: #f0f0f1; color: #787c82; }
+
+.kcrm-front #kcrm-line-items .kcrm-item-amount {
+	text-align: right;
+	font-weight: 600;
+}
+
+.kcrm-front #kcrm-line-items select,
+.kcrm-front #kcrm-line-items input {
+	width: 100%;
+}
+
+@media (max-width: 600px) {
+	.kcrm-front-nav a {
+		padding: 8px 1em;
+		font-size: 14px;
+	}
+
+	.kcrm-front-table {
+		display: block;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.kcrm-front-table th,
+	.kcrm-front-table td {
+		white-space: nowrap;
+	}
+
+	.kcrm-front .kcrm-company-switcher select {
+		width: 100%;
+		min-width: 0;
+	}
+
+	.kcrm-dashboard-cards {
+		gap: 12px;
+	}
+
+	.kcrm-card {
+		min-width: 0;
+		flex: 1 1 calc(50% - 12px);
+		padding: 16px;
+	}
+
+	.kcrm-button {
+		padding: 8px 16px;
+		margin: 4px 4px 4px 0;
+	}
+}

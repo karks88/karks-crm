@@ -90,6 +90,27 @@ class KCRM_Invoice extends KCRM_Model_Base {
 		return self::where( array( 'customer_id' => $customer_id ), $order_by );
 	}
 
+	/**
+	 * @param array|null $statuses Limit to these statuses, or null for all statuses.
+	 */
+	public static function for_company_with_statuses( $company_id, $statuses = null, $order_by = 'issue_date DESC, id DESC' ) {
+		global $wpdb;
+
+		if ( null === $statuses ) {
+			return self::for_company( $company_id, $order_by );
+		}
+
+		if ( empty( $statuses ) ) {
+			return array();
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $statuses ), '%s' ) );
+		$params       = array_merge( array( self::table(), $company_id ), array_values( $statuses ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $placeholders is only repeated %s placeholder syntax (its count matches count( $statuses )); $params holds one value per placeholder, passed as $wpdb->prepare()'s documented array-of-args form.
+		return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE company_id = %d AND status IN (' . $placeholders . ') ORDER BY ' . self::safe_order_by( $order_by ), $params ) );
+	}
+
 	/** Statuses shown by default on the customer profile's invoice list. */
 	public static function default_customer_statuses() {
 		return array( self::STATUS_DRAFT, self::STATUS_OPEN, self::STATUS_PARTIAL );
