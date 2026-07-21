@@ -8,11 +8,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * defines: $invoice, $company, $customer, $items, $payments, $balance_due, $logo_data.
  */
 
-$currency = $company && $company->currency ? $company->currency : 'USD';
-$statuses = KCRM_Invoice::statuses();
+$kcrm_currency = $company && $company->currency ? $company->currency : 'USD';
+$kcrm_statuses = KCRM_Invoice::statuses();
 
-$format_money = function ( $amount ) use ( $currency ) {
-	return $currency . ' ' . number_format( (float) $amount, 2 );
+$kcrm_format_money = function ( $amount ) use ( $kcrm_currency ) {
+	return $kcrm_currency . ' ' . number_format( (float) $amount, 2 );
 };
 ?>
 <!DOCTYPE html>
@@ -68,7 +68,7 @@ $format_money = function ( $amount ) use ( $currency ) {
 					<?php if ( $invoice->due_date ) : ?>
 						<div><?php esc_html_e( 'Due:', 'karks-crm' ); ?> <?php echo esc_html( $invoice->due_date ); ?></div>
 					<?php endif; ?>
-					<div><span class="status-badge"><?php echo esc_html( $statuses[ $invoice->status ] ?? $invoice->status ); ?></span></div>
+					<div><span class="status-badge"><?php echo esc_html( $kcrm_statuses[ $invoice->status ] ?? $invoice->status ); ?></span></div>
 				</div>
 			</td>
 		</tr>
@@ -114,12 +114,12 @@ $format_money = function ( $amount ) use ( $currency ) {
 		</tr>
 	</thead>
 	<tbody>
-		<?php foreach ( $items as $item ) : ?>
+		<?php foreach ( $items as $kcrm_item ) : ?>
 			<tr>
-				<td><?php echo esc_html( $item->description ); ?></td>
-				<td class="text-right"><?php echo esc_html( number_format( (float) $item->quantity, 2 ) ); ?></td>
-				<td class="text-right"><?php echo esc_html( $format_money( $item->rate ) ); ?></td>
-				<td class="text-right"><?php echo esc_html( $format_money( $item->amount ) ); ?></td>
+				<td><?php echo esc_html( $kcrm_item->description ); ?></td>
+				<td class="text-right"><?php echo esc_html( number_format( (float) $kcrm_item->quantity, 2 ) ); ?></td>
+				<td class="text-right"><?php echo esc_html( $kcrm_format_money( $kcrm_item->rate ) ); ?></td>
+				<td class="text-right"><?php echo esc_html( $kcrm_format_money( $kcrm_item->amount ) ); ?></td>
 			</tr>
 		<?php endforeach; ?>
 	</tbody>
@@ -128,19 +128,24 @@ $format_money = function ( $amount ) use ( $currency ) {
 <table class="totals">
 	<tr>
 		<td><?php esc_html_e( 'Subtotal', 'karks-crm' ); ?></td>
-		<td class="text-right"><?php echo esc_html( $format_money( $invoice->subtotal ) ); ?></td>
+		<td class="text-right"><?php echo esc_html( $kcrm_format_money( $invoice->subtotal ) ); ?></td>
 	</tr>
 	<tr>
-		<td><?php echo esc_html( sprintf( __( 'Tax (%s%%)', 'karks-crm' ), rtrim( rtrim( number_format( (float) $invoice->tax_rate, 3 ), '0' ), '.' ) ) ); ?></td>
-		<td class="text-right"><?php echo esc_html( $format_money( $invoice->tax_amount ) ); ?></td>
+		<td>
+			<?php
+			/* translators: %s: tax rate percentage. */
+			echo esc_html( sprintf( __( 'Tax (%s%%)', 'karks-crm' ), rtrim( rtrim( number_format( (float) $invoice->tax_rate, 3 ), '0' ), '.' ) ) );
+			?>
+		</td>
+		<td class="text-right"><?php echo esc_html( $kcrm_format_money( $invoice->tax_amount ) ); ?></td>
 	</tr>
 	<tr class="total-row">
 		<td><?php esc_html_e( 'Total', 'karks-crm' ); ?></td>
-		<td class="text-right"><?php echo esc_html( $format_money( $invoice->total ) ); ?></td>
+		<td class="text-right"><?php echo esc_html( $kcrm_format_money( $invoice->total ) ); ?></td>
 	</tr>
 	<tr>
 		<td><?php esc_html_e( 'Balance Due', 'karks-crm' ); ?></td>
-		<td class="text-right"><?php echo esc_html( $format_money( $balance_due ) ); ?></td>
+		<td class="text-right"><?php echo esc_html( $kcrm_format_money( $balance_due ) ); ?></td>
 	</tr>
 </table>
 
@@ -156,11 +161,11 @@ $format_money = function ( $amount ) use ( $currency ) {
 			</tr>
 		</thead>
 		<tbody>
-			<?php foreach ( $payments as $payment ) : ?>
+			<?php foreach ( $payments as $kcrm_payment ) : ?>
 				<tr>
-					<td><?php echo esc_html( $payment->payment_date ); ?></td>
-					<td><?php echo esc_html( $payment->method ); ?></td>
-					<td class="text-right"><?php echo esc_html( $format_money( $payment->amount ) ); ?></td>
+					<td><?php echo esc_html( $kcrm_payment->payment_date ); ?></td>
+					<td><?php echo esc_html( $kcrm_payment->method ); ?></td>
+					<td class="text-right"><?php echo esc_html( $kcrm_format_money( $kcrm_payment->amount ) ); ?></td>
 				</tr>
 			<?php endforeach; ?>
 		</tbody>

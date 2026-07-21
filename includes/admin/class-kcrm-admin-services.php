@@ -8,16 +8,20 @@ class KCRM_Admin_Services extends KCRM_Admin_Base {
 	const PAGE = 'karks-crm-services';
 
 	public function handle_actions() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route dispatch; real nonce checks happen in the handler methods below.
 		if ( ! isset( $_GET['page'] ) || self::PAGE !== $_GET['page'] ) {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; save() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'save_service' === $_POST['kcrm_action'] ) {
 			$this->save();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete() verifies the nonce itself.
 		if ( isset( $_GET['action'], $_GET['id'] ) && 'delete' === $_GET['action'] ) {
-			$this->delete();
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete() verifies the nonce itself.
+			$this->delete( absint( $_GET['id'] ) );
 		}
 	}
 
@@ -59,13 +63,14 @@ class KCRM_Admin_Services extends KCRM_Admin_Base {
 		$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'saved' ) );
 	}
 
-	private function delete() {
-		check_admin_referer( 'kcrm_delete_service_' . absint( $_GET['id'] ) );
-		KCRM_Service::delete( absint( $_GET['id'] ) );
+	private function delete( $id ) {
+		check_admin_referer( 'kcrm_delete_service_' . $id );
+		KCRM_Service::delete( $id );
 		$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'deleted' ) );
 	}
 
 	public function render() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
 		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
 
 		echo '<div class="wrap kcrm-wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Services', 'karks-crm' ) . '</h1>';
@@ -142,6 +147,7 @@ class KCRM_Admin_Services extends KCRM_Admin_Base {
 	}
 
 	private function render_form( $view ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param, no state change.
 		$id      = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 		$service = $id ? KCRM_Service::find( $id ) : null;
 
@@ -150,10 +156,10 @@ class KCRM_Admin_Services extends KCRM_Admin_Base {
 			return;
 		}
 
-		$name        = $service ? esc_attr( $service->name ) : '';
-		$description = $service ? esc_textarea( $service->description ) : '';
+		$name        = $service ? $service->name : '';
+		$description = $service ? $service->description : '';
 		$type        = $service ? $service->type : KCRM_Service::TYPE_HOURLY;
-		$rate        = $service ? esc_attr( $service->rate ) : '0.00';
+		$rate        = $service ? $service->rate : '0.00';
 		$is_active   = $service ? (bool) $service->is_active : true;
 		?>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE ) ); ?>">
@@ -164,11 +170,11 @@ class KCRM_Admin_Services extends KCRM_Admin_Base {
 			<table class="form-table">
 				<tr>
 					<th><label for="name"><?php esc_html_e( 'Service Name', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="name" id="name" value="<?php echo $name; ?>" required></td>
+					<td><input type="text" class="regular-text" name="name" id="name" value="<?php echo esc_attr( $name ); ?>" required></td>
 				</tr>
 				<tr>
 					<th><label for="description"><?php esc_html_e( 'Description', 'karks-crm' ); ?></label></th>
-					<td><textarea class="large-text" rows="3" name="description" id="description"><?php echo $description; ?></textarea></td>
+					<td><textarea class="large-text" rows="3" name="description" id="description"><?php echo esc_textarea( $description ); ?></textarea></td>
 				</tr>
 				<tr>
 					<th><label for="type"><?php esc_html_e( 'Pricing Type', 'karks-crm' ); ?></label></th>
@@ -183,7 +189,7 @@ class KCRM_Admin_Services extends KCRM_Admin_Base {
 				<tr>
 					<th><label for="rate"><?php esc_html_e( 'Rate', 'karks-crm' ); ?></label></th>
 					<td>
-						<input type="number" step="0.01" min="0" name="rate" id="rate" value="<?php echo $rate; ?>">
+						<input type="number" step="0.01" min="0" name="rate" id="rate" value="<?php echo esc_attr( $rate ); ?>">
 						<p class="description"><?php esc_html_e( 'For hourly services this is the rate per hour; for project-based services this is the flat project price.', 'karks-crm' ); ?></p>
 					</td>
 				</tr>

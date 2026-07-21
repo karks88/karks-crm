@@ -26,9 +26,11 @@ abstract class KCRM_Admin_Base {
 	}
 
 	protected function render_notice_from_query() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display notice, no state change.
 		if ( empty( $_GET['kcrm_notice'] ) ) {
 			return;
 		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display notice, no state change.
 		$notice = sanitize_key( wp_unslash( $_GET['kcrm_notice'] ) );
 
 		$messages = array(

@@ -22,22 +22,35 @@ abstract class KCRM_Model_Base {
 		return array();
 	}
 
+	/**
+	 * Restricts an ORDER BY clause to identifier characters, whitespace,
+	 * commas, and dots so it can be safely concatenated into a query
+	 * (the %i placeholder only covers single identifiers, not a full
+	 * "column ASC, column2 DESC" clause).
+	 */
+	protected static function safe_order_by( $order_by, $default = 'id DESC' ) {
+		return ( is_string( $order_by ) && '' !== $order_by && preg_match( '/^[a-zA-Z0-9_.,\s]+$/', $order_by ) )
+			? $order_by
+			: $default;
+	}
+
 	public static function find( $id ) {
 		global $wpdb;
 		$table = static::table();
-		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d", $id ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; no core caching API applies.
+		return $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ) );
 	}
 
 	/**
-	 * @param array $where   Column => value equality filters.
-	 * @param string $order_by Raw ORDER BY clause (not user input).
+	 * @param array  $where    Column => value equality filters (column names are hardcoded by callers, not user input).
+	 * @param string $order_by Raw ORDER BY clause (not user input); restricted to identifier characters as defense in depth.
 	 */
 	public static function where( $where = array(), $order_by = 'id DESC', $limit = 0, $offset = 0 ) {
 		global $wpdb;
 		$table = static::table();
 
-		$sql    = "SELECT * FROM $table";
-		$params = array();
+		$sql    = 'SELECT * FROM %i';
+		$params = array( $table );
 
 		if ( ! empty( $where ) ) {
 			$clauses = array();
@@ -49,7 +62,7 @@ abstract class KCRM_Model_Base {
 		}
 
 		if ( $order_by ) {
-			$sql .= ' ORDER BY ' . $order_by;
+			$sql .= ' ORDER BY ' . static::safe_order_by( $order_by );
 		}
 
 		if ( $limit > 0 ) {
@@ -58,19 +71,16 @@ abstract class KCRM_Model_Base {
 			$params[] = $offset;
 		}
 
-		if ( ! empty( $params ) ) {
-			$sql = $wpdb->prepare( $sql, $params );
-		}
-
-		return $wpdb->get_results( $sql );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is built from %i/%s/%d placeholders only, filled in via $wpdb->prepare() on the same line; the dynamic WHERE/LIMIT clause count can't be a static literal.
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
 	}
 
 	public static function count_where( $where = array() ) {
 		global $wpdb;
 		$table = static::table();
 
-		$sql    = "SELECT COUNT(*) FROM $table";
-		$params = array();
+		$sql    = 'SELECT COUNT(*) FROM %i';
+		$params = array( $table );
 
 		if ( ! empty( $where ) ) {
 			$clauses = array();
@@ -81,11 +91,8 @@ abstract class KCRM_Model_Base {
 			$sql .= ' WHERE ' . implode( ' AND ', $clauses );
 		}
 
-		if ( ! empty( $params ) ) {
-			$sql = $wpdb->prepare( $sql, $params );
-		}
-
-		return (int) $wpdb->get_var( $sql );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is built from %i/%s placeholders only, filled in via $wpdb->prepare() on the same line; the dynamic WHERE clause count can't be a static literal.
+		return (int) $wpdb->get_var( $wpdb->prepare( $sql, $params ) );
 	}
 
 	public static function insert( $data ) {
@@ -102,6 +109,7 @@ abstract class KCRM_Model_Base {
 			}
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- custom table CRUD helper; $wpdb->insert() already escapes values.
 		$wpdb->insert( $table, $filtered, $formats );
 		return (int) $wpdb->insert_id;
 	}
@@ -124,12 +132,14 @@ abstract class KCRM_Model_Base {
 			return false;
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; $wpdb->update() already escapes values.
 		return $wpdb->update( $table, $filtered, array( 'id' => $id ), $formats, array( '%d' ) );
 	}
 
 	public static function delete( $id ) {
 		global $wpdb;
 		$table = static::table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; $wpdb->delete() already escapes values.
 		return $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 	}
 }

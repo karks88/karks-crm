@@ -43,11 +43,21 @@ class KCRM_CSV_Import {
 		$token = bin2hex( random_bytes( 16 ) );
 		$path  = trailingslashit( $dir ) . $token . '.csv';
 
-		if ( ! move_uploaded_file( $file['tmp_name'], $path ) ) {
+		if ( ! self::filesystem()->move( $file['tmp_name'], $path, true ) ) {
 			return new WP_Error( 'kcrm_import_move_failed', __( 'Could not save the uploaded file.', 'karks-crm' ) );
 		}
 
 		return $token;
+	}
+
+	/** @return WP_Filesystem_Base */
+	private static function filesystem() {
+		global $wp_filesystem;
+		if ( empty( $wp_filesystem ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+		return $wp_filesystem;
 	}
 
 	/** @return string|false Absolute path for a token, or false if the token is invalid/missing. */
@@ -68,12 +78,13 @@ class KCRM_CSV_Import {
 
 	/** @return array First row of the CSV (raw header labels). */
 	public static function read_header( $path ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fgetcsv() needs a real stream handle to correctly parse quoted multi-line fields; WP_Filesystem has no CSV-safe equivalent.
 		$handle = fopen( $path, 'r' );
 		if ( ! $handle ) {
 			return array();
 		}
 		$header = fgetcsv( $handle );
-		fclose( $handle );
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		return is_array( $header ) ? $header : array();
 	}
 
@@ -81,7 +92,8 @@ class KCRM_CSV_Import {
 	 * @return array List of data rows (each an indexed array of cell values), header row excluded.
 	 */
 	public static function read_rows( $path ) {
-		$rows   = array();
+		$rows = array();
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fgetcsv() needs a real stream handle to correctly parse quoted multi-line fields; WP_Filesystem has no CSV-safe equivalent.
 		$handle = fopen( $path, 'r' );
 		if ( ! $handle ) {
 			return $rows;
@@ -90,7 +102,7 @@ class KCRM_CSV_Import {
 		while ( ( $row = fgetcsv( $handle ) ) !== false ) {
 			$rows[] = $row;
 		}
-		fclose( $handle );
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		return $rows;
 	}
 

@@ -32,27 +32,27 @@ class KCRM_Payment extends KCRM_Model_Base {
 
 	public static function total_for_invoice( $invoice_id ) {
 		global $wpdb;
-		$table = self::table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; no core caching API applies.
 		return (float) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COALESCE(SUM(amount), 0) FROM $table WHERE invoice_id = %d", $invoice_id )
+			$wpdb->prepare( 'SELECT COALESCE(SUM(amount), 0) FROM %i WHERE invoice_id = %d', self::table(), $invoice_id )
 		);
 	}
 
 	/** Lifetime total paid by a customer. */
 	public static function total_for_customer( $customer_id ) {
 		global $wpdb;
-		$table = self::table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; no core caching API applies.
 		return (float) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COALESCE(SUM(amount), 0) FROM $table WHERE customer_id = %d", $customer_id )
+			$wpdb->prepare( 'SELECT COALESCE(SUM(amount), 0) FROM %i WHERE customer_id = %d', self::table(), $customer_id )
 		);
 	}
 
 	/** Total paid by a customer within a given calendar year (based on payment_date). */
 	public static function total_for_customer_in_year( $customer_id, $year ) {
 		global $wpdb;
-		$table = self::table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; no core caching API applies.
 		return (float) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COALESCE(SUM(amount), 0) FROM $table WHERE customer_id = %d AND YEAR(payment_date) = %d", $customer_id, $year )
+			$wpdb->prepare( 'SELECT COALESCE(SUM(amount), 0) FROM %i WHERE customer_id = %d AND YEAR(payment_date) = %d', self::table(), $customer_id, $year )
 		);
 	}
 
@@ -65,12 +65,10 @@ class KCRM_Payment extends KCRM_Model_Base {
 			return 0.0;
 		}
 
-		$table        = self::table();
 		$placeholders = implode( ', ', array_fill( 0, count( $customer_ids ), '%d' ) );
 
-		return (float) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COALESCE(SUM(amount), 0) FROM $table WHERE customer_id IN ($placeholders)", $customer_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $placeholders is only repeated %d placeholder syntax (its count matches count( $customer_ids )), not user input; query text and args are passed to $wpdb->prepare() on this line.
+		return (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(amount), 0) FROM %i WHERE customer_id IN (' . $placeholders . ')', array_merge( array( self::table() ), $customer_ids ) ) );
 	}
 
 	/** Total paid within a given calendar year across a set of customer ids (a customer plus its Jobs). */
@@ -82,13 +80,11 @@ class KCRM_Payment extends KCRM_Model_Base {
 			return 0.0;
 		}
 
-		$table        = self::table();
 		$placeholders = implode( ', ', array_fill( 0, count( $customer_ids ), '%d' ) );
-		$params       = array_merge( $customer_ids, array( $year ) );
+		$params       = array_merge( array( self::table() ), $customer_ids, array( $year ) );
 
-		return (float) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COALESCE(SUM(amount), 0) FROM $table WHERE customer_id IN ($placeholders) AND YEAR(payment_date) = %d", $params ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $placeholders is only repeated %d placeholder syntax; $params holds one value per placeholder ($customer_ids plus $year), passed as $wpdb->prepare()'s documented array-of-args form.
+		return (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(amount), 0) FROM %i WHERE customer_id IN (' . $placeholders . ') AND YEAR(payment_date) = %d', $params ) );
 	}
 
 	/**

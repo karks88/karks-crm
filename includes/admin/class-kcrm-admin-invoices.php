@@ -8,24 +8,51 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 	const PAGE = 'karks-crm-invoices';
 
 	public function handle_actions() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route dispatch; real nonce checks happen in the handler methods below.
 		if ( ! isset( $_GET['page'] ) || self::PAGE !== $_GET['page'] ) {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; save() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'save_invoice' === $_POST['kcrm_action'] ) {
 			$this->save();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; add_payment() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'add_payment' === $_POST['kcrm_action'] ) {
 			$this->add_payment();
 		}
 
-		if ( isset( $_GET['action'], $_GET['id'] ) && 'delete' === $_GET['action'] ) {
-			$this->delete();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_invoice_import_upload() verifies the nonce itself.
+		if ( isset( $_POST['kcrm_action'] ) && 'import_invoices_upload' === $_POST['kcrm_action'] ) {
+			$this->handle_invoice_import_upload();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_invoice_import_run() verifies the nonce itself.
+		if ( isset( $_POST['kcrm_action'] ) && 'import_invoices_run' === $_POST['kcrm_action'] ) {
+			$this->handle_invoice_import_run();
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_payment_import_upload() verifies the nonce itself.
+		if ( isset( $_POST['kcrm_action'] ) && 'import_payments_upload' === $_POST['kcrm_action'] ) {
+			$this->handle_payment_import_upload();
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_payment_import_run() verifies the nonce itself.
+		if ( isset( $_POST['kcrm_action'] ) && 'import_payments_run' === $_POST['kcrm_action'] ) {
+			$this->handle_payment_import_run();
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete() verifies the nonce itself.
+		if ( isset( $_GET['action'], $_GET['id'] ) && 'delete' === $_GET['action'] ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete() verifies the nonce itself.
+			$this->delete( absint( $_GET['id'] ) );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete_payment() verifies the nonce itself.
 		if ( isset( $_GET['action'], $_GET['payment_id'] ) && 'delete_payment' === $_GET['action'] ) {
-			$this->delete_payment();
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete_payment() verifies the nonce itself.
+			$this->delete_payment( absint( $_GET['payment_id'] ) );
 		}
 	}
 
@@ -60,9 +87,12 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 			'company_id'         => $company_id,
 			'customer_id'        => $customer_id,
 			'status'             => $status,
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_date() unslashes and validates internally.
 			'issue_date'         => $this->sanitize_date( $_POST['issue_date'] ?? '' ),
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_date() unslashes and validates internally.
 			'due_date'           => $this->sanitize_date( $_POST['due_date'] ?? '' ),
 			'invoice_type'       => $invoice_type,
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_month() unslashes and validates internally.
 			'invoice_type_month' => KCRM_Invoice::TYPE_MONTH_YEAR === $invoice_type ? $this->sanitize_month( $_POST['invoice_type_month'] ?? '' ) : null,
 			'invoice_type_other' => KCRM_Invoice::TYPE_OTHER === $invoice_type ? sanitize_text_field( wp_unslash( $_POST['invoice_type_other'] ?? '' ) ) : null,
 			'notes'              => sanitize_textarea_field( wp_unslash( $_POST['notes'] ?? '' ) ),
@@ -86,11 +116,16 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 	private function save_line_items( $invoice_id ) {
 		KCRM_Invoice_Item::delete_for_invoice( $invoice_id );
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified in save(); each value is sanitized per-row below (sanitize_text_field).
 		$descriptions = isset( $_POST['item_description'] ) ? (array) wp_unslash( $_POST['item_description'] ) : array();
-		$types        = isset( $_POST['item_type'] ) ? (array) wp_unslash( $_POST['item_type'] ) : array();
-		$quantities   = isset( $_POST['item_quantity'] ) ? (array) wp_unslash( $_POST['item_quantity'] ) : array();
-		$rates        = isset( $_POST['item_rate'] ) ? (array) wp_unslash( $_POST['item_rate'] ) : array();
-		$service_ids  = isset( $_POST['item_service_id'] ) ? (array) wp_unslash( $_POST['item_service_id'] ) : array();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified in save(); each value is sanitized per-row below (sanitize_key).
+		$types = isset( $_POST['item_type'] ) ? (array) wp_unslash( $_POST['item_type'] ) : array();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified in save(); each value is cast to float per-row below.
+		$quantities = isset( $_POST['item_quantity'] ) ? (array) wp_unslash( $_POST['item_quantity'] ) : array();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified in save(); each value is cast to float per-row below.
+		$rates = isset( $_POST['item_rate'] ) ? (array) wp_unslash( $_POST['item_rate'] ) : array();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified in save(); each value is cast with absint() per-row below.
+		$service_ids = isset( $_POST['item_service_id'] ) ? (array) wp_unslash( $_POST['item_service_id'] ) : array();
 
 		$sort = 0;
 		foreach ( $descriptions as $index => $description ) {
@@ -142,6 +177,7 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 					'customer_id'  => $invoice->customer_id,
 					'company_id'   => $invoice->company_id,
 					'amount'       => $amount,
+					// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_date() unslashes and validates internally.
 					'payment_date' => $this->sanitize_date( $_POST['payment_date'] ?? '' ),
 					'method'       => sanitize_text_field( wp_unslash( $_POST['method'] ?? '' ) ),
 					'note'         => sanitize_text_field( wp_unslash( $_POST['note'] ?? '' ) ),
@@ -152,8 +188,7 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 		$this->redirect( array( 'page' => self::PAGE, 'view' => 'edit', 'id' => $invoice_id, 'kcrm_notice' => 'saved' ) );
 	}
 
-	private function delete_payment() {
-		$payment_id = absint( $_GET['payment_id'] );
+	private function delete_payment( $payment_id ) {
 		check_admin_referer( 'kcrm_delete_payment_' . $payment_id );
 
 		$payment = KCRM_Payment::find( $payment_id );
@@ -162,12 +197,388 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 		$this->redirect( array( 'page' => self::PAGE, 'view' => 'edit', 'id' => $payment ? $payment->invoice_id : 0, 'kcrm_notice' => 'deleted' ) );
 	}
 
-	private function delete() {
-		check_admin_referer( 'kcrm_delete_invoice_' . absint( $_GET['id'] ) );
-		$invoice_id = absint( $_GET['id'] );
+	private function delete( $invoice_id ) {
+		check_admin_referer( 'kcrm_delete_invoice_' . $invoice_id );
 		KCRM_Invoice_Item::delete_for_invoice( $invoice_id );
 		KCRM_Invoice::delete( $invoice_id );
 		$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'deleted' ) );
+	}
+
+	private function handle_invoice_import_upload() {
+		check_admin_referer( 'kcrm_import_invoices_upload' );
+
+		if ( ! $this->current_company_id() ) {
+			$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'no_company' ) );
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- KCRM_CSV_Import::store_upload() validates tmp_name, error, size, and extension before use.
+		$file  = isset( $_FILES['import_file'] ) ? wp_unslash( $_FILES['import_file'] ) : array();
+		$token = KCRM_CSV_Import::store_upload( $file );
+
+		if ( is_wp_error( $token ) ) {
+			$this->redirect( array( 'page' => self::PAGE, 'view' => 'import_invoices', 'kcrm_notice' => 'error' ) );
+		}
+
+		$this->redirect( array( 'page' => self::PAGE, 'view' => 'import_invoices', 'stage' => 'map', 'file' => $token ) );
+	}
+
+	/**
+	 * Each row becomes an invoice with a single line item for the mapped
+	 * amount. Status is left Open (or Draft/Void, if mapped) — Open/Partial/
+	 * Paid are always derived from actual payments, so historical invoices
+	 * only reach "Paid" once their payments are imported via the payments
+	 * importer below, same as they would from a payment recorded by hand.
+	 */
+	private function handle_invoice_import_run() {
+		check_admin_referer( 'kcrm_import_invoices_run' );
+
+		$company_id = $this->current_company_id();
+		if ( ! $company_id ) {
+			$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'no_company' ) );
+		}
+
+		$token = isset( $_POST['file'] ) ? sanitize_text_field( wp_unslash( $_POST['file'] ) ) : '';
+		$path  = KCRM_CSV_Import::path_for_token( $token );
+
+		if ( ! $path ) {
+			$this->redirect( array( 'page' => self::PAGE, 'view' => 'import_invoices', 'kcrm_notice' => 'error' ) );
+		}
+
+		$map = isset( $_POST['map'] ) ? array_map( 'intval', (array) wp_unslash( $_POST['map'] ) ) : array();
+
+		if ( ( $map['customer_name'] ?? -1 ) < 0 || ( $map['issue_date'] ?? -1 ) < 0 || ( $map['amount'] ?? -1 ) < 0 ) {
+			$this->redirect( array( 'page' => self::PAGE, 'view' => 'import_invoices', 'stage' => 'map', 'file' => $token, 'kcrm_notice' => 'error' ) );
+		}
+
+		$rows = KCRM_CSV_Import::read_rows( $path );
+
+		$customers_by_name = array();
+		foreach ( KCRM_Customer::for_company( $company_id ) as $customer ) {
+			$customers_by_name[ strtolower( trim( $customer->company_name ) ) ] = (int) $customer->id;
+		}
+
+		$existing_numbers = array();
+		foreach ( KCRM_Invoice::for_company( $company_id ) as $invoice ) {
+			if ( '' !== trim( (string) $invoice->invoice_number ) ) {
+				$existing_numbers[ strtolower( trim( $invoice->invoice_number ) ) ] = true;
+			}
+		}
+
+		$imported            = 0;
+		$skipped_missing     = 0;
+		$skipped_no_customer = 0;
+		$skipped_duplicate   = 0;
+		$seen_numbers        = array();
+
+		foreach ( $rows as $row ) {
+			$customer_name = $this->mapped_cell( $row, $map, 'customer_name' );
+			$issue_date    = $this->sanitize_date( $this->mapped_cell( $row, $map, 'issue_date' ) );
+			$amount        = $this->mapped_amount( $row, $map, 'amount' );
+
+			if ( '' === $customer_name || ! $issue_date || null === $amount ) {
+				$skipped_missing++;
+				continue;
+			}
+
+			$customer_id = $customers_by_name[ strtolower( $customer_name ) ] ?? 0;
+			if ( ! $customer_id ) {
+				$skipped_no_customer++;
+				continue;
+			}
+
+			$invoice_number = $this->mapped_cell( $row, $map, 'invoice_number' );
+			if ( '' !== $invoice_number ) {
+				$key = strtolower( $invoice_number );
+				if ( isset( $existing_numbers[ $key ] ) || isset( $seen_numbers[ $key ] ) ) {
+					$skipped_duplicate++;
+					continue;
+				}
+				$seen_numbers[ $key ] = true;
+			} else {
+				$invoice_number = KCRM_Company::next_invoice_number( $company_id );
+			}
+
+			$description = $this->mapped_cell( $row, $map, 'description' );
+			if ( '' === $description ) {
+				$description = __( 'Imported Invoice', 'karks-crm' );
+			}
+
+			$tax_rate = $this->mapped_amount( $row, $map, 'tax_rate' );
+
+			$invoice_id = KCRM_Invoice::create(
+				array(
+					'company_id'         => $company_id,
+					'customer_id'        => $customer_id,
+					'invoice_number'     => $invoice_number,
+					'status'             => $this->parse_invoice_status( $this->mapped_cell( $row, $map, 'status_source' ) ),
+					'issue_date'         => $issue_date,
+					'due_date'           => $this->sanitize_date( $this->mapped_cell( $row, $map, 'due_date' ) ),
+					'invoice_type'       => KCRM_Invoice::TYPE_OTHER,
+					'invoice_type_other' => $description,
+					'notes'              => sanitize_textarea_field( $this->mapped_cell( $row, $map, 'notes' ) ),
+					'tax_rate'           => $tax_rate ?? 0,
+				)
+			);
+
+			KCRM_Invoice_Item::insert(
+				array(
+					'invoice_id'  => $invoice_id,
+					'service_id'  => null,
+					'description' => $description,
+					'type'        => KCRM_Service::TYPE_PROJECT,
+					'quantity'    => 1,
+					'rate'        => $amount,
+					'amount'      => $amount,
+					'sort_order'  => 0,
+				)
+			);
+
+			KCRM_Invoice::recalculate_totals( $invoice_id );
+
+			$imported++;
+		}
+
+		KCRM_CSV_Import::delete( $token );
+
+		$this->redirect(
+			array(
+				'page'                => self::PAGE,
+				'view'                => 'import_invoices',
+				'stage'               => 'done',
+				'imported'            => $imported,
+				'skipped_no_customer' => $skipped_no_customer,
+				'skipped_duplicate'   => $skipped_duplicate,
+				'skipped_missing'     => $skipped_missing,
+			)
+		);
+	}
+
+	private function parse_invoice_status( $value ) {
+		$value = strtolower( trim( $value ) );
+		if ( false !== strpos( $value, 'void' ) ) {
+			return KCRM_Invoice::STATUS_VOID;
+		}
+		if ( false !== strpos( $value, 'draft' ) ) {
+			return KCRM_Invoice::STATUS_DRAFT;
+		}
+		return KCRM_Invoice::STATUS_OPEN;
+	}
+
+	private function handle_payment_import_upload() {
+		check_admin_referer( 'kcrm_import_payments_upload' );
+
+		if ( ! $this->current_company_id() ) {
+			$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'no_company' ) );
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- KCRM_CSV_Import::store_upload() validates tmp_name, error, size, and extension before use.
+		$file  = isset( $_FILES['import_file'] ) ? wp_unslash( $_FILES['import_file'] ) : array();
+		$token = KCRM_CSV_Import::store_upload( $file );
+
+		if ( is_wp_error( $token ) ) {
+			$this->redirect( array( 'page' => self::PAGE, 'view' => 'import_payments', 'kcrm_notice' => 'error' ) );
+		}
+
+		$this->redirect( array( 'page' => self::PAGE, 'view' => 'import_payments', 'stage' => 'map', 'file' => $token ) );
+	}
+
+	private function handle_payment_import_run() {
+		check_admin_referer( 'kcrm_import_payments_run' );
+
+		$company_id = $this->current_company_id();
+		if ( ! $company_id ) {
+			$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'no_company' ) );
+		}
+
+		$token = isset( $_POST['file'] ) ? sanitize_text_field( wp_unslash( $_POST['file'] ) ) : '';
+		$path  = KCRM_CSV_Import::path_for_token( $token );
+
+		if ( ! $path ) {
+			$this->redirect( array( 'page' => self::PAGE, 'view' => 'import_payments', 'kcrm_notice' => 'error' ) );
+		}
+
+		$map = isset( $_POST['map'] ) ? array_map( 'intval', (array) wp_unslash( $_POST['map'] ) ) : array();
+
+		if ( ( $map['invoice_number'] ?? -1 ) < 0 || ( $map['amount'] ?? -1 ) < 0 || ( $map['payment_date'] ?? -1 ) < 0 ) {
+			$this->redirect( array( 'page' => self::PAGE, 'view' => 'import_payments', 'stage' => 'map', 'file' => $token, 'kcrm_notice' => 'error' ) );
+		}
+
+		$rows = KCRM_CSV_Import::read_rows( $path );
+
+		$invoices_by_number = array();
+		foreach ( KCRM_Invoice::for_company( $company_id ) as $invoice ) {
+			if ( '' !== trim( (string) $invoice->invoice_number ) ) {
+				$invoices_by_number[ strtolower( trim( $invoice->invoice_number ) ) ] = $invoice;
+			}
+		}
+
+		$imported           = 0;
+		$skipped_missing    = 0;
+		$skipped_no_invoice = 0;
+
+		foreach ( $rows as $row ) {
+			$invoice_number = $this->mapped_cell( $row, $map, 'invoice_number' );
+			$payment_date   = $this->sanitize_date( $this->mapped_cell( $row, $map, 'payment_date' ) );
+			$amount         = $this->mapped_amount( $row, $map, 'amount' );
+
+			if ( '' === $invoice_number || ! $payment_date || null === $amount || $amount <= 0 ) {
+				$skipped_missing++;
+				continue;
+			}
+
+			$invoice = $invoices_by_number[ strtolower( $invoice_number ) ] ?? null;
+			if ( ! $invoice ) {
+				$skipped_no_invoice++;
+				continue;
+			}
+
+			KCRM_Payment::create(
+				array(
+					'invoice_id'   => $invoice->id,
+					'customer_id'  => $invoice->customer_id,
+					'company_id'   => $company_id,
+					'amount'       => $amount,
+					'payment_date' => $payment_date,
+					'method'       => $this->mapped_cell( $row, $map, 'method' ),
+					'note'         => $this->mapped_cell( $row, $map, 'note' ),
+				)
+			);
+
+			$imported++;
+		}
+
+		KCRM_CSV_Import::delete( $token );
+
+		$this->redirect(
+			array(
+				'page'                => self::PAGE,
+				'view'                => 'import_payments',
+				'stage'               => 'done',
+				'imported'            => $imported,
+				'skipped_no_invoice'  => $skipped_no_invoice,
+				'skipped_missing'     => $skipped_missing,
+			)
+		);
+	}
+
+	private function mapped_cell( array $row, array $map, $field ) {
+		$index = $map[ $field ] ?? -1;
+		if ( $index < 0 || ! isset( $row[ $index ] ) ) {
+			return '';
+		}
+		return sanitize_text_field( trim( (string) $row[ $index ] ) );
+	}
+
+	/** @return float|null Parsed numeric value (currency symbols/commas stripped), or null if blank/non-numeric. */
+	private function mapped_amount( array $row, array $map, $field ) {
+		$raw = $this->mapped_cell( $row, $map, $field );
+		if ( '' === $raw ) {
+			return null;
+		}
+		$clean = preg_replace( '/[^0-9.\-]/', '', $raw );
+		return is_numeric( $clean ) ? (float) $clean : null;
+	}
+
+	/** Header label for column $i, falling back to "Column N" (1-based) when the CSV header cell is blank. */
+	private function column_label( $label, $i ) {
+		if ( '' !== trim( (string) $label ) ) {
+			return $label;
+		}
+		/* translators: %d: 1-based CSV column number. */
+		return sprintf( __( 'Column %d', 'karks-crm' ), $i + 1 );
+	}
+
+	/** Finds the first header column matching any candidate (exact match first, then substring). */
+	private function guess_column( array $header, array $candidates ) {
+		foreach ( $candidates as $candidate ) {
+			foreach ( $header as $i => $label ) {
+				if ( strtolower( trim( $label ) ) === $candidate ) {
+					return $i;
+				}
+			}
+		}
+		foreach ( $candidates as $candidate ) {
+			foreach ( $header as $i => $label ) {
+				if ( '' !== $candidate && false !== strpos( strtolower( $label ), $candidate ) ) {
+					return $i;
+				}
+			}
+		}
+		return -1;
+	}
+
+	/** Target invoice fields for the CSV importer, with candidate header names (lowercase) used to guess a default column mapping. */
+	private function import_invoice_fields() {
+		return array(
+			'customer_name'  => array(
+				'label'    => __( 'Customer / Company Name', 'karks-crm' ),
+				'required' => true,
+				'guess'    => array( 'customer name', 'customer', 'company name', 'company' ),
+			),
+			'invoice_number' => array(
+				'label' => __( 'Invoice Number (leave unmapped to auto-assign)', 'karks-crm' ),
+				'guess' => array( 'invoice #', 'invoice no', 'invoice number', 'number' ),
+			),
+			'issue_date'     => array(
+				'label'    => __( 'Issue Date', 'karks-crm' ),
+				'required' => true,
+				'guess'    => array( 'issue date', 'invoice date', 'date' ),
+			),
+			'due_date'       => array(
+				'label' => __( 'Due Date', 'karks-crm' ),
+				'guess' => array( 'due date' ),
+			),
+			'amount'         => array(
+				'label'    => __( 'Amount (pre-tax)', 'karks-crm' ),
+				'required' => true,
+				'guess'    => array( 'amount', 'subtotal', 'total' ),
+			),
+			'tax_rate'       => array(
+				'label' => __( 'Tax Rate (%)', 'karks-crm' ),
+				'guess' => array( 'tax rate', 'tax %', 'tax' ),
+			),
+			'description'    => array(
+				'label' => __( 'Description (used as the line item and invoice label)', 'karks-crm' ),
+				'guess' => array( 'description', 'memo', 'item' ),
+			),
+			'status_source'  => array(
+				'label' => __( 'Status column (only Draft/Void are recognized)', 'karks-crm' ),
+				'guess' => array( 'status' ),
+			),
+			'notes'          => array(
+				'label' => __( 'Notes', 'karks-crm' ),
+				'guess' => array( 'notes' ),
+			),
+		);
+	}
+
+	/** Target payment fields for the CSV importer, with candidate header names (lowercase) used to guess a default column mapping. */
+	private function import_payment_fields() {
+		return array(
+			'invoice_number' => array(
+				'label'    => __( 'Invoice Number', 'karks-crm' ),
+				'required' => true,
+				'guess'    => array( 'invoice #', 'invoice no', 'invoice number', 'number' ),
+			),
+			'amount'         => array(
+				'label'    => __( 'Amount', 'karks-crm' ),
+				'required' => true,
+				'guess'    => array( 'amount', 'payment amount', 'payment' ),
+			),
+			'payment_date'   => array(
+				'label'    => __( 'Payment Date', 'karks-crm' ),
+				'required' => true,
+				'guess'    => array( 'payment date', 'date' ),
+			),
+			'method'         => array(
+				'label' => __( 'Method', 'karks-crm' ),
+				'guess' => array( 'method', 'payment method' ),
+			),
+			'note'           => array(
+				'label' => __( 'Note', 'karks-crm' ),
+				'guess' => array( 'note', 'memo' ),
+			),
+		);
 	}
 
 	private function sanitize_date( $value ) {
@@ -206,11 +617,14 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 	}
 
 	public function render() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
 		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
 
 		echo '<div class="wrap kcrm-wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Invoices', 'karks-crm' ) . '</h1>';
 		if ( 'list' === $view ) {
 			printf( ' <a href="%s" class="page-title-action">%s</a>', esc_url( admin_url( 'admin.php?page=' . self::PAGE . '&view=add' ) ), esc_html__( 'Add New', 'karks-crm' ) );
+			printf( ' <a href="%s" class="page-title-action">%s</a>', esc_url( admin_url( 'admin.php?page=' . self::PAGE . '&view=import_invoices' ) ), esc_html__( 'Import Invoices', 'karks-crm' ) );
+			printf( ' <a href="%s" class="page-title-action">%s</a>', esc_url( admin_url( 'admin.php?page=' . self::PAGE . '&view=import_payments' ) ), esc_html__( 'Import Payments', 'karks-crm' ) );
 		}
 		echo '<hr class="wp-header-end">';
 
@@ -224,11 +638,171 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 
 		if ( 'add' === $view || 'edit' === $view ) {
 			$this->render_form( $view );
+		} elseif ( 'import_invoices' === $view ) {
+			$this->render_invoice_import();
+		} elseif ( 'import_payments' === $view ) {
+			$this->render_payment_import();
 		} else {
 			$this->render_list();
 		}
 
 		echo '</div>';
+	}
+
+	private function render_invoice_import() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing params, no state change.
+		$stage = isset( $_GET['stage'] ) ? sanitize_key( $_GET['stage'] ) : 'upload';
+
+		if ( 'done' === $stage ) {
+			$this->render_import_done(
+				array(
+					/* translators: %d: number of invoices imported. */
+					array( 'imported', __( '%d invoices imported.', 'karks-crm' ) ),
+					/* translators: %d: number of rows skipped because the customer name did not match an existing customer. */
+					array( 'skipped_no_customer', __( '%d rows skipped — customer name did not match an existing customer.', 'karks-crm' ) ),
+					/* translators: %d: number of rows skipped because an invoice with that number already exists. */
+					array( 'skipped_duplicate', __( '%d rows skipped — an invoice with that number already exists.', 'karks-crm' ) ),
+					/* translators: %d: number of rows skipped due to missing customer name, issue date, or amount. */
+					array( 'skipped_missing', __( '%d rows skipped — missing customer name, issue date, or amount.', 'karks-crm' ) ),
+				)
+			);
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
+		} elseif ( 'map' === $stage && isset( $_GET['file'] ) ) {
+			$this->render_import_map(
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
+				sanitize_text_field( wp_unslash( $_GET['file'] ) ),
+				$this->import_invoice_fields(),
+				'import_invoices',
+				'kcrm_import_invoices_run',
+				'import_invoices_run',
+				__( 'Map CSV Columns', 'karks-crm' ),
+				__( 'Choose which column maps to each invoice field. Each row becomes an invoice with a single line item for the mapped amount — open the invoice afterward to add more detail. Status starts as Open and moves to Partially Paid/Paid automatically once you import the matching payments below; map the status column only to flag rows as Draft or Void.', 'karks-crm' )
+			);
+		} else {
+			$this->render_import_upload(
+				'kcrm_import_invoices_upload',
+				'import_invoices_upload',
+				__( 'Import Invoices from CSV', 'karks-crm' ),
+				__( "Upload a CSV export and you'll be able to choose which columns map to which fields before anything is imported. Import your customers first if you haven't already — each row is matched to an existing customer by name.", 'karks-crm' )
+			);
+		}
+	}
+
+	private function render_payment_import() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing params, no state change.
+		$stage = isset( $_GET['stage'] ) ? sanitize_key( $_GET['stage'] ) : 'upload';
+
+		if ( 'done' === $stage ) {
+			$this->render_import_done(
+				array(
+					/* translators: %d: number of payments imported. */
+					array( 'imported', __( '%d payments imported.', 'karks-crm' ) ),
+					/* translators: %d: number of rows skipped because the invoice number did not match an existing invoice. */
+					array( 'skipped_no_invoice', __( '%d rows skipped — invoice number did not match an existing invoice.', 'karks-crm' ) ),
+					/* translators: %d: number of rows skipped due to missing invoice number, date, or a positive amount. */
+					array( 'skipped_missing', __( '%d rows skipped — missing invoice number, date, or a positive amount.', 'karks-crm' ) ),
+				)
+			);
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
+		} elseif ( 'map' === $stage && isset( $_GET['file'] ) ) {
+			$this->render_import_map(
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
+				sanitize_text_field( wp_unslash( $_GET['file'] ) ),
+				$this->import_payment_fields(),
+				'import_payments',
+				'kcrm_import_payments_run',
+				'import_payments_run',
+				__( 'Map CSV Columns', 'karks-crm' ),
+				__( "Choose which column maps to each payment field. Each row is matched to an existing invoice by its invoice number, and that invoice's status updates automatically based on the payments recorded against it.", 'karks-crm' )
+			);
+		} else {
+			$this->render_import_upload(
+				'kcrm_import_payments_upload',
+				'import_payments_upload',
+				__( 'Import Payments from CSV', 'karks-crm' ),
+				__( "Upload a CSV export and you'll be able to choose which columns map to which fields before anything is imported. Import your invoices first if you haven't already — each row is matched to an existing invoice by number.", 'karks-crm' )
+			);
+		}
+	}
+
+	private function render_import_upload( $nonce_action, $kcrm_action, $heading, $description ) {
+		?>
+		<h2><?php echo esc_html( $heading ); ?></h2>
+		<p><?php echo esc_html( $description ); ?></p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE ) ); ?>" enctype="multipart/form-data">
+			<?php wp_nonce_field( $nonce_action ); ?>
+			<input type="hidden" name="kcrm_action" value="<?php echo esc_attr( $kcrm_action ); ?>">
+			<table class="form-table">
+				<tr>
+					<th><label for="import_file"><?php esc_html_e( 'CSV File', 'karks-crm' ); ?></label></th>
+					<td><input type="file" name="import_file" id="import_file" accept=".csv" required></td>
+				</tr>
+			</table>
+			<?php submit_button( __( 'Upload & Continue', 'karks-crm' ) ); ?>
+		</form>
+		<?php
+	}
+
+	private function render_import_map( $token, array $fields, $view, $nonce_action, $kcrm_action, $heading, $description ) {
+		$path = KCRM_CSV_Import::path_for_token( $token );
+
+		if ( ! $path ) {
+			echo '<p>' . esc_html__( 'That upload could not be found — it may have expired. Please upload the file again.', 'karks-crm' ) . '</p>';
+			printf( '<p><a class="button" href="%s">%s</a></p>', esc_url( admin_url( 'admin.php?page=' . self::PAGE . '&view=' . $view ) ), esc_html__( 'Start Over', 'karks-crm' ) );
+			return;
+		}
+
+		$header = KCRM_CSV_Import::read_header( $path );
+		?>
+		<h2><?php echo esc_html( $heading ); ?></h2>
+		<p><?php echo esc_html( $description ); ?></p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE ) ); ?>">
+			<?php wp_nonce_field( $nonce_action ); ?>
+			<input type="hidden" name="kcrm_action" value="<?php echo esc_attr( $kcrm_action ); ?>">
+			<input type="hidden" name="file" value="<?php echo esc_attr( $token ); ?>">
+			<table class="form-table">
+				<?php foreach ( $fields as $key => $field ) : ?>
+					<?php $guess = $this->guess_column( $header, $field['guess'] ); ?>
+					<tr>
+						<th>
+							<label for="map_<?php echo esc_attr( $key ); ?>">
+								<?php echo esc_html( $field['label'] ); ?><?php echo ! empty( $field['required'] ) ? ' *' : ''; ?>
+							</label>
+						</th>
+						<td>
+							<select name="map[<?php echo esc_attr( $key ); ?>]" id="map_<?php echo esc_attr( $key ); ?>">
+								<option value="-1"><?php esc_html_e( '— Skip —', 'karks-crm' ); ?></option>
+								<?php foreach ( $header as $i => $label ) : ?>
+									<option value="<?php echo esc_attr( $i ); ?>" <?php selected( $guess, $i ); ?>>
+										<?php echo esc_html( $this->column_label( $label, $i ) ); ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</table>
+			<p class="description">* <?php esc_html_e( 'Required. Rows with a blank value in this column are skipped.', 'karks-crm' ); ?></p>
+			<?php submit_button( __( 'Import', 'karks-crm' ) ); ?>
+		</form>
+		<?php
+	}
+
+	private function render_import_done( array $rows ) {
+		?>
+		<h2><?php esc_html_e( 'Import Complete', 'karks-crm' ); ?></h2>
+		<ul>
+			<?php foreach ( $rows as list( $key, $format ) ) : ?>
+				<li>
+					<?php
+					// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display counter, no state change.
+					echo esc_html( sprintf( $format, isset( $_GET[ $key ] ) ? absint( $_GET[ $key ] ) : 0 ) );
+					?>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<p><a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE ) ); ?>"><?php esc_html_e( 'View Invoices', 'karks-crm' ); ?></a></p>
+		<?php
 	}
 
 	private function render_list() {
@@ -289,6 +863,7 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 	}
 
 	private function render_form( $view ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param, no state change.
 		$id      = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 		$invoice = $id ? KCRM_Invoice::find( $id ) : null;
 
@@ -297,11 +872,12 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 			return;
 		}
 
-		$company_id       = $this->current_company_id();
-		$company          = KCRM_Company::find( $company_id );
-		$customers        = KCRM_Customer::for_company( $company_id );
-		$services         = KCRM_Service::active_for_company( $company_id );
-		$items            = $id ? KCRM_Invoice_Item::for_invoice( $id ) : array();
+		$company_id = $this->current_company_id();
+		$company    = KCRM_Company::find( $company_id );
+		$customers  = KCRM_Customer::for_company( $company_id );
+		$services   = KCRM_Service::active_for_company( $company_id );
+		$items      = $id ? KCRM_Invoice_Item::for_invoice( $id ) : array();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param, no state change.
 		$preselect_customer = isset( $_GET['customer_id'] ) ? absint( $_GET['customer_id'] ) : ( $invoice ? (int) $invoice->customer_id : 0 );
 
 		if ( empty( $items ) ) {
@@ -439,10 +1015,10 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 
 	private function render_item_row( $item ) {
 		$service_id  = isset( $item->service_id ) ? (int) $item->service_id : 0;
-		$description = isset( $item->description ) ? esc_attr( $item->description ) : '';
+		$description = isset( $item->description ) ? $item->description : '';
 		$type        = isset( $item->type ) ? $item->type : KCRM_Service::TYPE_PROJECT;
-		$quantity    = isset( $item->quantity ) ? esc_attr( $item->quantity ) : '1';
-		$rate        = isset( $item->rate ) ? esc_attr( $item->rate ) : '0.00';
+		$quantity    = isset( $item->quantity ) ? $item->quantity : '1';
+		$rate        = isset( $item->rate ) ? $item->rate : '0.00';
 		?>
 		<tr class="kcrm-line-item">
 			<td>
@@ -453,7 +1029,7 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 					<?php endforeach; ?>
 				</select>
 			</td>
-			<td><input type="text" class="regular-text kcrm-item-description" name="item_description[]" value="<?php echo $description; ?>"></td>
+			<td><input type="text" class="regular-text kcrm-item-description" name="item_description[]" value="<?php echo esc_attr( $description ); ?>"></td>
 			<td>
 				<select class="kcrm-item-type" name="item_type[]">
 					<?php foreach ( KCRM_Service::types() as $key => $label ) : ?>
@@ -461,8 +1037,8 @@ class KCRM_Admin_Invoices extends KCRM_Admin_Base {
 					<?php endforeach; ?>
 				</select>
 			</td>
-			<td><input type="number" step="0.01" min="0" class="kcrm-item-quantity" name="item_quantity[]" value="<?php echo $quantity; ?>" style="width:100%;"></td>
-			<td><input type="number" step="0.01" min="0" class="kcrm-item-rate" name="item_rate[]" value="<?php echo $rate; ?>" style="width:100%;"></td>
+			<td><input type="number" step="0.01" min="0" class="kcrm-item-quantity" name="item_quantity[]" value="<?php echo esc_attr( $quantity ); ?>" style="width:100%;"></td>
+			<td><input type="number" step="0.01" min="0" class="kcrm-item-rate" name="item_rate[]" value="<?php echo esc_attr( $rate ); ?>" style="width:100%;"></td>
 			<td class="kcrm-item-amount">0.00</td>
 			<td><button type="button" class="button-link kcrm-remove-line" aria-label="<?php esc_attr_e( 'Remove line', 'karks-crm' ); ?>">&times;</button></td>
 		</tr>

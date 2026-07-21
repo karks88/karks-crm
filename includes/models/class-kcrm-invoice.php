@@ -109,16 +109,11 @@ class KCRM_Invoice extends KCRM_Model_Base {
 			return array();
 		}
 
-		$table        = self::table();
 		$placeholders = implode( ', ', array_fill( 0, count( $statuses ), '%s' ) );
-		$params       = array_merge( array( $customer_id ), array_values( $statuses ) );
+		$params       = array_merge( array( self::table(), $customer_id ), array_values( $statuses ) );
 
-		$sql = $wpdb->prepare(
-			"SELECT * FROM $table WHERE customer_id = %d AND status IN ($placeholders) ORDER BY $order_by",
-			$params
-		);
-
-		return $wpdb->get_results( $sql );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $placeholders is only repeated %s placeholder syntax (its count matches count( $statuses )); $params holds one value per placeholder, passed as $wpdb->prepare()'s documented array-of-args form.
+		return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE customer_id = %d AND status IN (' . $placeholders . ') ORDER BY ' . self::safe_order_by( $order_by ), $params ) );
 	}
 
 	/**
@@ -140,21 +135,21 @@ class KCRM_Invoice extends KCRM_Model_Base {
 			return array();
 		}
 
-		$table                  = self::table();
-		$customer_placeholders  = implode( ', ', array_fill( 0, count( $customer_ids ), '%d' ) );
-		$params                 = $customer_ids;
+		$customer_placeholders = implode( ', ', array_fill( 0, count( $customer_ids ), '%d' ) );
+		$params                = array_merge( array( self::table() ), $customer_ids );
 
-		$sql = "SELECT * FROM $table WHERE customer_id IN ($customer_placeholders)";
+		$sql = 'SELECT * FROM %i WHERE customer_id IN (' . $customer_placeholders . ')';
 
 		if ( is_array( $statuses ) ) {
 			$status_placeholders = implode( ', ', array_fill( 0, count( $statuses ), '%s' ) );
-			$sql                .= " AND status IN ($status_placeholders)";
+			$sql                .= ' AND status IN (' . $status_placeholders . ')';
 			$params              = array_merge( $params, array_values( $statuses ) );
 		}
 
-		$sql .= " ORDER BY $order_by";
+		$sql .= ' ORDER BY ' . self::safe_order_by( $order_by );
 
-		return $wpdb->get_results( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $customer_placeholders/$status_placeholders are only repeated placeholder syntax (their counts match count( $customer_ids )/count( $statuses )), not user input; $sql/$params are passed to $wpdb->prepare() on this line.
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
 	}
 
 	public static function create( $data ) {

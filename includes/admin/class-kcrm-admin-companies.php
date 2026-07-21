@@ -8,16 +8,15 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 	const PAGE = 'karks-crm-companies';
 
 	public function handle_actions() {
-		if ( ! isset( $_POST['kcrm_action'] ) || ! isset( $_GET['page'] ) || self::PAGE !== $_GET['page'] ) {
-			// Delete is a GET link, still handle it below.
-		}
-
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; save() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'save_company' === $_POST['kcrm_action'] ) {
 			$this->save();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete() verifies the nonce itself.
 		if ( isset( $_GET['action'], $_GET['id'] ) && 'delete' === $_GET['action'] && isset( $_GET['page'] ) && self::PAGE === $_GET['page'] ) {
-			$this->delete();
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete() verifies the nonce itself.
+			$this->delete( absint( $_GET['id'] ) );
 		}
 	}
 
@@ -56,13 +55,14 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 		$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'saved' ) );
 	}
 
-	private function delete() {
-		check_admin_referer( 'kcrm_delete_company_' . absint( $_GET['id'] ) );
-		KCRM_Company::delete( absint( $_GET['id'] ) );
+	private function delete( $id ) {
+		check_admin_referer( 'kcrm_delete_company_' . $id );
+		KCRM_Company::delete( $id );
 		$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'deleted' ) );
 	}
 
 	public function render() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
 		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
 		echo '<div class="wrap kcrm-wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Companies', 'karks-crm' ) . '</h1>';
 
@@ -127,6 +127,7 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 	}
 
 	private function render_form( $view ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param, no state change.
 		$id      = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 		$company = $id ? KCRM_Company::find( $id ) : null;
 
@@ -136,7 +137,7 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 		}
 
 		$v = function ( $field, $default = '' ) use ( $company ) {
-			return $company ? esc_attr( $company->$field ) : $default;
+			return $company ? $company->$field : $default;
 		};
 		?>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE ) ); ?>">
@@ -147,31 +148,31 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 			<table class="form-table">
 				<tr>
 					<th><label for="name"><?php esc_html_e( 'Company Name', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="name" id="name" value="<?php echo $v( 'name' ); ?>" required></td>
+					<td><input type="text" class="regular-text" name="name" id="name" value="<?php echo esc_attr( $v( 'name' ) ); ?>" required></td>
 				</tr>
 				<tr>
 					<th><label for="email"><?php esc_html_e( 'Email', 'karks-crm' ); ?></label></th>
-					<td><input type="email" class="regular-text" name="email" id="email" value="<?php echo $v( 'email' ); ?>"></td>
+					<td><input type="email" class="regular-text" name="email" id="email" value="<?php echo esc_attr( $v( 'email' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="phone"><?php esc_html_e( 'Phone', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="phone" id="phone" value="<?php echo $v( 'phone' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="phone" id="phone" value="<?php echo esc_attr( $v( 'phone' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="address_street"><?php esc_html_e( 'Street Address', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_street" id="address_street" value="<?php echo $v( 'address_street' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="address_street" id="address_street" value="<?php echo esc_attr( $v( 'address_street' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="address_city"><?php esc_html_e( 'City', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_city" id="address_city" value="<?php echo $v( 'address_city' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="address_city" id="address_city" value="<?php echo esc_attr( $v( 'address_city' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="address_state"><?php esc_html_e( 'State', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_state" id="address_state" value="<?php echo $v( 'address_state' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="address_state" id="address_state" value="<?php echo esc_attr( $v( 'address_state' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="address_postal_code"><?php esc_html_e( 'Postal Code', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_postal_code" id="address_postal_code" value="<?php echo $v( 'address_postal_code' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="address_postal_code" id="address_postal_code" value="<?php echo esc_attr( $v( 'address_postal_code' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="logo_attachment_id"><?php esc_html_e( 'Logo', 'karks-crm' ); ?></label></th>
@@ -190,22 +191,22 @@ class KCRM_Admin_Companies extends KCRM_Admin_Base {
 				</tr>
 				<tr>
 					<th><label for="invoice_prefix"><?php esc_html_e( 'Invoice Number Prefix', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="invoice_prefix" id="invoice_prefix" value="<?php echo $v( 'invoice_prefix', 'INV-' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="invoice_prefix" id="invoice_prefix" value="<?php echo esc_attr( $v( 'invoice_prefix', 'INV-' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="next_invoice_number"><?php esc_html_e( 'Next Invoice Number', 'karks-crm' ); ?></label></th>
 					<td>
-						<input type="number" step="1" min="1" name="next_invoice_number" id="next_invoice_number" value="<?php echo $v( 'next_invoice_number', '1' ); ?>">
+						<input type="number" step="1" min="1" name="next_invoice_number" id="next_invoice_number" value="<?php echo esc_attr( $v( 'next_invoice_number', '1' ) ); ?>">
 						<p class="description"><?php esc_html_e( 'The number that will be assigned to the next invoice created for this company (combined with the prefix above). Set this once to choose a starting number; it then advances automatically.', 'karks-crm' ); ?></p>
 					</td>
 				</tr>
 				<tr>
 					<th><label for="default_tax_rate"><?php esc_html_e( 'Default Tax Rate (%)', 'karks-crm' ); ?></label></th>
-					<td><input type="number" step="0.001" min="0" name="default_tax_rate" id="default_tax_rate" value="<?php echo $v( 'default_tax_rate', '0' ); ?>"></td>
+					<td><input type="number" step="0.001" min="0" name="default_tax_rate" id="default_tax_rate" value="<?php echo esc_attr( $v( 'default_tax_rate', '0' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="currency"><?php esc_html_e( 'Currency Symbol', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="small-text" name="currency" id="currency" value="<?php echo $v( 'currency', 'USD' ); ?>" maxlength="10"></td>
+					<td><input type="text" class="small-text" name="currency" id="currency" value="<?php echo esc_attr( $v( 'currency', 'USD' ) ); ?>" maxlength="10"></td>
 				</tr>
 				<tr>
 					<th><label for="invoice_footer"><?php esc_html_e( 'Invoice Footer', 'karks-crm' ); ?></label></th>

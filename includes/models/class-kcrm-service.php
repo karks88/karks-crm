@@ -38,9 +38,9 @@ class KCRM_Service extends KCRM_Model_Base {
 
 	public static function active_for_company( $company_id ) {
 		global $wpdb;
-		$table = self::table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; no core caching API applies.
 		return $wpdb->get_results(
-			$wpdb->prepare( "SELECT * FROM $table WHERE company_id = %d AND is_active = 1 ORDER BY name ASC", $company_id )
+			$wpdb->prepare( 'SELECT * FROM %i WHERE company_id = %d AND is_active = 1 ORDER BY name ASC', self::table(), $company_id )
 		);
 	}
 

@@ -47,10 +47,9 @@ class KCRM_Customer extends KCRM_Model_Base {
 	/** Customers that aren't a Job of another customer. */
 	public static function top_level_for_company( $company_id, $order_by = 'company_name ASC' ) {
 		global $wpdb;
-		$table = self::table();
-		return $wpdb->get_results(
-			$wpdb->prepare( "SELECT * FROM $table WHERE company_id = %d AND parent_customer_id IS NULL ORDER BY $order_by", $company_id ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		);
+		$sql = 'SELECT * FROM %i WHERE company_id = %d AND parent_customer_id IS NULL ORDER BY ' . self::safe_order_by( $order_by );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is a %i/%d placeholder template filled in via $wpdb->prepare() on the same line; the ORDER BY suffix is restricted to safe identifier characters by safe_order_by().
+		return $wpdb->get_results( $wpdb->prepare( $sql, self::table(), $company_id ) );
 	}
 
 	/** The Jobs that belong to a given (top-level) customer. */
@@ -80,18 +79,13 @@ class KCRM_Customer extends KCRM_Model_Base {
 			return 0.0;
 		}
 
-		$invoices = KCRM_DB::invoices();
-		$payments = KCRM_DB::payments();
-
 		$placeholders = implode( ', ', array_fill( 0, count( $customer_ids ), '%d' ) );
 
-		$invoiced = (float) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COALESCE(SUM(total), 0) FROM $invoices WHERE customer_id IN ($placeholders) AND status != 'void'", $customer_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $placeholders is only repeated %d placeholder syntax (its count matches count( $customer_ids )), not user input; query text and args are passed to $wpdb->prepare() on this line.
+		$invoiced = (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(total), 0) FROM %i WHERE customer_id IN (' . $placeholders . ") AND status != 'void'", array_merge( array( KCRM_DB::invoices() ), $customer_ids ) ) );
 
-		$paid = (float) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COALESCE(SUM(amount), 0) FROM $payments WHERE customer_id IN ($placeholders)", $customer_ids ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $placeholders is only repeated %d placeholder syntax (its count matches count( $customer_ids )), not user input; query text and args are passed to $wpdb->prepare() on this line.
+		$paid = (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(amount), 0) FROM %i WHERE customer_id IN (' . $placeholders . ')', array_merge( array( KCRM_DB::payments() ), $customer_ids ) ) );
 
 		return round( $invoiced - $paid, 2 );
 	}
@@ -117,18 +111,18 @@ class KCRM_Customer extends KCRM_Model_Base {
 	public static function balance( $customer_id ) {
 		global $wpdb;
 
-		$invoices = KCRM_DB::invoices();
-		$payments = KCRM_DB::payments();
-
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; no core caching API applies.
 		$invoiced = (float) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COALESCE(SUM(total), 0) FROM $invoices WHERE customer_id = %d AND status != 'void'",
+				"SELECT COALESCE(SUM(total), 0) FROM %i WHERE customer_id = %d AND status != 'void'",
+				KCRM_DB::invoices(),
 				$customer_id
 			)
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; no core caching API applies.
 		$paid = (float) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COALESCE(SUM(amount), 0) FROM $payments WHERE customer_id = %d", $customer_id )
+			$wpdb->prepare( 'SELECT COALESCE(SUM(amount), 0) FROM %i WHERE customer_id = %d', KCRM_DB::payments(), $customer_id )
 		);
 
 		return round( $invoiced - $paid, 2 );

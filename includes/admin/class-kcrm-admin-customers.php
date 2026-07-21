@@ -8,24 +8,30 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 	const PAGE = 'karks-crm-customers';
 
 	public function handle_actions() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route dispatch; real nonce checks happen in the handler methods below.
 		if ( ! isset( $_GET['page'] ) || self::PAGE !== $_GET['page'] ) {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; save() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'save_customer' === $_POST['kcrm_action'] ) {
 			$this->save();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_import_upload() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'import_upload' === $_POST['kcrm_action'] ) {
 			$this->handle_import_upload();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_import_run() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'import_run' === $_POST['kcrm_action'] ) {
 			$this->handle_import_run();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete() verifies the nonce itself.
 		if ( isset( $_GET['action'], $_GET['id'] ) && 'delete' === $_GET['action'] ) {
-			$this->delete();
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete() verifies the nonce itself.
+			$this->delete( absint( $_GET['id'] ) );
 		}
 	}
 
@@ -77,8 +83,7 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 		$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'saved' ) );
 	}
 
-	private function delete() {
-		$id = absint( $_GET['id'] );
+	private function delete( $id ) {
 		check_admin_referer( 'kcrm_delete_customer_' . $id );
 
 		foreach ( KCRM_Customer::jobs_for( $id ) as $job ) {
@@ -96,6 +101,7 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 	 * while it already has Jobs of its own.
 	 */
 	private function validated_parent_id( $id, $company_id ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified in save() before this is called.
 		$parent_id = isset( $_POST['parent_customer_id'] ) ? absint( $_POST['parent_customer_id'] ) : 0;
 
 		if ( ! $parent_id ) {
@@ -121,7 +127,9 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 			$this->redirect( array( 'page' => self::PAGE, 'kcrm_notice' => 'no_company' ) );
 		}
 
-		$token = KCRM_CSV_Import::store_upload( $_FILES['import_file'] ?? array() );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- KCRM_CSV_Import::store_upload() validates tmp_name, error, size, and extension before use.
+		$file  = isset( $_FILES['import_file'] ) ? wp_unslash( $_FILES['import_file'] ) : array();
+		$token = KCRM_CSV_Import::store_upload( $file );
 
 		if ( is_wp_error( $token ) ) {
 			$this->redirect( array( 'page' => self::PAGE, 'view' => 'import', 'kcrm_notice' => 'error' ) );
@@ -352,6 +360,15 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 		);
 	}
 
+	/** Header label for column $i, falling back to "Column N" (1-based) when the CSV header cell is blank. */
+	private function column_label( $label, $i ) {
+		if ( '' !== trim( (string) $label ) ) {
+			return $label;
+		}
+		/* translators: %d: 1-based CSV column number. */
+		return sprintf( __( 'Column %d', 'karks-crm' ), $i + 1 );
+	}
+
 	/** Finds the first header column matching any candidate (exact match first, then substring). */
 	private function guess_column( array $header, array $candidates ) {
 		foreach ( $candidates as $candidate ) {
@@ -398,6 +415,7 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 	}
 
 	public function render() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
 		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
 
 		echo '<div class="wrap kcrm-wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Customers', 'karks-crm' ) . '</h1>';
@@ -427,11 +445,14 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 	}
 
 	private function render_import() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing params, no state change.
 		$stage = isset( $_GET['stage'] ) ? sanitize_key( $_GET['stage'] ) : 'upload';
 
 		if ( 'done' === $stage ) {
 			$this->render_import_done();
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
 		} elseif ( 'map' === $stage && isset( $_GET['file'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
 			$this->render_import_map( sanitize_text_field( wp_unslash( $_GET['file'] ) ) );
 		} else {
 			$this->render_import_upload();
@@ -488,7 +509,7 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 								<option value="-1"><?php esc_html_e( '— Skip —', 'karks-crm' ); ?></option>
 								<?php foreach ( $header as $i => $label ) : ?>
 									<option value="<?php echo esc_attr( $i ); ?>" <?php selected( $guess, $i ); ?>>
-										<?php echo esc_html( '' !== trim( (string) $label ) ? $label : sprintf( __( 'Column %d', 'karks-crm' ), $i + 1 ) ); ?>
+										<?php echo esc_html( $this->column_label( $label, $i ) ); ?>
 									</option>
 								<?php endforeach; ?>
 							</select>
@@ -504,7 +525,7 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 							<option value="-1"><?php esc_html_e( '— Skip —', 'karks-crm' ); ?></option>
 							<?php foreach ( $header as $i => $label ) : ?>
 								<option value="<?php echo esc_attr( $i ); ?>" <?php selected( $address_from_guess, $i ); ?>>
-									<?php echo esc_html( '' !== trim( (string) $label ) ? $label : sprintf( __( 'Column %d', 'karks-crm' ), $i + 1 ) ); ?>
+									<?php echo esc_html( $this->column_label( $label, $i ) ); ?>
 								</option>
 							<?php endforeach; ?>
 						</select>
@@ -513,7 +534,7 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 							<option value="-1"><?php esc_html_e( '— Skip —', 'karks-crm' ); ?></option>
 							<?php foreach ( $header as $i => $label ) : ?>
 								<option value="<?php echo esc_attr( $i ); ?>" <?php selected( $address_to_guess, $i ); ?>>
-									<?php echo esc_html( '' !== trim( (string) $label ) ? $label : sprintf( __( 'Column %d', 'karks-crm' ), $i + 1 ) ); ?>
+									<?php echo esc_html( $this->column_label( $label, $i ) ); ?>
 								</option>
 							<?php endforeach; ?>
 						</select>
@@ -528,25 +549,51 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 	}
 
 	private function render_import_done() {
-		$imported          = isset( $_GET['imported'] ) ? absint( $_GET['imported'] ) : 0;
-		$skipped_no_name   = isset( $_GET['skipped_no_name'] ) ? absint( $_GET['skipped_no_name'] ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display counters, no state change.
+		$imported = isset( $_GET['imported'] ) ? absint( $_GET['imported'] ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display counters, no state change.
+		$skipped_no_name = isset( $_GET['skipped_no_name'] ) ? absint( $_GET['skipped_no_name'] ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display counters, no state change.
 		$skipped_duplicate = isset( $_GET['skipped_duplicate'] ) ? absint( $_GET['skipped_duplicate'] ) : 0;
-		$skipped_existing  = isset( $_GET['skipped_existing'] ) ? absint( $_GET['skipped_existing'] ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display counters, no state change.
+		$skipped_existing = isset( $_GET['skipped_existing'] ) ? absint( $_GET['skipped_existing'] ) : 0;
 		?>
 		<h2><?php esc_html_e( 'Import Complete', 'karks-crm' ); ?></h2>
 		<ul>
-			<li><?php echo esc_html( sprintf( __( '%d customers imported.', 'karks-crm' ), $imported ) ); ?></li>
-			<li><?php echo esc_html( sprintf( __( '%d rows skipped — already existed as a customer.', 'karks-crm' ), $skipped_existing ) ); ?></li>
-			<li><?php echo esc_html( sprintf( __( '%d rows skipped — duplicate company name within the file.', 'karks-crm' ), $skipped_duplicate ) ); ?></li>
-			<li><?php echo esc_html( sprintf( __( '%d rows skipped — no company name in the mapped column.', 'karks-crm' ), $skipped_no_name ) ); ?></li>
+			<li>
+				<?php
+				/* translators: %d: number of customers imported. */
+				echo esc_html( sprintf( __( '%d customers imported.', 'karks-crm' ), $imported ) );
+				?>
+			</li>
+			<li>
+				<?php
+				/* translators: %d: number of rows skipped because the company already existed. */
+				echo esc_html( sprintf( __( '%d rows skipped — already existed as a customer.', 'karks-crm' ), $skipped_existing ) );
+				?>
+			</li>
+			<li>
+				<?php
+				/* translators: %d: number of rows skipped due to a duplicate company name within the file. */
+				echo esc_html( sprintf( __( '%d rows skipped — duplicate company name within the file.', 'karks-crm' ), $skipped_duplicate ) );
+				?>
+			</li>
+			<li>
+				<?php
+				/* translators: %d: number of rows skipped because the mapped company name column was blank. */
+				echo esc_html( sprintf( __( '%d rows skipped — no company name in the mapped column.', 'karks-crm' ), $skipped_no_name ) );
+				?>
+			</li>
 		</ul>
 		<p><a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::PAGE ) ); ?>"><?php esc_html_e( 'View Customers', 'karks-crm' ); ?></a></p>
 		<?php
 	}
 
 	private function render_list() {
-		$orderby = isset( $_GET['orderby'] ) && 'status' === $_GET['orderby'] ? 'status' : 'company_name';
-		$order   = isset( $_GET['order'] ) && 'desc' === strtolower( $_GET['order'] ) ? 'DESC' : 'ASC';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
+		$orderby = isset( $_GET['orderby'] ) && 'status' === sanitize_key( wp_unslash( $_GET['orderby'] ) ) ? 'status' : 'company_name';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
+		$order = isset( $_GET['order'] ) && 'desc' === strtolower( sanitize_key( wp_unslash( $_GET['order'] ) ) ) ? 'DESC' : 'ASC';
 
 		$order_by  = 'status' === $orderby ? "status $order, company_name ASC" : "company_name $order";
 		$customers = KCRM_Customer::top_level_for_company( $this->current_company_id(), $order_by );
@@ -598,7 +645,13 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 								</a>
 							</strong>
 							<?php if ( $jobs ) : ?>
-								<br><span class="description"><?php echo esc_html( sprintf( _n( '%d Job', '%d Jobs', count( $jobs ), 'karks-crm' ), count( $jobs ) ) ); ?></span>
+								<br>
+								<span class="description">
+									<?php
+									/* translators: %d: number of Jobs under this customer. */
+									echo esc_html( sprintf( _n( '%d Job', '%d Jobs', count( $jobs ), 'karks-crm' ), count( $jobs ) ) );
+									?>
+								</span>
 							<?php endif; ?>
 						</td>
 						<td><?php echo esc_html( $customer->contact_person ); ?></td>
@@ -650,6 +703,7 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 	}
 
 	private function render_form( $view ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param, no state change.
 		$id       = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 		$customer = $id ? KCRM_Customer::find( $id ) : null;
 
@@ -659,11 +713,12 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 		}
 
 		$v = function ( $field, $default = '' ) use ( $customer ) {
-			return $customer ? esc_attr( $customer->$field ) : $default;
+			return $customer ? $customer->$field : $default;
 		};
-		$notes = $customer ? esc_textarea( $customer->notes ) : '';
+		$notes = $customer ? $customer->notes : '';
 
-		$has_jobs         = $id ? ! empty( KCRM_Customer::jobs_for( $id ) ) : false;
+		$has_jobs = $id ? ! empty( KCRM_Customer::jobs_for( $id ) ) : false;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param, no state change.
 		$preselect_parent = isset( $_GET['parent_id'] ) ? absint( $_GET['parent_id'] ) : ( $customer ? (int) $customer->parent_customer_id : 0 );
 		$parent_options   = $has_jobs ? array() : KCRM_Customer::top_level_for_company( $this->current_company_id() );
 		?>
@@ -702,47 +757,47 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 				<?php endif; ?>
 				<tr>
 					<th><label for="company_name"><?php esc_html_e( 'Company Name', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="company_name" id="company_name" value="<?php echo $v( 'company_name' ); ?>" required></td>
+					<td><input type="text" class="regular-text" name="company_name" id="company_name" value="<?php echo esc_attr( $v( 'company_name' ) ); ?>" required></td>
 				</tr>
 				<tr>
 					<th><label for="contact_person"><?php esc_html_e( 'Contact Person', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="contact_person" id="contact_person" value="<?php echo $v( 'contact_person' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="contact_person" id="contact_person" value="<?php echo esc_attr( $v( 'contact_person' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="secondary_contact_person"><?php esc_html_e( 'Secondary Contact Person', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="secondary_contact_person" id="secondary_contact_person" value="<?php echo $v( 'secondary_contact_person' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="secondary_contact_person" id="secondary_contact_person" value="<?php echo esc_attr( $v( 'secondary_contact_person' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="address_street"><?php esc_html_e( 'Street Address', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_street" id="address_street" value="<?php echo $v( 'address_street' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="address_street" id="address_street" value="<?php echo esc_attr( $v( 'address_street' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="address_city"><?php esc_html_e( 'City', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_city" id="address_city" value="<?php echo $v( 'address_city' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="address_city" id="address_city" value="<?php echo esc_attr( $v( 'address_city' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="address_state"><?php esc_html_e( 'State', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_state" id="address_state" value="<?php echo $v( 'address_state' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="address_state" id="address_state" value="<?php echo esc_attr( $v( 'address_state' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="address_postal_code"><?php esc_html_e( 'Postal Code', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="address_postal_code" id="address_postal_code" value="<?php echo $v( 'address_postal_code' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="address_postal_code" id="address_postal_code" value="<?php echo esc_attr( $v( 'address_postal_code' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="phone"><?php esc_html_e( 'Phone Number', 'karks-crm' ); ?></label></th>
-					<td><input type="text" class="regular-text" name="phone" id="phone" value="<?php echo $v( 'phone' ); ?>"></td>
+					<td><input type="text" class="regular-text" name="phone" id="phone" value="<?php echo esc_attr( $v( 'phone' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="email"><?php esc_html_e( 'Email Address', 'karks-crm' ); ?></label></th>
-					<td><input type="email" class="regular-text" name="email" id="email" value="<?php echo $v( 'email' ); ?>"></td>
+					<td><input type="email" class="regular-text" name="email" id="email" value="<?php echo esc_attr( $v( 'email' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="secondary_email"><?php esc_html_e( 'Secondary Email Address', 'karks-crm' ); ?></label></th>
-					<td><input type="email" class="regular-text" name="secondary_email" id="secondary_email" value="<?php echo $v( 'secondary_email' ); ?>"></td>
+					<td><input type="email" class="regular-text" name="secondary_email" id="secondary_email" value="<?php echo esc_attr( $v( 'secondary_email' ) ); ?>"></td>
 				</tr>
 				<tr>
 					<th><label for="notes"><?php esc_html_e( 'Notes', 'karks-crm' ); ?></label></th>
-					<td><textarea class="large-text" rows="4" name="notes" id="notes"><?php echo $notes; ?></textarea></td>
+					<td><textarea class="large-text" rows="4" name="notes" id="notes"><?php echo esc_textarea( $notes ); ?></textarea></td>
 				</tr>
 			</table>
 
@@ -808,11 +863,21 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 		<div class="kcrm-dashboard-cards">
 			<div class="kcrm-card">
 				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( $this_year_total, 2 ) ); ?></span>
-				<span class="kcrm-card-label"><?php echo esc_html( sprintf( __( '%d Revenue', 'karks-crm' ), $this_year ) ); ?></span>
+				<span class="kcrm-card-label">
+					<?php
+					/* translators: %d: calendar year. */
+					echo esc_html( sprintf( __( '%d Revenue', 'karks-crm' ), $this_year ) );
+					?>
+				</span>
 			</div>
 			<div class="kcrm-card">
 				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( $last_year_total, 2 ) ); ?></span>
-				<span class="kcrm-card-label"><?php echo esc_html( sprintf( __( '%d Revenue', 'karks-crm' ), $last_year ) ); ?></span>
+				<span class="kcrm-card-label">
+					<?php
+					/* translators: %d: calendar year. */
+					echo esc_html( sprintf( __( '%d Revenue', 'karks-crm' ), $last_year ) );
+					?>
+				</span>
 			</div>
 			<div class="kcrm-card">
 				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( $lifetime_total, 2 ) ); ?></span>
@@ -827,7 +892,8 @@ class KCRM_Admin_Customers extends KCRM_Admin_Base {
 	 * @param int   $primary_customer_id Used for the "New Invoice" / customer_id links.
 	 */
 	private function render_invoices_section( array $customer_ids, $primary_customer_id, $is_rollup ) {
-		$show_all = ! empty( $_GET['kcrm_invoice_filter'] ) && 'all' === $_GET['kcrm_invoice_filter'];
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
+		$show_all = ! empty( $_GET['kcrm_invoice_filter'] ) && 'all' === sanitize_key( wp_unslash( $_GET['kcrm_invoice_filter'] ) );
 		$statuses = $show_all ? null : KCRM_Invoice::default_customer_statuses();
 		$invoices = KCRM_Invoice::for_customers_with_statuses( $customer_ids, $statuses );
 		$all_statuses = KCRM_Invoice::statuses();

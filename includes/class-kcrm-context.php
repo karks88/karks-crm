@@ -18,7 +18,7 @@ class KCRM_Context {
 	public static function get_current_company_id() {
 		$user_id = get_current_user_id();
 
-		if ( isset( $_GET['kcrm_company'] ) && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'kcrm_switch_company' ) ) {
+		if ( isset( $_GET['kcrm_company'] ) && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'kcrm_switch_company' ) ) {
 			$requested = absint( $_GET['kcrm_company'] );
 			if ( $requested && KCRM_Company::find( $requested ) ) {
 				update_user_meta( $user_id, self::META_KEY, $requested );

@@ -28,7 +28,7 @@ class KCRM_Invoice_Item extends KCRM_Model_Base {
 
 	public static function delete_for_invoice( $invoice_id ) {
 		global $wpdb;
-		$table = self::table();
-		return $wpdb->delete( $table, array( 'invoice_id' => $invoice_id ), array( '%d' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; $wpdb->delete() already escapes values.
+		return $wpdb->delete( self::table(), array( 'invoice_id' => $invoice_id ), array( '%d' ) );
 	}
 }

@@ -60,6 +60,7 @@ class KCRM_Company extends KCRM_Model_Base {
 
 		$number = (int) $company->next_invoice_number;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; $wpdb->update() already escapes values.
 		$wpdb->update(
 			$table,
 			array( 'next_invoice_number' => $number + 1 ),
