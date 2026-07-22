@@ -14,6 +14,24 @@ $kcrm_statuses = KCRM_Invoice::statuses();
 $kcrm_format_money = function ( $amount ) use ( $kcrm_currency ) {
 	return $kcrm_currency . ' ' . number_format( (float) $amount, 2 );
 };
+
+// The global Appearance colors, plus this company's PDF accent override
+// (falling back to the global Primary if unset) -- same 4-color scheme
+// as the front end, applied to their PDF counterparts: Secondary for
+// table headers, Primary for the payment-link buttons, Highlight for
+// zebra-striped line items, Accent for the invoice title/section
+// headings/totals row. Dompdf's CSS support doesn't reliably handle
+// custom properties, so these are interpolated directly into the
+// <style> block below rather than exposed as --kcrm-color-* variables
+// like the front end.
+$kcrm_colors     = KCRM_Colors::get();
+$kcrm_hex_or     = function ( $value, $fallback ) {
+	return preg_match( '/^#[0-9a-fA-F]{6}$/', (string) $value ) ? $value : $fallback;
+};
+$kcrm_primary    = $kcrm_hex_or( $kcrm_colors['primary'], '#1e3a5f' );
+$kcrm_secondary  = $kcrm_hex_or( $kcrm_colors['secondary'], '#1f2937' );
+$kcrm_highlight  = $kcrm_hex_or( $kcrm_colors['highlight'], '#fff6b3' );
+$kcrm_accent     = $kcrm_hex_or( KCRM_Company::pdf_accent_color( $company ), $kcrm_primary );
 ?>
 <!DOCTYPE html>
 <html>
@@ -26,19 +44,20 @@ $kcrm_format_money = function ( $amount ) use ( $kcrm_currency ) {
 	.header td { vertical-align: top; }
 	.logo img { max-width: 200px; max-height: 110px; }
 	.company-name { font-size: 18px; font-weight: bold; }
-	.invoice-title { font-size: 24px; font-weight: bold; text-align: right; color: #444; }
+	.invoice-title { font-size: 24px; font-weight: bold; text-align: right; color: <?php echo esc_html( $kcrm_accent ); ?>; }
 	.invoice-meta { text-align: right; margin-top: 6px; }
 	.addresses { width: 100%; margin: 20px 0; }
 	.addresses table { width: 100%; }
 	.addresses td { width: 50%; vertical-align: top; }
-	.addresses h4 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; color: #888; }
+	.addresses h4 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; color: <?php echo esc_html( $kcrm_accent ); ?>; }
 	table.items { width: 100%; border-collapse: collapse; margin-top: 10px; }
-	table.items th { text-align: left; background: #f2f2f2; padding: 6px 8px; font-size: 11px; text-transform: uppercase; color: #555; }
+	table.items th { text-align: left; background: <?php echo esc_html( $kcrm_secondary ); ?>; padding: 6px 8px; font-size: 11px; text-transform: uppercase; color: #fff; }
 	table.items td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; }
+	table.items tbody tr:nth-child(even) td { background: <?php echo esc_html( $kcrm_highlight ); ?>; }
 	.text-right { text-align: right; }
 	table.totals { width: 260px; margin-left: auto; margin-top: 12px; border-collapse: collapse; }
 	table.totals td { padding: 4px 8px; }
-	table.totals tr.total-row td { font-weight: bold; border-top: 2px solid #333; font-size: 14px; }
+	table.totals tr.total-row td { font-weight: bold; border-top: 2px solid <?php echo esc_html( $kcrm_accent ); ?>; color: <?php echo esc_html( $kcrm_accent ); ?>; font-size: 14px; }
 	.status-badge { display: inline-block; padding: 3px 10px; border-radius: 3px; background: #eee; font-size: 11px; text-transform: uppercase; }
 	.notes { margin-top: 24px; }
 	.payments { margin-top: 20px; }
@@ -46,7 +65,7 @@ $kcrm_format_money = function ( $amount ) use ( $kcrm_currency ) {
 	.payments th, .payments td { padding: 4px 8px; border-bottom: 1px solid #eee; font-size: 11px; }
 	.invoice-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 11px; color: #555; }
 	.payment-options { margin-top: 20px; }
-	.payment-options .payment-links a { display: inline-block; margin: 4px 12px 4px 0; padding: 4px 10px; border: 1px solid #333; border-radius: 3px; background: #222; color: #fff; text-decoration: none; }
+	.payment-options .payment-links a { display: inline-block; margin: 4px 12px 4px 0; padding: 4px 10px; border: 1px solid <?php echo esc_html( $kcrm_primary ); ?>; border-radius: 3px; background: <?php echo esc_html( $kcrm_primary ); ?>; color: #fff; text-decoration: none; }
 	.payment-options .payment-links .link-icon { margin-left: 4px; font-weight: bold; }
 	.payment-options .check-payable-to { margin: 1em 0; font-size: 16px; }
 </style>
@@ -221,7 +240,7 @@ $kcrm_show_check_payable_to = in_array( 'check', $kcrm_payment_type_keys, true )
 
 <?php if ( $company && ! empty( $company->invoice_footer ) ) : ?>
 <div class="invoice-footer">
-	<?php echo nl2br( esc_html( $company->invoice_footer ) ); ?>
+	<?php echo $company->invoice_footer; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- already sanitized with wp_kses_post() when saved. ?>
 </div>
 <?php endif; ?>
 

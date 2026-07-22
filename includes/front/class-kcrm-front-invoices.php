@@ -12,14 +12,13 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
 
 		echo '<div class="kcrm-front-screen">';
+		$this->render_company_header();
 		$this->render_heading( $view );
 
-		$this->company_switcher();
-
 		if ( 'list' === $view ) {
-			printf( '<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s">%s</a> ', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
-			printf( '<a class="kcrm-button" href="%s">%s</a> ', esc_url( $this->screen_url( array( 'view' => 'import_invoices' ) ) ), esc_html__( 'Import Invoices', 'karks-crm' ) );
-			printf( '<a class="kcrm-button" href="%s">%s</a></div>', esc_url( $this->screen_url( array( 'view' => 'import_payments' ) ) ), esc_html__( 'Import Payments', 'karks-crm' ) );
+			printf( '<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s"><span class="dashicons dashicons-plus-alt2"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
+			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'import_invoices' ) ) ), esc_html__( 'Import Invoices', 'karks-crm' ) );
+			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a></div>', esc_url( $this->screen_url( array( 'view' => 'import_payments' ) ) ), esc_html__( 'Import Payments', 'karks-crm' ) );
 		}
 
 		$this->render_notice_from_query();
@@ -82,6 +81,8 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 					array( 'skipped_duplicate', __( '%d rows skipped — an invoice with that number already exists.', 'karks-crm' ) ),
 					/* translators: %d: number of rows skipped due to missing customer name, issue date, or amount. */
 					array( 'skipped_missing', __( '%d rows skipped — missing customer name, issue date, or amount.', 'karks-crm' ) ),
+					/* translators: %d: number of new services created because the mapped service name didn't match an existing one. */
+					array( 'services_created', __( '%d new services created.', 'karks-crm' ) ),
 				)
 			);
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
@@ -94,7 +95,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 				'kcrm_import_invoices_run',
 				'import_invoices_run',
 				__( 'Map CSV Columns', 'karks-crm' ),
-				__( 'Choose which column maps to each invoice field. Each row becomes an invoice with a single line item for the mapped amount — open the invoice afterward to add more detail. Status starts as Open and moves to Partially Paid/Paid automatically once you import the matching payments below; map the status column only to flag rows as Draft or Void.', 'karks-crm' )
+				__( 'Choose which column maps to each invoice field. Each row becomes an invoice with a single line item for the mapped amount — open the invoice afterward to add more detail. If you map a Service column, each row is matched to an existing service by name (case-insensitive); if no match is found, a new service is created automatically using that name and the row\'s amount as its rate. Status starts as Open and moves to Partially Paid/Paid automatically once you import the matching payments below; map the status column only to flag rows as Draft or Void.', 'karks-crm' )
 			);
 		} else {
 			$this->render_import_upload(
@@ -276,11 +277,12 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			return;
 		}
 
-		$company_id = $this->current_company_id();
-		$company    = KCRM_Company::find( $company_id );
-		$customers  = KCRM_Customer::for_company( $company_id );
-		$services   = KCRM_Service::active_for_company( $company_id );
-		$items      = $id ? KCRM_Invoice_Item::for_invoice( $id ) : array();
+		$company_id       = $this->current_company_id();
+		$company          = KCRM_Company::find( $company_id );
+		$customers        = KCRM_Customer::for_company( $company_id );
+		$services         = KCRM_Service::active_for_company( $company_id );
+		$items            = $id ? KCRM_Invoice_Item::for_invoice( $id ) : array();
+		$invoice_customer = $invoice ? KCRM_Customer::find( $invoice->customer_id ) : null;
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param, no state change.
 		$preselect_customer = isset( $_GET['customer_id'] ) ? absint( $_GET['customer_id'] ) : ( $invoice ? (int) $invoice->customer_id : 0 );
 
@@ -291,10 +293,11 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 		$services_js = array();
 		foreach ( $services as $service ) {
 			$services_js[] = array(
-				'id'   => (int) $service->id,
-				'name' => $service->name,
-				'type' => $service->type,
-				'rate' => (float) $service->rate,
+				'id'         => (int) $service->id,
+				'name'       => $service->name,
+				'type'       => $service->type,
+				'rate'       => (float) $service->rate,
+				'is_taxable' => (int) $service->is_taxable,
 			);
 		}
 		?>
@@ -361,6 +364,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 						<th><?php esc_html_e( 'Qty / Hours', 'karks-crm' ); ?></th>
 						<th><?php esc_html_e( 'Rate', 'karks-crm' ); ?></th>
 						<th><?php esc_html_e( 'Amount', 'karks-crm' ); ?></th>
+						<th><?php esc_html_e( 'Taxable', 'karks-crm' ); ?></th>
 						<th></th>
 					</tr>
 				</thead>
@@ -396,11 +400,15 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 		<?php if ( $invoice ) : ?>
 			<?php $this->render_payments_section( $invoice, $company ); ?>
 			<?php $this->render_payment_options_section( $company ); ?>
+			<h3><?php esc_html_e( 'Actions', 'karks-crm' ); ?></h3>
 			<div class="kcrm-button-group">
 				<a class="kcrm-button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_download_invoice_pdf&id=' . $invoice->id ), 'kcrm_download_invoice_pdf_' . $invoice->id ) ); ?>">
-					<?php esc_html_e( 'Download PDF', 'karks-crm' ); ?>
+					<span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Download PDF Invoice', 'karks-crm' ); ?>
 				</a>
+				<button type="button" class="kcrm-button" id="kcrm-open-email-modal"><span class="dashicons dashicons-email"></span> <?php esc_html_e( 'Email Invoice', 'karks-crm' ); ?></button>
 			</div>
+			<?php $this->render_last_emailed_note( $invoice->id ); ?>
+			<?php $this->render_email_modal( $invoice, $invoice_customer, $company ); ?>
 		<?php endif; ?>
 		<?php
 	}
@@ -440,12 +448,86 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 		<?php
 	}
 
+	/** A small "Last emailed to X on Y" note if this invoice has ever been sent, above the modal/button. */
+	private function render_last_emailed_note( $invoice_id ) {
+		$last = KCRM_Invoice_Email::most_recent_for_invoice( $invoice_id );
+		if ( ! $last ) {
+			return;
+		}
+		$recipient = $last->sent_to_name ? "{$last->sent_to_name} <{$last->sent_to_email}>" : $last->sent_to_email;
+		?>
+		<p class="description">
+			<?php
+			printf(
+				/* translators: 1: recipient name/email, 2: date and time. */
+				esc_html__( 'Last emailed to %1$s on %2$s.', 'karks-crm' ),
+				esc_html( $recipient ),
+				esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $last->sent_at ) ) )
+			);
+			?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * A mobile-friendly modal (hidden until "Email Invoice" is clicked --
+	 * see assets/js/admin.js) that composes an HTML email for this invoice,
+	 * pre-filled from the customer's contact info and the company's Email
+	 * Invoice template (merge tags already resolved). Submitting it is a
+	 * real form POST like every other action in this plugin, not AJAX --
+	 * the page reloads with a success/error notice afterward.
+	 */
+	private function render_email_modal( $invoice, $customer, $company ) {
+		$default_subject = sprintf(
+			/* translators: 1: invoice number, 2: company name. */
+			__( 'Invoice %1$s from %2$s', 'karks-crm' ),
+			$invoice->invoice_number,
+			$company ? $company->name : ''
+		);
+		$default_body = KCRM_Merge_Tags::replace( KCRM_Company::email_template( $company ), $invoice, $customer, $company );
+		?>
+		<div class="kcrm-modal-overlay" id="kcrm-email-modal" style="display:none;">
+			<div class="kcrm-modal">
+				<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>" class="kcrm-front-form">
+					<?php wp_nonce_field( 'kcrm_send_invoice_email_' . $invoice->id ); ?>
+					<input type="hidden" name="kcrm_action" value="send_invoice_email">
+					<input type="hidden" name="invoice_id" value="<?php echo esc_attr( $invoice->id ); ?>">
+
+					<h3><?php esc_html_e( 'Email Invoice', 'karks-crm' ); ?></h3>
+					<p>
+						<label for="email_to_name"><?php esc_html_e( 'To (Name)', 'karks-crm' ); ?></label>
+						<input type="text" name="email_to_name" id="email_to_name" value="<?php echo esc_attr( $customer ? $customer->contact_person : '' ); ?>">
+					</p>
+					<p>
+						<label for="email_to"><?php esc_html_e( 'To (Email)', 'karks-crm' ); ?></label>
+						<input type="email" name="email_to" id="email_to" value="<?php echo esc_attr( $customer ? $customer->email : '' ); ?>" required>
+					</p>
+					<p>
+						<label for="email_subject"><?php esc_html_e( 'Subject', 'karks-crm' ); ?></label>
+						<input type="text" name="email_subject" id="email_subject" value="<?php echo esc_attr( $default_subject ); ?>" required>
+					</p>
+					<p>
+						<label for="email_body"><?php esc_html_e( 'Message (HTML)', 'karks-crm' ); ?></label>
+						<textarea rows="8" name="email_body" id="email_body" required><?php echo esc_textarea( $default_body ); ?></textarea>
+						<br><small><?php esc_html_e( 'The PDF invoice is attached automatically.', 'karks-crm' ); ?></small>
+					</p>
+					<div class="kcrm-button-group">
+						<button type="submit" class="kcrm-button kcrm-button-primary"><?php esc_html_e( 'Send Email', 'karks-crm' ); ?></button>
+						<button type="button" class="kcrm-button" id="kcrm-close-email-modal"><?php esc_html_e( 'Cancel', 'karks-crm' ); ?></button>
+					</div>
+				</form>
+			</div>
+		</div>
+		<?php
+	}
+
 	private function render_item_row( $item ) {
 		$service_id  = isset( $item->service_id ) ? (int) $item->service_id : 0;
 		$description = isset( $item->description ) ? $item->description : '';
 		$type        = isset( $item->type ) ? $item->type : KCRM_Service::TYPE_PROJECT;
 		$quantity    = isset( $item->quantity ) ? $item->quantity : '1';
 		$rate        = isset( $item->rate ) ? $item->rate : '0.00';
+		$is_taxable  = ! empty( $item->is_taxable );
 		?>
 		<tr class="kcrm-line-item">
 			<td>
@@ -467,6 +549,10 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			<td><input type="number" step="0.01" min="0" class="kcrm-item-quantity" name="item_quantity[]" value="<?php echo esc_attr( $quantity ); ?>"></td>
 			<td><input type="number" step="0.01" min="0" class="kcrm-item-rate" name="item_rate[]" value="<?php echo esc_attr( $rate ); ?>"></td>
 			<td class="kcrm-item-amount">0.00</td>
+			<td>
+				<input type="hidden" class="kcrm-item-taxable-value" name="item_is_taxable[]" value="<?php echo $is_taxable ? '1' : '0'; ?>">
+				<input type="checkbox" class="kcrm-item-taxable" <?php checked( $is_taxable ); ?>>
+			</td>
 			<td><button type="button" class="kcrm-remove-line" aria-label="<?php esc_attr_e( 'Remove line', 'karks-crm' ); ?>">&times;</button></td>
 		</tr>
 		<?php

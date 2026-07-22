@@ -105,6 +105,7 @@ class KCRM_Activator {
 		$invoices       = KCRM_DB::invoices();
 		$invoice_items  = KCRM_DB::invoice_items();
 		$payments       = KCRM_DB::payments();
+		$invoice_emails = KCRM_DB::invoice_emails();
 
 		$sql = array();
 
@@ -126,6 +127,8 @@ class KCRM_Activator {
 			accepted_payment_types VARCHAR(255) NULL,
 			payment_links TEXT NULL,
 			check_payable_to VARCHAR(255) NULL,
+			pdf_accent_color VARCHAR(7) NULL,
+			email_template TEXT NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id)
@@ -162,6 +165,7 @@ class KCRM_Activator {
 			type VARCHAR(20) NOT NULL DEFAULT 'hourly',
 			rate DECIMAL(12,2) NOT NULL DEFAULT 0,
 			is_active TINYINT(1) NOT NULL DEFAULT 1,
+			is_taxable TINYINT(1) NOT NULL DEFAULT 0,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
@@ -200,6 +204,7 @@ class KCRM_Activator {
 			quantity DECIMAL(10,2) NOT NULL DEFAULT 1,
 			rate DECIMAL(12,2) NOT NULL DEFAULT 0,
 			amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+			is_taxable TINYINT(1) NOT NULL DEFAULT 0,
 			sort_order INT NOT NULL DEFAULT 0,
 			PRIMARY KEY  (id),
 			KEY invoice_id (invoice_id)
@@ -218,6 +223,17 @@ class KCRM_Activator {
 			PRIMARY KEY  (id),
 			KEY invoice_id (invoice_id),
 			KEY customer_id (customer_id)
+		) $charset_collate;";
+
+		$sql[] = "CREATE TABLE $invoice_emails (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			invoice_id BIGINT UNSIGNED NOT NULL,
+			sent_to_name VARCHAR(255) NULL,
+			sent_to_email VARCHAR(255) NOT NULL,
+			sent_by BIGINT UNSIGNED NULL,
+			sent_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY invoice_id (invoice_id)
 		) $charset_collate;";
 
 		foreach ( $sql as $statement ) {

@@ -18,6 +18,7 @@ class KCRM_Invoice_Item extends KCRM_Model_Base {
 			'quantity'    => '%f',
 			'rate'        => '%f',
 			'amount'      => '%f',
+			'is_taxable'  => '%d',
 			'sort_order'  => '%d',
 		);
 	}

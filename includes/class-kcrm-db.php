@@ -37,4 +37,9 @@ class KCRM_DB {
 		global $wpdb;
 		return $wpdb->prefix . 'karkscrm_payments';
 	}
+
+	public static function invoice_emails() {
+		global $wpdb;
+		return $wpdb->prefix . 'karkscrm_invoice_emails';
+	}
 }

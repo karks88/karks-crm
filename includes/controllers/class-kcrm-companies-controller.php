@@ -34,8 +34,8 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 		$id       = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
 		$existing = $id ? KCRM_Company::find( $id ) : null;
 
-		$text     = function ( $v ) { return sanitize_text_field( wp_unslash( $v ) ); };
-		$textarea = function ( $v ) { return sanitize_textarea_field( wp_unslash( $v ) ); };
+		$text = function ( $v ) { return sanitize_text_field( wp_unslash( $v ) ); };
+		$html = function ( $v ) { return wp_kses_post( wp_unslash( $v ) ); };
 
 		$data = array(
 			'name'                   => $this->field_or_existing( 'name', $text, $existing ),
@@ -50,10 +50,12 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 			'next_invoice_number'    => $this->field_or_existing( 'next_invoice_number', function ( $v ) { return max( 1, absint( $v ) ); }, $existing, 1 ),
 			'default_tax_rate'       => $this->field_or_existing( 'default_tax_rate', function ( $v ) { return (float) $v; }, $existing, 0 ),
 			'currency'               => $this->field_or_existing( 'currency', $text, $existing, 'USD' ),
-			'invoice_footer'         => $this->field_or_existing( 'invoice_footer', $textarea, $existing ),
+			'invoice_footer'         => $this->field_or_existing( 'invoice_footer', $html, $existing ),
 			'accepted_payment_types' => implode( ',', $this->sanitized_payment_types() ),
 			'payment_links'          => $this->sanitized_payment_links(),
 			'check_payable_to'       => $this->field_or_existing( 'check_payable_to', $text, $existing ),
+			'pdf_accent_color'       => $this->field_or_existing( 'pdf_accent_color', function ( $v ) { $hex = sanitize_hex_color( wp_unslash( $v ) ); return $hex ? $hex : ''; }, $existing ),
+			'email_template'         => $this->field_or_existing( 'email_template', $html, $existing ),
 		);
 
 		if ( '' === $data['name'] ) {

@@ -10,12 +10,34 @@ class KCRM_PDF {
 	 * PDF download. Ends the request.
 	 */
 	public static function stream_invoice( $invoice ) {
+		self::require_dompdf_or_die();
+
+		$dompdf   = self::render_invoice( $invoice );
+		$filename = sanitize_file_name( $invoice->invoice_number ? $invoice->invoice_number : 'invoice-' . $invoice->id );
+		$dompdf->stream( $filename . '.pdf', array( 'Attachment' => true ) );
+		exit;
+	}
+
+	/**
+	 * Same rendering as stream_invoice(), but returns the raw PDF bytes
+	 * instead of streaming to the browser -- for attaching to an email
+	 * (KCRM_Invoices_Controller::send_invoice_email()) rather than downloading.
+	 */
+	public static function invoice_pdf_bytes( $invoice ) {
+		self::require_dompdf_or_die();
+		return self::render_invoice( $invoice )->output();
+	}
+
+	private static function require_dompdf_or_die() {
 		if ( ! class_exists( '\Dompdf\Dompdf' ) ) {
 			wp_die(
 				esc_html__( 'PDF export is not available: the Dompdf library is missing. Run "composer install" inside the Karks CRM plugin folder.', 'karks-crm' )
 			);
 		}
+	}
 
+	/** Shared HTML-build + Dompdf-render step for stream_invoice()/invoice_pdf_bytes(). */
+	private static function render_invoice( $invoice ) {
 		$company     = KCRM_Company::find( $invoice->company_id );
 		$customer    = KCRM_Customer::find( $invoice->customer_id );
 		$items       = KCRM_Invoice_Item::for_invoice( $invoice->id );
@@ -36,9 +58,7 @@ class KCRM_PDF {
 		$dompdf->setPaper( 'letter' );
 		$dompdf->render();
 
-		$filename = sanitize_file_name( $invoice->invoice_number ? $invoice->invoice_number : 'invoice-' . $invoice->id );
-		$dompdf->stream( $filename . '.pdf', array( 'Attachment' => true ) );
-		exit;
+		return $dompdf;
 	}
 
 	private static function logo_data_uri( $company ) {

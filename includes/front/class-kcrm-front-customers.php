@@ -12,13 +12,12 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
 
 		echo '<div class="kcrm-front-screen">';
+		$this->render_company_header();
 		$this->render_heading( $view );
 
-		$this->company_switcher();
-
 		if ( 'list' === $view ) {
-			printf( '<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s">%s</a> ', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
-			printf( '<a class="kcrm-button" href="%s">%s</a></div>', esc_url( $this->screen_url( array( 'view' => 'import' ) ) ), esc_html__( 'Import from CSV', 'karks-crm' ) );
+			printf( '<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s"><span class="dashicons dashicons-plus-alt2"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
+			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a></div>', esc_url( $this->screen_url( array( 'view' => 'import' ) ) ), esc_html__( 'Import from CSV', 'karks-crm' ) );
 		}
 
 		$this->render_notice_from_query();
@@ -206,12 +205,15 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		$customers = KCRM_Customer::top_level_for_company( $this->current_company_id(), $order_by );
 		$statuses  = KCRM_Customer::statuses();
 
+		list( $customers, $show_all ) = $this->filter_active_customers( $customers );
+
 		$status_sort_url = $this->screen_url(
 			array(
 				'orderby' => 'status',
 				'order'   => ( 'status' === $orderby && 'ASC' === $order ) ? 'desc' : 'asc',
 			)
 		);
+		$this->render_active_customers_toggle( $show_all );
 		?>
 		<table class="kcrm-front-table">
 			<thead>
@@ -219,7 +221,6 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 					<th><?php esc_html_e( 'Company Name', 'karks-crm' ); ?></th>
 					<th><?php esc_html_e( 'Contact Person', 'karks-crm' ); ?></th>
 					<th><?php esc_html_e( 'Email', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Phone', 'karks-crm' ); ?></th>
 					<th>
 						<a href="<?php echo esc_url( $status_sort_url ); ?>">
 							<?php esc_html_e( 'Status', 'karks-crm' ); ?>
@@ -234,7 +235,9 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 			</thead>
 			<tbody>
 				<?php if ( empty( $customers ) ) : ?>
-					<tr><td colspan="7"><?php esc_html_e( 'No customers yet for this company.', 'karks-crm' ); ?></td></tr>
+					<tr>
+						<td colspan="6"><?php echo esc_html( $this->no_customers_message( $show_all ) ); ?></td>
+					</tr>
 				<?php endif; ?>
 				<?php foreach ( $customers as $customer ) : ?>
 					<?php
@@ -261,7 +264,6 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 						</td>
 						<td><?php echo esc_html( $customer->contact_person ); ?></td>
 						<td><?php echo esc_html( $customer->email ); ?></td>
-						<td><?php echo esc_html( $customer->phone ); ?></td>
 						<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $customer->status ); ?>"><?php echo esc_html( $statuses[ $customer->status ] ?? $customer->status ); ?></span></td>
 						<td><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
 						<td>
@@ -286,7 +288,6 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 							</td>
 							<td><?php echo esc_html( $job->contact_person ); ?></td>
 							<td><?php echo esc_html( $job->email ); ?></td>
-							<td><?php echo esc_html( $job->phone ); ?></td>
 							<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $job->status ); ?>"><?php echo esc_html( $statuses[ $job->status ] ?? $job->status ); ?></span></td>
 							<td><?php echo esc_html( number_format_i18n( $job_balance, 2 ) ); ?></td>
 							<td>
@@ -413,6 +414,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 			<?php endif; ?>
 			<?php $this->render_revenue_section( $rollup_ids, ! empty( $job_ids ) ); ?>
 			<?php $this->render_invoices_section( $rollup_ids, $customer->id, ! empty( $job_ids ) ); ?>
+			<?php $this->render_payments_section( $rollup_ids, ! empty( $job_ids ) ); ?>
 		<?php endif; ?>
 		<?php
 	}
@@ -422,7 +424,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		?>
 		<h3><?php esc_html_e( 'Jobs', 'karks-crm' ); ?></h3>
 		<div class="kcrm-button-group">
-			<a class="kcrm-button" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'add', 'parent_id' => $customer->id ) ) ); ?>"><?php esc_html_e( '+ Add Job', 'karks-crm' ); ?></a>
+			<a class="kcrm-button" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'add', 'parent_id' => $customer->id ) ) ); ?>"><span class="dashicons dashicons-plus-alt2"></span> <?php esc_html_e( 'Add Job', 'karks-crm' ); ?></a>
 		</div>
 		<?php if ( $jobs ) : ?>
 			<table class="kcrm-front-table">
@@ -494,7 +496,8 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
 		$show_all     = ! empty( $_GET['kcrm_invoice_filter'] ) && 'all' === sanitize_key( wp_unslash( $_GET['kcrm_invoice_filter'] ) );
 		$statuses     = $show_all ? null : KCRM_Invoice::default_customer_statuses();
-		$invoices     = KCRM_Invoice::for_customers_with_statuses( $customer_ids, $statuses );
+		list( $range, $date_from, $date_to ) = $this->resolve_date_range( 'kcrm_inv', 'all' );
+		$invoices     = KCRM_Invoice::for_customers_with_statuses( $customer_ids, $statuses, 'issue_date DESC, id DESC', $date_from, $date_to );
 		$all_statuses = KCRM_Invoice::statuses();
 
 		$toggle_url = $show_all ? remove_query_arg( 'kcrm_invoice_filter' ) : add_query_arg( 'kcrm_invoice_filter', 'all' );
@@ -504,6 +507,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		<?php if ( $is_rollup ) : ?>
 			<p class="description"><?php esc_html_e( 'Includes this customer and all of its Jobs.', 'karks-crm' ); ?></p>
 		<?php endif; ?>
+		<?php $this->render_date_range_filter( 'kcrm_inv', $range, $date_from, $date_to ); ?>
 		<div class="kcrm-button-group">
 			<a class="kcrm-button" href="<?php echo esc_url( $toggle_url ); ?>">
 				<?php
@@ -512,7 +516,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 					: esc_html__( 'Show invoices with all statuses', 'karks-crm' );
 				?>
 			</a>
-			<a class="kcrm-button kcrm-button-primary" href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $primary_customer_id ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
+			<a class="kcrm-button kcrm-button-primary" href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $primary_customer_id ) ) ); ?>"><span class="dashicons dashicons-plus-alt2"></span> <?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
 		</div>
 		<table class="kcrm-front-table">
 			<thead>
@@ -559,6 +563,57 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		<?php
+	}
+
+	/** @param array $customer_ids The customer plus its Jobs (rolled up), when it has any. */
+	private function render_payments_section( array $customer_ids, $is_rollup ) {
+		list( $range, $date_from, $date_to ) = $this->resolve_date_range( 'kcrm_pay', 'this_year' );
+
+		$per_page     = 10;
+		$total        = KCRM_Payment::count_for_customers( $customer_ids, $date_from, $date_to );
+		$total_pages  = (int) ceil( $total / $per_page );
+		$current_page = $this->current_page_number( 'kcrm_pg', $total_pages );
+		$offset       = ( $current_page - 1 ) * $per_page;
+
+		$payments = KCRM_Payment::for_customers( $customer_ids, $per_page, $offset, $date_from, $date_to );
+		?>
+		<h3><?php esc_html_e( 'Payments Received', 'karks-crm' ); ?></h3>
+		<?php if ( $is_rollup ) : ?>
+			<p class="description"><?php esc_html_e( 'Includes this customer and all of its Jobs.', 'karks-crm' ); ?></p>
+		<?php endif; ?>
+		<?php $this->render_date_range_filter( 'kcrm_pay', $range, $date_from, $date_to ); ?>
+		<table class="kcrm-front-table">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Date', 'karks-crm' ); ?></th>
+					<th><?php esc_html_e( 'Invoice #', 'karks-crm' ); ?></th>
+					<th><?php esc_html_e( 'Method', 'karks-crm' ); ?></th>
+					<th><?php esc_html_e( 'Note', 'karks-crm' ); ?></th>
+					<th><?php esc_html_e( 'Amount', 'karks-crm' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php if ( empty( $payments ) ) : ?>
+					<tr><td colspan="5"><?php esc_html_e( 'No payments recorded yet.', 'karks-crm' ); ?></td></tr>
+				<?php endif; ?>
+				<?php foreach ( $payments as $payment ) : ?>
+					<?php $invoice = KCRM_Invoice::find( $payment->invoice_id ); ?>
+					<tr>
+						<td><?php echo esc_html( $payment->payment_date ); ?></td>
+						<td>
+							<?php if ( $invoice ) : ?>
+								<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'edit', 'id' => $invoice->id ) ) ); ?>"><?php echo esc_html( $invoice->invoice_number ); ?></a>
+							<?php endif; ?>
+						</td>
+						<td><?php echo esc_html( $payment->method ); ?></td>
+						<td><?php echo esc_html( $payment->note ); ?></td>
+						<td><?php echo esc_html( number_format_i18n( (float) $payment->amount, 2 ) ); ?></td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<?php $this->render_pagination( $current_page, $total_pages, 'kcrm_pg' ); ?>
 		<?php
 	}
 }

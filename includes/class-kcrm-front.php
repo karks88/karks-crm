@@ -8,6 +8,7 @@ require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-companies.php';
 require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-customers.php';
 require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-services.php';
 require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-invoices.php';
+require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-reports.php';
 
 /**
  * Front-end counterpart to KCRM_Plugin: a [karks_crm] shortcode, placed by
@@ -18,7 +19,7 @@ require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-invoices.php';
 class KCRM_Front {
 
 	/** Rewrite endpoints registered under the CRM page, in nav order. */
-	const ENDPOINTS = array( 'companies', 'customers', 'services', 'invoices' );
+	const ENDPOINTS = array( 'companies', 'customers', 'services', 'invoices', 'reports' );
 
 	/** @var array<string,KCRM_Controller_Base> */
 	private $screens = array();
@@ -29,6 +30,7 @@ class KCRM_Front {
 			'customers' => new KCRM_Front_Customers(),
 			'services'  => new KCRM_Front_Services(),
 			'invoices'  => new KCRM_Front_Invoices(),
+			'reports'   => new KCRM_Front_Reports(),
 		);
 
 		add_action( 'init', array( $this, 'register_endpoints' ) );
@@ -36,6 +38,7 @@ class KCRM_Front {
 		add_shortcode( 'karks_crm', array( $this, 'render_shortcode' ) );
 		add_action( 'template_redirect', array( $this, 'handle_screen_actions' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'admin_post_kcrm_export_report_csv', array( $this->screens['reports'], 'handle_csv_export' ) );
 	}
 
 	/**
@@ -140,11 +143,13 @@ class KCRM_Front {
 	}
 
 	/**
-	 * Companies is deliberately left out of the nav -- the Dashboard already
-	 * lists every company (with an "Add a Company" button) and links to each
-	 * one's overview hub, which itself links to Edit Company. The "companies"
-	 * endpoint still exists and is still reachable (add/edit/delete all
-	 * redirect back to it), it's just not a top-level tab anymore.
+	 * Companies' own list/add/edit screens are deliberately left out of the
+	 * nav -- the Dashboard already lists every company (with an "Add a
+	 * Company" button) and links to each one's overview hub, which itself
+	 * links to Edit Company. That "companies" endpoint still exists and is
+	 * still reachable (add/edit/delete all redirect back to it), it's just
+	 * not a top-level tab. A "Company Profile" tab is shown instead,
+	 * linking straight to the *current* company's overview hub.
 	 */
 	private function render_nav( $current ) {
 		$labels = array(
@@ -152,13 +157,25 @@ class KCRM_Front {
 			'customers' => __( 'Customers', 'karks-crm' ),
 			'services'  => __( 'Services', 'karks-crm' ),
 			'invoices'  => __( 'Invoices', 'karks-crm' ),
+			'reports'   => __( 'Reports', 'karks-crm' ),
 		);
+		$icons = array(
+			''          => 'dashboard',
+			'customers' => 'groups',
+			'services'  => 'hammer',
+			'invoices'  => 'media-spreadsheet',
+			'reports'   => 'chart-bar',
+		);
+		$current_company_id = KCRM_Context::get_current_company_id();
 		?>
 		<nav class="kcrm-front-nav">
-			<a href="<?php echo esc_url( self::endpoint_url( '' ) ); ?>" class="<?php echo '' === $current ? 'is-active' : ''; ?>"><?php echo esc_html( $labels[''] ); ?></a>
+			<a href="<?php echo esc_url( self::endpoint_url( '' ) ); ?>" class="<?php echo '' === $current ? 'is-active' : ''; ?>"><span class="dashicons dashicons-<?php echo esc_attr( $icons[''] ); ?>"></span> <?php echo esc_html( $labels[''] ); ?></a>
+			<?php if ( $current_company_id ) : ?>
+				<a href="<?php echo esc_url( self::endpoint_url( 'companies', array( 'view' => 'overview', 'id' => $current_company_id ) ) ); ?>" class="<?php echo 'companies' === $current ? 'is-active' : ''; ?>"><span class="dashicons dashicons-building"></span> <?php esc_html_e( 'Company Profile', 'karks-crm' ); ?></a>
+			<?php endif; ?>
 			<?php foreach ( $labels as $endpoint => $label ) : ?>
 				<?php if ( '' === $endpoint ) { continue; } ?>
-				<a href="<?php echo esc_url( self::endpoint_url( $endpoint ) ); ?>" class="<?php echo $current === $endpoint ? 'is-active' : ''; ?>"><?php echo esc_html( $label ); ?></a>
+				<a href="<?php echo esc_url( self::endpoint_url( $endpoint ) ); ?>" class="<?php echo $current === $endpoint ? 'is-active' : ''; ?>"><span class="dashicons dashicons-<?php echo esc_attr( $icons[ $endpoint ] ); ?>"></span> <?php echo esc_html( $label ); ?></a>
 			<?php endforeach; ?>
 		</nav>
 		<?php
@@ -184,8 +201,12 @@ class KCRM_Front {
 		if ( ! self::is_crm_page() ) {
 			return;
 		}
-		wp_enqueue_style( 'kcrm-front', KCRM_PLUGIN_URL . 'assets/css/front.css', array(), KCRM_VERSION );
+		wp_enqueue_style( 'dashicons' );
+		wp_enqueue_style( 'kcrm-front', KCRM_PLUGIN_URL . 'assets/css/front.css', array( 'dashicons' ), KCRM_VERSION );
+		wp_add_inline_style( 'kcrm-front', KCRM_Colors::inline_css() );
 		wp_enqueue_media();
+		wp_enqueue_style( 'wp-color-picker' );
+		wp_enqueue_script( 'wp-color-picker' );
 		wp_enqueue_script( 'kcrm-admin', KCRM_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery' ), KCRM_VERSION, true );
 	}
 }

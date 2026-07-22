@@ -25,12 +25,18 @@
 
 	function recalcTotals() {
 		var subtotal = 0;
+		var taxableSubtotal = 0;
 		$('#kcrm-line-items-body .kcrm-line-item').each(function () {
-			subtotal += recalcRow($(this));
+			var $row = $(this);
+			var amount = recalcRow($row);
+			subtotal += amount;
+			if ($row.find('.kcrm-item-taxable').is(':checked')) {
+				taxableSubtotal += amount;
+			}
 		});
 
 		var taxRate = parseFloat($('#tax_rate').val()) || 0;
-		var taxAmount = subtotal * (taxRate / 100);
+		var taxAmount = taxableSubtotal * (taxRate / 100);
 		var total = subtotal + taxAmount;
 
 		$('#kcrm-subtotal').text(subtotal.toFixed(2));
@@ -47,12 +53,17 @@
 				}
 				$row.find('.kcrm-item-type').val(service.type);
 				$row.find('.kcrm-item-rate').val(parseFloat(service.rate).toFixed(2));
+				$row.find('.kcrm-item-taxable').prop('checked', !!service.is_taxable).trigger('change');
 			}
 			recalcTotals();
 		});
 
 		$row.find('.kcrm-item-quantity, .kcrm-item-rate').on('input', recalcTotals);
 		$row.find('.kcrm-item-type, .kcrm-item-description').on('input change', recalcTotals);
+		$row.find('.kcrm-item-taxable').on('change', function () {
+			$row.find('.kcrm-item-taxable-value').val(this.checked ? '1' : '0');
+			recalcTotals();
+		});
 
 		$row.find('.kcrm-remove-line').on('click', function () {
 			if ($('#kcrm-line-items-body .kcrm-line-item').length > 1) {
@@ -108,6 +119,8 @@
 			$template.find('.kcrm-item-quantity').val('1');
 			$template.find('.kcrm-item-rate').val('0.00');
 			$template.find('.kcrm-item-service').val('0');
+			$template.find('.kcrm-item-taxable').prop('checked', false);
+			$template.find('.kcrm-item-taxable-value').val('0');
 			$template.find('.kcrm-item-amount').text('0.00');
 			$body.append($template);
 			bindRow($template);
@@ -141,6 +154,34 @@
 			$template.find('input').val('');
 			$linksBody.append($template);
 			bindPaymentLinkRow($template);
+		});
+	});
+
+	$(function () {
+		$('.kcrm-date-range-filter select[name$="_range"]').on('change', function () {
+			var isCustom = this.value === 'custom';
+			$(this).closest('form').find('.kcrm-date-range-custom').toggle(isCustom);
+		});
+	});
+
+	$(function () {
+		var $modal = $('#kcrm-email-modal');
+		if (!$modal.length) {
+			return;
+		}
+
+		$('#kcrm-open-email-modal').on('click', function () {
+			$modal.show();
+		});
+		$('#kcrm-close-email-modal, .kcrm-modal-overlay').on('click', function (e) {
+			if (e.target === this) {
+				$modal.hide();
+			}
+		});
+		$(document).on('keyup', function (e) {
+			if (e.key === 'Escape') {
+				$modal.hide();
+			}
 		});
 	});
 })(jQuery);

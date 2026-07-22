@@ -25,6 +25,10 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			$this->add_payment();
 		}
 
+		if ( isset( $_POST['kcrm_action'] ) && 'send_invoice_email' === $_POST['kcrm_action'] ) {
+			$this->send_invoice_email();
+		}
+
 		if ( isset( $_POST['kcrm_action'] ) && 'import_invoices_upload' === $_POST['kcrm_action'] ) {
 			$this->handle_invoice_import_upload();
 		}
@@ -131,6 +135,8 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		$rates = isset( $_POST['item_rate'] ) ? (array) wp_unslash( $_POST['item_rate'] ) : array();
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified in save(); each value is cast with absint() per-row below.
 		$service_ids = isset( $_POST['item_service_id'] ) ? (array) wp_unslash( $_POST['item_service_id'] ) : array();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified in save(); each value is compared to '1' per-row below. A hidden input paired with each row's checkbox guarantees one array entry per row regardless of checked state.
+		$is_taxable_flags = isset( $_POST['item_is_taxable'] ) ? (array) wp_unslash( $_POST['item_is_taxable'] ) : array();
 
 		$sort = 0;
 		foreach ( $descriptions as $index => $description ) {
@@ -148,6 +154,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			}
 
 			$service_id = isset( $service_ids[ $index ] ) ? absint( $service_ids[ $index ] ) : 0;
+			$is_taxable = isset( $is_taxable_flags[ $index ] ) && '1' === (string) $is_taxable_flags[ $index ] ? 1 : 0;
 
 			KCRM_Invoice_Item::insert(
 				array(
@@ -158,6 +165,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 					'quantity'    => $quantity,
 					'rate'        => $rate,
 					'amount'      => round( $quantity * $rate, 2 ),
+					'is_taxable'  => $is_taxable,
 					'sort_order'  => $sort++,
 				)
 			);
@@ -198,6 +206,66 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		$this->redirect( array( 'view' => 'edit', 'id' => $invoice_id, 'kcrm_notice' => 'saved' ) );
 	}
 
+	/**
+	 * Emails the invoice as an HTML message with the same PDF that
+	 * "Download PDF Invoice" generates attached (built fresh via
+	 * KCRM_PDF::invoice_pdf_bytes(), never touching disk -- attached
+	 * straight from memory via a one-shot phpmailer_init hook). Delivery
+	 * itself goes through wp_mail(), so it's handled by whatever SMTP
+	 * plugin is configured, same as every other WordPress email.
+	 */
+	private function send_invoice_email() {
+		$invoice_id = isset( $_POST['invoice_id'] ) ? absint( $_POST['invoice_id'] ) : 0;
+		check_admin_referer( 'kcrm_send_invoice_email_' . $invoice_id );
+
+		$invoice = $invoice_id ? KCRM_Invoice::find( $invoice_id ) : null;
+
+		if ( ! $invoice || (int) $invoice->company_id !== $this->current_company_id() ) {
+			$this->redirect( array( 'kcrm_notice' => 'error' ) );
+		}
+
+		$to_email = isset( $_POST['email_to'] ) ? sanitize_email( wp_unslash( $_POST['email_to'] ) ) : '';
+		$to_name  = isset( $_POST['email_to_name'] ) ? sanitize_text_field( wp_unslash( $_POST['email_to_name'] ) ) : '';
+		$subject  = isset( $_POST['email_subject'] ) ? sanitize_text_field( wp_unslash( $_POST['email_subject'] ) ) : '';
+		$body     = isset( $_POST['email_body'] ) ? wp_kses_post( wp_unslash( $_POST['email_body'] ) ) : '';
+
+		if ( ! is_email( $to_email ) || '' === $subject || '' === $body ) {
+			$this->redirect( array( 'view' => 'edit', 'id' => $invoice_id, 'kcrm_notice' => 'email_error' ) );
+		}
+
+		$pdf_bytes = KCRM_PDF::invoice_pdf_bytes( $invoice );
+		$filename  = sanitize_file_name( $invoice->invoice_number ? $invoice->invoice_number : 'invoice-' . $invoice->id ) . '.pdf';
+
+		$attach_pdf = function ( $phpmailer ) use ( $pdf_bytes, $filename ) {
+			$phpmailer->addStringAttachment( $pdf_bytes, $filename, 'base64', 'application/pdf' );
+		};
+
+		$to = $to_name ? "$to_name <$to_email>" : $to_email;
+
+		add_action( 'phpmailer_init', $attach_pdf );
+		$sent = wp_mail( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+		remove_action( 'phpmailer_init', $attach_pdf );
+
+		if ( $sent ) {
+			KCRM_Invoice_Email::create(
+				array(
+					'invoice_id'    => $invoice_id,
+					'sent_to_name'  => $to_name,
+					'sent_to_email' => $to_email,
+					'sent_by'       => get_current_user_id(),
+				)
+			);
+		}
+
+		$this->redirect(
+			array(
+				'view'        => 'edit',
+				'id'          => $invoice_id,
+				'kcrm_notice' => $sent ? 'email_sent' : 'email_error',
+			)
+		);
+	}
+
 	private function delete_payment( $payment_id ) {
 		check_admin_referer( 'kcrm_delete_payment_' . $payment_id );
 
@@ -210,6 +278,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 	private function delete( $invoice_id ) {
 		check_admin_referer( 'kcrm_delete_invoice_' . $invoice_id );
 		KCRM_Invoice_Item::delete_for_invoice( $invoice_id );
+		KCRM_Payment::delete_for_invoice( $invoice_id );
 		KCRM_Invoice::delete( $invoice_id );
 		$this->redirect( array( 'kcrm_notice' => 'deleted' ) );
 	}
@@ -221,8 +290,8 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			$this->redirect( array( 'kcrm_notice' => 'no_company' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- KCRM_CSV_Import::store_upload() validates tmp_name, error, size, and extension before use.
-		$file  = isset( $_FILES['import_file'] ) ? wp_unslash( $_FILES['import_file'] ) : array();
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- $_FILES is never magic-quotes-slashed by WordPress (wp_magic_quotes() only touches $_GET/$_POST/$_COOKIE/$_SERVER), so wp_unslash() here would incorrectly strip backslashes out of a Windows tmp_name path; KCRM_CSV_Import::store_upload() validates tmp_name, error, size, and extension before use.
+		$file  = isset( $_FILES['import_file'] ) ? $_FILES['import_file'] : array();
 		$token = KCRM_CSV_Import::store_upload( $file );
 
 		if ( is_wp_error( $token ) ) {
@@ -274,10 +343,19 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			}
 		}
 
+		$services_by_name = array();
+		foreach ( KCRM_Service::for_company( $company_id ) as $service ) {
+			$services_by_name[ strtolower( trim( $service->name ) ) ] = array(
+				'id'         => (int) $service->id,
+				'is_taxable' => (int) $service->is_taxable,
+			);
+		}
+
 		$imported            = 0;
 		$skipped_missing     = 0;
 		$skipped_no_customer = 0;
 		$skipped_duplicate   = 0;
+		$services_created    = 0;
 		$seen_numbers        = array();
 
 		foreach ( $rows as $row ) {
@@ -308,9 +386,35 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 				$invoice_number = KCRM_Company::next_invoice_number( $company_id );
 			}
 
+			$service_name = $this->mapped_cell( $row, $map, 'service_name' );
+
 			$description = $this->mapped_cell( $row, $map, 'description' );
 			if ( '' === $description ) {
-				$description = __( 'Imported Invoice', 'karks-crm' );
+				$description = '' !== $service_name ? $service_name : __( 'Imported Invoice', 'karks-crm' );
+			}
+
+			$service_id      = null;
+			$item_is_taxable = 0;
+			if ( '' !== $service_name ) {
+				$service_key = strtolower( $service_name );
+				if ( isset( $services_by_name[ $service_key ] ) ) {
+					$service_id      = $services_by_name[ $service_key ]['id'];
+					$item_is_taxable = $services_by_name[ $service_key ]['is_taxable'];
+				} else {
+					$service_id = KCRM_Service::create(
+						array(
+							'company_id' => $company_id,
+							'name'       => sanitize_text_field( $service_name ),
+							'type'       => KCRM_Service::TYPE_PROJECT,
+							'rate'       => $amount,
+						)
+					);
+					$services_by_name[ $service_key ] = array(
+						'id'         => $service_id,
+						'is_taxable' => 0,
+					);
+					$services_created++;
+				}
 			}
 
 			$tax_rate = $this->mapped_amount( $row, $map, 'tax_rate' );
@@ -333,12 +437,13 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			KCRM_Invoice_Item::insert(
 				array(
 					'invoice_id'  => $invoice_id,
-					'service_id'  => null,
+					'service_id'  => $service_id,
 					'description' => $description,
 					'type'        => KCRM_Service::TYPE_PROJECT,
 					'quantity'    => 1,
 					'rate'        => $amount,
 					'amount'      => $amount,
+					'is_taxable'  => $item_is_taxable,
 					'sort_order'  => 0,
 				)
 			);
@@ -358,6 +463,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 				'skipped_no_customer' => $skipped_no_customer,
 				'skipped_duplicate'   => $skipped_duplicate,
 				'skipped_missing'     => $skipped_missing,
+				'services_created'    => $services_created,
 			)
 		);
 	}
@@ -380,8 +486,8 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			$this->redirect( array( 'kcrm_notice' => 'no_company' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- KCRM_CSV_Import::store_upload() validates tmp_name, error, size, and extension before use.
-		$file  = isset( $_FILES['import_file'] ) ? wp_unslash( $_FILES['import_file'] ) : array();
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- $_FILES is never magic-quotes-slashed by WordPress (wp_magic_quotes() only touches $_GET/$_POST/$_COOKIE/$_SERVER), so wp_unslash() here would incorrectly strip backslashes out of a Windows tmp_name path; KCRM_CSV_Import::store_upload() validates tmp_name, error, size, and extension before use.
+		$file  = isset( $_FILES['import_file'] ) ? $_FILES['import_file'] : array();
 		$token = KCRM_CSV_Import::store_upload( $file );
 
 		if ( is_wp_error( $token ) ) {
@@ -547,7 +653,11 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			),
 			'description'    => array(
 				'label' => __( 'Description (used as the line item and invoice label)', 'karks-crm' ),
-				'guess' => array( 'description', 'memo', 'item' ),
+				'guess' => array( 'description', 'memo' ),
+			),
+			'service_name'   => array(
+				'label' => __( "Service (matched by name; created automatically if it doesn't exist yet)", 'karks-crm' ),
+				'guess' => array( 'product/service', 'service', 'item' ),
 			),
 			'status_source'  => array(
 				'label' => __( 'Status column (only Draft/Void are recognized)', 'karks-crm' ),

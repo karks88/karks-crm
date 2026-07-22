@@ -44,13 +44,14 @@ class KCRM_Admin_Services extends KCRM_Services_Controller {
 					<th><?php esc_html_e( 'Name', 'karks-crm' ); ?></th>
 					<th><?php esc_html_e( 'Type', 'karks-crm' ); ?></th>
 					<th><?php esc_html_e( 'Rate', 'karks-crm' ); ?></th>
+					<th><?php esc_html_e( 'Taxable', 'karks-crm' ); ?></th>
 					<th><?php esc_html_e( 'Active', 'karks-crm' ); ?></th>
 					<th><?php esc_html_e( 'Actions', 'karks-crm' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
 				<?php if ( empty( $services ) ) : ?>
-					<tr><td colspan="5"><?php esc_html_e( 'No services yet for this company.', 'karks-crm' ); ?></td></tr>
+					<tr><td colspan="6"><?php esc_html_e( 'No services yet for this company.', 'karks-crm' ); ?></td></tr>
 				<?php endif; ?>
 				<?php foreach ( $services as $service ) : ?>
 					<tr>
@@ -68,6 +69,7 @@ class KCRM_Admin_Services extends KCRM_Services_Controller {
 							echo KCRM_Service::TYPE_HOURLY === $service->type ? esc_html__( '/hr', 'karks-crm' ) : '';
 							?>
 						</td>
+						<td><?php echo $service->is_taxable ? esc_html__( 'Yes', 'karks-crm' ) : esc_html__( 'No', 'karks-crm' ); ?></td>
 						<td><?php echo $service->is_active ? esc_html__( 'Yes', 'karks-crm' ) : esc_html__( 'No', 'karks-crm' ); ?></td>
 						<td>
 							<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $service->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
@@ -99,6 +101,7 @@ class KCRM_Admin_Services extends KCRM_Services_Controller {
 		$type        = $service ? $service->type : KCRM_Service::TYPE_HOURLY;
 		$rate        = $service ? $service->rate : '0.00';
 		$is_active   = $service ? (bool) $service->is_active : true;
+		$is_taxable  = $service ? (bool) $service->is_taxable : false;
 		?>
 		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>">
 			<?php wp_nonce_field( 'kcrm_save_service' ); ?>
@@ -134,6 +137,13 @@ class KCRM_Admin_Services extends KCRM_Services_Controller {
 				<tr>
 					<th><?php esc_html_e( 'Active', 'karks-crm' ); ?></th>
 					<td><label><input type="checkbox" name="is_active" value="1" <?php checked( $is_active ); ?>> <?php esc_html_e( 'Available to select on new invoices', 'karks-crm' ); ?></label></td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Taxable', 'karks-crm' ); ?></th>
+					<td>
+						<label><input type="checkbox" name="is_taxable" value="1" <?php checked( $is_taxable ); ?>> <?php esc_html_e( "Applies the invoice's tax rate to this line item", 'karks-crm' ); ?></label>
+						<p class="description"><?php esc_html_e( "Off by default. When on, invoices using this service apply the company's tax rate to this line item's amount.", 'karks-crm' ); ?></p>
+					</td>
 				</tr>
 			</table>
 

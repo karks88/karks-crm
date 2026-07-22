@@ -278,10 +278,11 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 		$services_js = array();
 		foreach ( $services as $service ) {
 			$services_js[] = array(
-				'id'   => (int) $service->id,
-				'name' => $service->name,
-				'type' => $service->type,
-				'rate' => (float) $service->rate,
+				'id'         => (int) $service->id,
+				'name'       => $service->name,
+				'type'       => $service->type,
+				'rate'       => (float) $service->rate,
+				'is_taxable' => (int) $service->is_taxable,
 			);
 		}
 		?>
@@ -356,7 +357,8 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 						<th style="width:12%;"><?php esc_html_e( 'Type', 'karks-crm' ); ?></th>
 						<th style="width:10%;"><?php esc_html_e( 'Qty / Hours', 'karks-crm' ); ?></th>
 						<th style="width:12%;"><?php esc_html_e( 'Rate', 'karks-crm' ); ?></th>
-						<th style="width:12%;"><?php esc_html_e( 'Amount', 'karks-crm' ); ?></th>
+						<th style="width:10%;"><?php esc_html_e( 'Amount', 'karks-crm' ); ?></th>
+						<th style="width:6%;"><?php esc_html_e( 'Taxable', 'karks-crm' ); ?></th>
 						<th style="width:4%;"></th>
 					</tr>
 				</thead>
@@ -410,6 +412,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 		$type        = isset( $item->type ) ? $item->type : KCRM_Service::TYPE_PROJECT;
 		$quantity    = isset( $item->quantity ) ? $item->quantity : '1';
 		$rate        = isset( $item->rate ) ? $item->rate : '0.00';
+		$is_taxable  = ! empty( $item->is_taxable );
 		?>
 		<tr class="kcrm-line-item">
 			<td>
@@ -431,6 +434,10 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 			<td><input type="number" step="0.01" min="0" class="kcrm-item-quantity" name="item_quantity[]" value="<?php echo esc_attr( $quantity ); ?>" style="width:100%;"></td>
 			<td><input type="number" step="0.01" min="0" class="kcrm-item-rate" name="item_rate[]" value="<?php echo esc_attr( $rate ); ?>" style="width:100%;"></td>
 			<td class="kcrm-item-amount">0.00</td>
+			<td>
+				<input type="hidden" class="kcrm-item-taxable-value" name="item_is_taxable[]" value="<?php echo $is_taxable ? '1' : '0'; ?>">
+				<input type="checkbox" class="kcrm-item-taxable" <?php checked( $is_taxable ); ?>>
+			</td>
 			<td><button type="button" class="button-link kcrm-remove-line" aria-label="<?php esc_attr_e( 'Remove line', 'karks-crm' ); ?>">&times;</button></td>
 		</tr>
 		<?php

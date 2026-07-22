@@ -67,7 +67,7 @@ class KCRM_Front_Dashboard extends KCRM_Controller_Base {
 					<tr>
 						<td>
 							<strong>
-								<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'companies', array( 'view' => 'overview', 'id' => $company->id ) ) ); ?>">
+								<a href="<?php echo esc_url( KCRM_Context::switch_company_url( $company->id, KCRM_Front::endpoint_url( 'companies', array( 'view' => 'overview', 'id' => $company->id ) ) ) ); ?>">
 									<?php echo esc_html( $company->name ); ?>
 								</a>
 							</strong>

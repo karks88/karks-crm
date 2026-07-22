@@ -12,12 +12,23 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
 
 		echo '<div class="kcrm-front-screen">';
-		echo '<h2>' . esc_html__( 'Companies', 'karks-crm' ) . '</h2>';
 
-		$this->company_switcher();
+		if ( 'overview' === $view ) {
+			// On the overview page, switching companies should land on the
+			// *new* company's overview, not fall back to the companies list.
+			$this->render_company_header(
+				function ( $company ) {
+					return $this->screen_url( array( 'view' => 'overview', 'id' => $company->id ) );
+				}
+			);
+		} else {
+			$this->render_company_header();
+		}
+
+		$this->render_heading( $view );
 
 		if ( 'list' === $view ) {
-			printf( '<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s">%s</a></div>', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
+			printf( '<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s"><span class="dashicons dashicons-plus-alt2"></span> %s</a></div>', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
 		}
 
 		$this->render_notice_from_query();
@@ -34,6 +45,29 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 		echo '</div>';
 	}
 
+	/** Renders the H2 -- linked back to the list once we're off it, with the company's name appended on the overview page. */
+	private function render_heading( $view ) {
+		$label = __( 'Companies', 'karks-crm' );
+
+		if ( 'list' === $view ) {
+			echo '<h2>' . esc_html( $label ) . '</h2>';
+			return;
+		}
+
+		if ( 'overview' === $view ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param, no state change.
+			$id      = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+			$company = $id ? KCRM_Company::find( $id ) : null;
+
+			if ( $company ) {
+				echo '<h2>' . esc_html( $company->name ) . '</h2>';
+				return;
+			}
+		}
+
+		echo '<h2>' . sprintf( '<a href="%s">%s</a>', esc_url( $this->screen_url() ), esc_html( $label ) ) . '</h2>';
+	}
+
 	private function render_overview( $id ) {
 		$company = $id ? KCRM_Company::find( $id ) : null;
 
@@ -42,7 +76,9 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 			return;
 		}
 
-		$customers     = KCRM_Customer::top_level_for_company( $id );
+		$customers = KCRM_Customer::top_level_for_company( $id );
+		list( $customers, $show_all_customers ) = $this->filter_active_customers( $customers );
+
 		$all_invoices  = KCRM_Invoice::for_company( $id );
 		$outstanding   = 0.0;
 		$open_invoices = 0;
@@ -57,48 +93,69 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 				$open_invoices++;
 			}
 		}
+
+		$current_year      = (int) current_time( 'Y' );
+		$revenue_this_year = KCRM_Payment::total_for_company_in_year( $id, $current_year );
+
+		$customers_card_label = $show_all_customers
+			? __( 'Active + Inactive Customers', 'karks-crm' )
+			: __( 'Active Customers', 'karks-crm' );
 		?>
-		<h3><?php echo esc_html( $company->name ); ?></h3>
 		<div class="kcrm-button-group">
-			<a class="kcrm-button" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $id ) ) ); ?>"><?php esc_html_e( 'Edit Company', 'karks-crm' ); ?></a>
-			<a class="kcrm-button kcrm-button-primary" href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'customers', array( 'view' => 'add' ) ) ) ); ?>"><?php esc_html_e( '+ Add Customer', 'karks-crm' ); ?></a>
-			<a class="kcrm-button" href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add' ) ) ) ); ?>"><?php esc_html_e( '+ Add Invoice', 'karks-crm' ); ?></a>
-			<a class="kcrm-button" href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'services', array( 'view' => 'add' ) ) ) ); ?>"><?php esc_html_e( '+ Add Service', 'karks-crm' ); ?></a>
+			<a class="kcrm-button" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $id ) ) ); ?>"><span class="dashicons dashicons-edit"></span> <?php esc_html_e( 'Edit Company', 'karks-crm' ); ?></a>
+			<a class="kcrm-button" href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'customers', array( 'view' => 'add' ) ) ) ); ?>"><span class="dashicons dashicons-plus-alt2"></span> <?php esc_html_e( 'Add Customer', 'karks-crm' ); ?></a>
+			<a class="kcrm-button" href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add' ) ) ) ); ?>"><span class="dashicons dashicons-plus-alt2"></span> <?php esc_html_e( 'Add Invoice', 'karks-crm' ); ?></a>
+			<a class="kcrm-button" href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'services', array( 'view' => 'add' ) ) ) ); ?>"><span class="dashicons dashicons-plus-alt2"></span> <?php esc_html_e( 'Add Service', 'karks-crm' ); ?></a>
 		</div>
 
 		<div class="kcrm-dashboard-cards">
 			<a class="kcrm-card" href="#kcrm-customers">
+				<span class="dashicons dashicons-groups kcrm-card-icon"></span>
 				<span class="kcrm-card-number"><?php echo esc_html( count( $customers ) ); ?></span>
-				<span class="kcrm-card-label"><?php esc_html_e( 'Customers', 'karks-crm' ); ?></span>
+				<span class="kcrm-card-label"><?php echo esc_html( $customers_card_label ); ?> <span class="dashicons dashicons-arrow-right-alt2 kcrm-card-arrow"></span></span>
 			</a>
 			<a class="kcrm-card" href="#kcrm-invoices">
-				<span class="kcrm-card-number"><?php echo esc_html( count( $all_invoices ) ); ?></span>
-				<span class="kcrm-card-label"><?php esc_html_e( 'Invoices', 'karks-crm' ); ?></span>
-			</a>
-			<a class="kcrm-card" href="#kcrm-invoices">
+				<span class="dashicons dashicons-portfolio kcrm-card-icon"></span>
 				<span class="kcrm-card-number"><?php echo esc_html( $open_invoices ); ?></span>
-				<span class="kcrm-card-label"><?php esc_html_e( 'Open Invoices', 'karks-crm' ); ?></span>
+				<span class="kcrm-card-label"><?php esc_html_e( 'Open Invoices', 'karks-crm' ); ?> <span class="dashicons dashicons-arrow-right-alt2 kcrm-card-arrow"></span></span>
 			</a>
-			<a class="kcrm-card" href="#kcrm-invoices">
+			<a class="kcrm-card" href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'reports', array( 'view' => 'aging' ) ) ) ); ?>">
+				<span class="dashicons dashicons-warning kcrm-card-icon"></span>
 				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( $outstanding, 2 ) ); ?></span>
-				<span class="kcrm-card-label"><?php esc_html_e( 'Outstanding Balance', 'karks-crm' ); ?></span>
+				<span class="kcrm-card-label"><?php esc_html_e( 'Outstanding Balance', 'karks-crm' ); ?> <span class="dashicons dashicons-arrow-right-alt2 kcrm-card-arrow"></span></span>
+			</a>
+			<a class="kcrm-card" href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'reports', array( 'view' => 'revenue' ) ) ) ); ?>">
+				<span class="dashicons dashicons-chart-line kcrm-card-icon"></span>
+				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( $revenue_this_year, 2 ) ); ?></span>
+				<span class="kcrm-card-label">
+					<?php
+					/* translators: %d: calendar year. */
+					echo esc_html( sprintf( __( '%d Revenue', 'karks-crm' ), $current_year ) );
+					?>
+					<span class="dashicons dashicons-arrow-right-alt2 kcrm-card-arrow"></span>
+				</span>
 			</a>
 		</div>
 
 		<h3 id="kcrm-customers"><?php esc_html_e( 'Customers', 'karks-crm' ); ?></h3>
+		<?php $this->render_active_customers_toggle( $show_all_customers ); ?>
+		<?php $customer_statuses = KCRM_Customer::statuses(); ?>
 		<table class="kcrm-front-table">
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Company Name', 'karks-crm' ); ?></th>
 					<th><?php esc_html_e( 'Contact Person', 'karks-crm' ); ?></th>
 					<th><?php esc_html_e( 'Email', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Phone', 'karks-crm' ); ?></th>
+					<th><?php esc_html_e( 'Status', 'karks-crm' ); ?></th>
 					<th><?php esc_html_e( 'Balance', 'karks-crm' ); ?></th>
+					<th><?php esc_html_e( 'Actions', 'karks-crm' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
 				<?php if ( empty( $customers ) ) : ?>
-					<tr><td colspan="5"><?php esc_html_e( 'No customers yet for this company.', 'karks-crm' ); ?></td></tr>
+					<tr>
+						<td colspan="6"><?php echo esc_html( $this->no_customers_message( $show_all_customers ) ); ?></td>
+					</tr>
 				<?php endif; ?>
 				<?php foreach ( $customers as $customer ) : ?>
 					<?php
@@ -115,8 +172,18 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 						</td>
 						<td><?php echo esc_html( $customer->contact_person ); ?></td>
 						<td><?php echo esc_html( $customer->email ); ?></td>
-						<td><?php echo esc_html( $customer->phone ); ?></td>
+						<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $customer->status ); ?>"><?php echo esc_html( $customer_statuses[ $customer->status ] ?? $customer->status ); ?></span></td>
 						<td><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
+						<td>
+							<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $customer->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
+							|
+							<a href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $customer->id ) ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
+							|
+							<a href="<?php echo esc_url( wp_nonce_url( KCRM_Front::endpoint_url( 'customers', array( 'action' => 'delete', 'id' => $customer->id ) ), 'kcrm_delete_customer_' . $customer->id ) ); ?>"
+								onclick="return confirm('<?php echo esc_js( $job_ids ? __( 'Delete this customer and all of its Jobs?', 'karks-crm' ) : __( 'Delete this customer?', 'karks-crm' ) ); ?>');">
+								<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
+							</a>
+						</td>
 					</tr>
 				<?php endforeach; ?>
 			</tbody>
@@ -207,7 +274,7 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 					<tr>
 						<td>
 							<strong>
-								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'overview', 'id' => $company->id ) ) ); ?>">
+								<a href="<?php echo esc_url( KCRM_Context::switch_company_url( $company->id, $this->screen_url( array( 'view' => 'overview', 'id' => $company->id ) ) ) ); ?>">
 									<?php echo esc_html( $company->name ); ?>
 								</a>
 							</strong>
@@ -309,8 +376,20 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 			</p>
 			<p>
 				<label for="invoice_footer"><?php esc_html_e( 'Invoice Footer', 'karks-crm' ); ?></label>
-				<textarea rows="4" name="invoice_footer" id="invoice_footer"><?php echo $company ? esc_textarea( $company->invoice_footer ) : ''; ?></textarea>
-				<br><small><?php esc_html_e( 'Custom text shown at the bottom of every PDF invoice for this company (e.g. payment terms, bank details, a thank-you note).', 'karks-crm' ); ?></small>
+				<?php
+				wp_editor(
+					$company ? $company->invoice_footer : '',
+					'invoice_footer',
+					array(
+						'textarea_name' => 'invoice_footer',
+						'textarea_rows' => 6,
+						'media_buttons' => false,
+						'teeny'         => true,
+						'quicktags'     => true,
+					)
+				);
+				?>
+				<small><?php esc_html_e( 'Custom content shown at the bottom of every PDF invoice for this company (e.g. payment terms, bank details, a thank-you note).', 'karks-crm' ); ?></small>
 			</p>
 			<p>
 				<label><?php esc_html_e( 'Accepted Payment Types', 'karks-crm' ); ?></label>
@@ -356,6 +435,33 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 				<button type="button" class="kcrm-button" id="kcrm-add-payment-link"><?php esc_html_e( '+ Add Link', 'karks-crm' ); ?></button>
 				<br><small><?php esc_html_e( 'Shown on invoices as quick ways for customers to pay online (e.g. a PayPal.me link, Stripe payment link).', 'karks-crm' ); ?></small>
 			</p>
+			<p>
+				<label for="pdf_accent_color"><?php esc_html_e( 'PDF Accent Color', 'karks-crm' ); ?></label>
+				<input type="text" class="kcrm-color-picker" name="pdf_accent_color" id="pdf_accent_color" value="<?php echo esc_attr( $company ? $company->pdf_accent_color : '' ); ?>" data-default-color="<?php echo esc_attr( KCRM_Colors::get()['primary'] ); ?>">
+				<br><small><?php esc_html_e( 'Used for the invoice title and totals on this company\'s PDF invoices. Leave blank to use the global Appearance color.', 'karks-crm' ); ?></small>
+			</p>
+			<p>
+				<label for="email_template"><?php esc_html_e( 'Email Invoice Template', 'karks-crm' ); ?></label>
+				<?php
+				wp_editor(
+					KCRM_Company::email_template( $company ),
+					'email_template',
+					array(
+						'textarea_name' => 'email_template',
+						'textarea_rows' => 10,
+						'media_buttons' => false,
+						'teeny'         => true,
+						'quicktags'     => true,
+					)
+				);
+				?>
+				<small>
+					<?php esc_html_e( 'Pre-fills the body when using "Email Invoice." Shown below is the default wording -- edit it to customize. Available merge tags:', 'karks-crm' ); ?>
+					<?php foreach ( array_keys( KCRM_Merge_Tags::tags() ) as $kcrm_tag ) : ?>
+						<code>{{<?php echo esc_html( $kcrm_tag ); ?>}}</code>
+					<?php endforeach; ?>
+				</small>
+			</p>
 
 			<p><button type="submit" class="kcrm-button kcrm-button-primary"><?php echo esc_html( $id ? __( 'Update Company', 'karks-crm' ) : __( 'Add Company', 'karks-crm' ) ); ?></button></p>
 		</form>
@@ -381,6 +487,7 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 			$('.kcrm-payment-type-checkbox[data-type="check"]').on('change', function(){
 				$('#kcrm-check-payable-to-row').toggle(this.checked);
 			});
+			$('.kcrm-color-picker').wpColorPicker();
 		});
 		</script>
 		<?php

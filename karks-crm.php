@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'KCRM_VERSION', '0.4.0' );
-define( 'KCRM_DB_VERSION', '1.5.0' );
+define( 'KCRM_DB_VERSION', '1.8.1' );
 define( 'KCRM_PLUGIN_FILE', __FILE__ );
 define( 'KCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -44,8 +44,11 @@ require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-service.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice-item.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-payment.php';
+require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice-email.php';
 
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-context.php';
+require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-colors.php';
+require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-merge-tags.php';
 require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-controller-base.php';
 require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-companies-controller.php';
 require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-customers-controller.php';

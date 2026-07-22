@@ -20,6 +20,7 @@ class KCRM_Service extends KCRM_Model_Base {
 			'type'        => '%s',
 			'rate'        => '%f',
 			'is_active'   => '%d',
+			'is_taxable'  => '%d',
 			'created_at'  => '%s',
 			'updated_at'  => '%s',
 		);

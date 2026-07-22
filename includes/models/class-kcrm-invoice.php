@@ -142,9 +142,11 @@ class KCRM_Invoice extends KCRM_Model_Base {
 	 * (a customer plus its Jobs), for the profile's rolled-up invoice list.
 	 *
 	 * @param array      $customer_ids
-	 * @param array|null $statuses Limit to these statuses, or null for all statuses.
+	 * @param array|null $statuses  Limit to these statuses, or null for all statuses.
+	 * @param string|null $date_from Limit to issue_date >= this ('Y-m-d'), or null for no lower bound.
+	 * @param string|null $date_to   Limit to issue_date <= this ('Y-m-d'), or null for no upper bound.
 	 */
-	public static function for_customers_with_statuses( array $customer_ids, $statuses = null, $order_by = 'issue_date DESC, id DESC' ) {
+	public static function for_customers_with_statuses( array $customer_ids, $statuses = null, $order_by = 'issue_date DESC, id DESC', $date_from = null, $date_to = null ) {
 		global $wpdb;
 
 		$customer_ids = array_filter( array_map( 'absint', $customer_ids ) );
@@ -165,6 +167,16 @@ class KCRM_Invoice extends KCRM_Model_Base {
 			$status_placeholders = implode( ', ', array_fill( 0, count( $statuses ), '%s' ) );
 			$sql                .= ' AND status IN (' . $status_placeholders . ')';
 			$params              = array_merge( $params, array_values( $statuses ) );
+		}
+
+		if ( $date_from ) {
+			$sql     .= ' AND issue_date >= %s';
+			$params[] = $date_from;
+		}
+
+		if ( $date_to ) {
+			$sql     .= ' AND issue_date <= %s';
+			$params[] = $date_to;
 		}
 
 		$sql .= ' ORDER BY ' . self::safe_order_by( $order_by );
@@ -197,14 +209,18 @@ class KCRM_Invoice extends KCRM_Model_Base {
 			return;
 		}
 
-		$items    = KCRM_Invoice_Item::for_invoice( $invoice_id );
-		$subtotal = 0.0;
+		$items            = KCRM_Invoice_Item::for_invoice( $invoice_id );
+		$subtotal         = 0.0;
+		$taxable_subtotal = 0.0;
 		foreach ( $items as $item ) {
 			$subtotal += (float) $item->amount;
+			if ( ! empty( $item->is_taxable ) ) {
+				$taxable_subtotal += (float) $item->amount;
+			}
 		}
 
 		$tax_rate   = (float) $invoice->tax_rate;
-		$tax_amount = round( $subtotal * ( $tax_rate / 100 ), 2 );
+		$tax_amount = round( $taxable_subtotal * ( $tax_rate / 100 ), 2 );
 		$total      = round( $subtotal + $tax_amount, 2 );
 
 		self::save(

@@ -27,6 +27,8 @@ class KCRM_Company extends KCRM_Model_Base {
 			'accepted_payment_types' => '%s',
 			'payment_links'        => '%s',
 			'check_payable_to'     => '%s',
+			'pdf_accent_color'     => '%s',
+			'email_template'       => '%s',
 			'created_at'           => '%s',
 			'updated_at'           => '%s',
 		);
@@ -66,6 +68,27 @@ class KCRM_Company extends KCRM_Model_Base {
 		}
 		$decoded = json_decode( $company->payment_links, true );
 		return is_array( $decoded ) ? $decoded : array();
+	}
+
+	/** @return string This company's PDF accent color, falling back to the global Appearance setting's Primary color if unset. */
+	public static function pdf_accent_color( $company ) {
+		if ( $company && ! empty( $company->pdf_accent_color ) ) {
+			return $company->pdf_accent_color;
+		}
+		return KCRM_Colors::get()['primary'];
+	}
+
+	/** @return string A sensible starting point for the Email Invoice template, shown until a company writes their own. */
+	public static function default_email_template() {
+		return "<p>Hi {{first_name}},</p>\n<p>Please find attached your invoice for {{service}}, totaling {{invoice_amount}}.</p>\n<p>Thank you for your business!</p>";
+	}
+
+	/** @return string This company's Email Invoice template (raw HTML with merge tags), falling back to default_email_template() if unset. */
+	public static function email_template( $company ) {
+		if ( $company && ! empty( $company->email_template ) ) {
+			return $company->email_template;
+		}
+		return self::default_email_template();
 	}
 
 	public static function create( $data ) {

@@ -131,8 +131,8 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 			$this->redirect( array( 'kcrm_notice' => 'no_company' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- KCRM_CSV_Import::store_upload() validates tmp_name, error, size, and extension before use.
-		$file  = isset( $_FILES['import_file'] ) ? wp_unslash( $_FILES['import_file'] ) : array();
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- $_FILES is never magic-quotes-slashed by WordPress (wp_magic_quotes() only touches $_GET/$_POST/$_COOKIE/$_SERVER), so wp_unslash() here would incorrectly strip backslashes out of a Windows tmp_name path; KCRM_CSV_Import::store_upload() validates tmp_name, error, size, and extension before use.
+		$file  = isset( $_FILES['import_file'] ) ? $_FILES['import_file'] : array();
 		$token = KCRM_CSV_Import::store_upload( $file );
 
 		if ( is_wp_error( $token ) ) {

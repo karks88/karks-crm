@@ -157,8 +157,20 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 				<tr>
 					<th><label for="invoice_footer"><?php esc_html_e( 'Invoice Footer', 'karks-crm' ); ?></label></th>
 					<td>
-						<textarea class="large-text" rows="4" name="invoice_footer" id="invoice_footer"><?php echo $company ? esc_textarea( $company->invoice_footer ) : ''; ?></textarea>
-						<p class="description"><?php esc_html_e( 'Custom text shown at the bottom of every PDF invoice for this company (e.g. payment terms, bank details, a thank-you note).', 'karks-crm' ); ?></p>
+						<?php
+						wp_editor(
+							$company ? $company->invoice_footer : '',
+							'invoice_footer',
+							array(
+								'textarea_name' => 'invoice_footer',
+								'textarea_rows' => 6,
+								'media_buttons' => false,
+								'teeny'         => true,
+								'quicktags'     => true,
+							)
+						);
+						?>
+						<p class="description"><?php esc_html_e( 'Custom content shown at the bottom of every PDF invoice for this company (e.g. payment terms, bank details, a thank-you note).', 'karks-crm' ); ?></p>
 					</td>
 				</tr>
 				<tr>
@@ -211,6 +223,37 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 						<p class="description"><?php esc_html_e( 'Shown on invoices as quick ways for customers to pay online (e.g. a PayPal.me link, Stripe payment link).', 'karks-crm' ); ?></p>
 					</td>
 				</tr>
+				<tr>
+					<th><label for="pdf_accent_color"><?php esc_html_e( 'PDF Accent Color', 'karks-crm' ); ?></label></th>
+					<td>
+						<input type="text" class="kcrm-color-picker" name="pdf_accent_color" id="pdf_accent_color" value="<?php echo esc_attr( $company ? $company->pdf_accent_color : '' ); ?>" data-default-color="<?php echo esc_attr( KCRM_Colors::get()['primary'] ); ?>">
+						<p class="description"><?php esc_html_e( 'Used for the invoice title and totals on this company\'s PDF invoices. Leave blank to use the global Appearance color.', 'karks-crm' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th><label for="email_template"><?php esc_html_e( 'Email Invoice Template', 'karks-crm' ); ?></label></th>
+					<td>
+						<?php
+						wp_editor(
+							KCRM_Company::email_template( $company ),
+							'email_template',
+							array(
+								'textarea_name' => 'email_template',
+								'textarea_rows' => 10,
+								'media_buttons' => false,
+								'teeny'         => true,
+								'quicktags'     => true,
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'Pre-fills the body when using "Email Invoice." Shown below is the default wording -- edit it to customize. Available merge tags:', 'karks-crm' ); ?>
+							<?php foreach ( array_keys( KCRM_Merge_Tags::tags() ) as $kcrm_tag ) : ?>
+								<code>{{<?php echo esc_html( $kcrm_tag ); ?>}}</code>
+							<?php endforeach; ?>
+						</p>
+					</td>
+				</tr>
 			</table>
 
 			<?php submit_button( $id ? __( 'Update Company', 'karks-crm' ) : __( 'Add Company', 'karks-crm' ) ); ?>
@@ -237,6 +280,7 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 			$('.kcrm-payment-type-checkbox[data-type="check"]').on('change', function(){
 				$('#kcrm-check-payable-to-row').toggle(this.checked);
 			});
+			$('.kcrm-color-picker').wpColorPicker();
 		});
 		</script>
 		<?php
