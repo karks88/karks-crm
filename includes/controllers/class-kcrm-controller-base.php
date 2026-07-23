@@ -46,6 +46,7 @@ abstract class KCRM_Controller_Base {
 	 * handling.
 	 */
 	protected function field_or_existing( $key, callable $sanitize, $existing, $default = '' ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified by the caller before this is used.
 		if ( array_key_exists( $key, $_POST ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified by the caller before this is used; $sanitize() unslashes/sanitizes internally.
 			return $sanitize( $_POST[ $key ] );
@@ -120,9 +121,9 @@ abstract class KCRM_Controller_Base {
 		}
 
 		if ( 'custom' === $range ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display filter, no state change; sanitize_date_or_null() sanitizes internally.
 			$from = isset( $_GET[ "{$prefix}_from" ] ) ? $this->sanitize_date_or_null( wp_unslash( $_GET[ "{$prefix}_from" ] ) ) : null;
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display filter, no state change; sanitize_date_or_null() sanitizes internally.
 			$to = isset( $_GET[ "{$prefix}_to" ] ) ? $this->sanitize_date_or_null( wp_unslash( $_GET[ "{$prefix}_to" ] ) ) : null;
 			return array( $range, $from, $to );
 		}
@@ -218,6 +219,7 @@ abstract class KCRM_Controller_Base {
 		?>
 		<p>
 			<a href="<?php echo esc_url( $toggle_url ); ?>">
+				<span class="dashicons dashicons-editor-ol"></span>
 				<?php
 				echo $show_all
 					? esc_html__( 'Show active customers only', 'karks-crm' )

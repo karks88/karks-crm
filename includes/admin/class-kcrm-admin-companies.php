@@ -14,6 +14,7 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 
 		if ( 'list' === $view ) {
 			printf( ' <a href="%s" class="page-title-action">%s</a>', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
+			printf( ' <a href="%s" class="page-title-action">%s</a>', esc_url( $this->screen_url( array( 'view' => 'import_company' ) ) ), esc_html__( 'Import Company', 'karks-crm' ) );
 		}
 		echo '<hr class="wp-header-end">';
 
@@ -21,6 +22,8 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 
 		if ( 'add' === $view || 'edit' === $view ) {
 			$this->render_form( $view );
+		} elseif ( 'import_company' === $view ) {
+			$this->render_import_company();
 		} else {
 			$this->render_list();
 		}
@@ -60,6 +63,8 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 						<td>
 							<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $company->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
 							|
+							<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_export_company&id=' . $company->id ), 'kcrm_export_company_' . $company->id ) ); ?>"><?php esc_html_e( 'Export', 'karks-crm' ); ?></a>
+							|
 							<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $company->id ) ), 'kcrm_delete_company_' . $company->id ) ); ?>"
 								onclick="return confirm('<?php echo esc_js( __( 'Delete this company and switch to another? Customers, services, and invoices under it will remain in the database but hidden.', 'karks-crm' ) ); ?>');">
 								<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
@@ -69,6 +74,98 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		<?php
+	}
+
+	private function render_import_company() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
+		$stage = isset( $_GET['stage'] ) ? sanitize_key( $_GET['stage'] ) : 'upload';
+
+		if ( 'done' === $stage ) {
+			$this->render_import_company_done();
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display error message from our own redirect, not a form submission; escaped on output below.
+		if ( ! empty( $_GET['kcrm_import_error'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- see above.
+			printf( '<div class="notice notice-error"><p>%s</p></div>', esc_html( rawurldecode( sanitize_text_field( wp_unslash( $_GET['kcrm_import_error'] ) ) ) ) );
+		}
+		?>
+		<p>
+			<?php esc_html_e( 'Upload a company export (a .json file from another Karks CRM site\'s Companies list) to import it here as a brand-new company -- profile, customers, services, invoices, line items, and payments included. The company logo is not included; re-upload it afterward if this company has one.', 'karks-crm' ); ?>
+		</p>
+		<p class="description">
+			<?php esc_html_e( 'This always creates a new company, even if one with the same name already exists here -- it never overwrites or merges into an existing company. Both sites must be running the same Karks CRM plugin version.', 'karks-crm' ); ?>
+		</p>
+		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>" enctype="multipart/form-data">
+			<?php wp_nonce_field( 'kcrm_import_company' ); ?>
+			<input type="hidden" name="kcrm_action" value="import_company">
+			<table class="form-table">
+				<tr>
+					<th><label for="import_file"><?php esc_html_e( 'Export File', 'karks-crm' ); ?></label></th>
+					<td><input type="file" name="import_file" id="import_file" accept=".json" required></td>
+				</tr>
+			</table>
+			<?php submit_button( __( 'Import Company', 'karks-crm' ) ); ?>
+		</form>
+		<?php
+	}
+
+	private function render_import_company_done() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display counters, no state change.
+		$company_id = isset( $_GET['company_id'] ) ? absint( $_GET['company_id'] ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display counters, no state change.
+		$customers = isset( $_GET['customers'] ) ? absint( $_GET['customers'] ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display counters, no state change.
+		$services = isset( $_GET['services'] ) ? absint( $_GET['services'] ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display counters, no state change.
+		$invoices = isset( $_GET['invoices'] ) ? absint( $_GET['invoices'] ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display counters, no state change.
+		$payments = isset( $_GET['payments'] ) ? absint( $_GET['payments'] ) : 0;
+		$company  = $company_id ? KCRM_Company::find( $company_id ) : null;
+		?>
+		<h2><?php esc_html_e( 'Import Complete', 'karks-crm' ); ?></h2>
+		<ul>
+			<li>
+				<?php
+				echo $company
+					/* translators: %s: the imported company's name. */
+					? esc_html( sprintf( __( 'Imported as "%s".', 'karks-crm' ), $company->name ) )
+					: esc_html__( 'Company imported.', 'karks-crm' );
+				?>
+			</li>
+			<li>
+				<?php
+				/* translators: %d: number of customers imported. */
+				echo esc_html( sprintf( __( '%d customers imported.', 'karks-crm' ), $customers ) );
+				?>
+			</li>
+			<li>
+				<?php
+				/* translators: %d: number of services imported. */
+				echo esc_html( sprintf( __( '%d services imported.', 'karks-crm' ), $services ) );
+				?>
+			</li>
+			<li>
+				<?php
+				/* translators: %d: number of invoices imported. */
+				echo esc_html( sprintf( __( '%d invoices imported.', 'karks-crm' ), $invoices ) );
+				?>
+			</li>
+			<li>
+				<?php
+				/* translators: %d: number of payments imported. */
+				echo esc_html( sprintf( __( '%d payments imported.', 'karks-crm' ), $payments ) );
+				?>
+			</li>
+		</ul>
+		<p>
+			<?php if ( $company ) : ?>
+				<a class="button button-primary" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $company_id ) ) ); ?>"><?php esc_html_e( 'View Imported Company', 'karks-crm' ); ?></a>
+			<?php endif; ?>
+			<a class="button" href="<?php echo esc_url( $this->screen_url() ); ?>"><?php esc_html_e( 'Back to Companies', 'karks-crm' ); ?></a>
+		</p>
 		<?php
 	}
 

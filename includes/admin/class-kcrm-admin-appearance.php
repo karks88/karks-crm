@@ -25,6 +25,7 @@ class KCRM_Admin_Appearance {
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; save() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'save_colors' === $_POST['kcrm_action'] ) {
 			$this->save();
 		}
@@ -41,15 +42,17 @@ class KCRM_Admin_Appearance {
 		}
 
 		update_option( KCRM_Colors::OPTION, $colors );
+		update_option( KCRM_Colors::DISABLE_STYLES_OPTION, isset( $_POST['disable_styles'] ) ? 1 : 0 );
 
 		wp_safe_redirect( add_query_arg( array( 'page' => self::PAGE, 'kcrm_notice' => 'saved' ), admin_url( 'admin.php' ) ) );
 		exit;
 	}
 
 	public function render() {
-		$colors   = KCRM_Colors::get();
-		$labels   = KCRM_Colors::labels();
-		$defaults = KCRM_Colors::defaults();
+		$colors          = KCRM_Colors::get();
+		$labels          = KCRM_Colors::labels();
+		$defaults        = KCRM_Colors::defaults();
+		$styles_disabled = KCRM_Colors::styles_disabled();
 		?>
 		<div class="wrap kcrm-wrap">
 			<h1><?php esc_html_e( 'Karks CRM Appearance', 'karks-crm' ); ?></h1>
@@ -93,6 +96,13 @@ class KCRM_Admin_Appearance {
 						<td>
 							<input type="text" class="kcrm-color-picker" name="color_highlight" id="color_highlight" value="<?php echo esc_attr( $colors['highlight'] ); ?>" data-default-color="<?php echo esc_attr( $defaults['highlight'] ); ?>">
 							<p class="description"><?php esc_html_e( 'Table row hover background.', 'karks-crm' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Plugin Styles', 'karks-crm' ); ?></th>
+						<td>
+							<label><input type="checkbox" name="disable_styles" id="kcrm-disable-styles" value="1" <?php checked( $styles_disabled ); ?>> <?php esc_html_e( 'Disable plugin styles on the front end', 'karks-crm' ); ?></label>
+							<p class="description"><?php esc_html_e( "Stops the front-end CRM pages from loading this plugin's own stylesheet and the colors above, so you can rely entirely on your theme or custom CSS instead. Dashicons and the plugin's JavaScript (media picker, line-item editor, etc.) keep working either way.", 'karks-crm' ); ?></p>
 						</td>
 					</tr>
 				</table>

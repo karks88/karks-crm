@@ -9,6 +9,17 @@
 	--kcrm-color-secondary: #1f2937;
 	--kcrm-color-accent: #b45309;
 	--kcrm-color-highlight: #fff6b3;
+	/*
+	 * WCAG 2.1 AA (4.5:1) pairings computed from the colors above by
+	 * KCRM_Colors::inline_css() -- see that method's docblock. These
+	 * fallback values match what it computes for the defaults above, so
+	 * there's no flash of different contrast before the inline style loads.
+	 */
+	--kcrm-color-primary-text: #ffffff;
+	--kcrm-color-secondary-text: #ffffff;
+	--kcrm-color-highlight-text: #000000;
+	--kcrm-color-primary-readable: #1e3a5f;
+	--kcrm-color-accent-readable: #b45309;
 }
 
 .kcrm-front {
@@ -43,7 +54,7 @@
 
 .kcrm-front-nav a.is-active {
 	border-bottom-color: var(--kcrm-color-primary);
-	color: var(--kcrm-color-primary);
+	color: var(--kcrm-color-primary-readable);
 	font-weight: 600;
 }
 
@@ -91,7 +102,7 @@
 	height: auto;
 }
 
-.kcrm-front-screen a, .kcrm-front-screen button {
+.kcrm-front-screen a, .kcrm-front-screen button{
 	text-underline-offset: 6px;
 }
 
@@ -106,7 +117,7 @@
 	text-decoration: underline;
 }
 
-a.kcrm-button .dashicons:link, a .dashicons:link, .kcrm-card a:link, a.kcrm-button .dashicons:visited, a .dashicons:visited, .kcrm-card a:visited, .kcrm-front-screen button:hover .dashicons, .kcrm-front-screen button:focus .dashicons {
+a.kcrm-button .dashicons:link, a .dashicons:link, .kcrm-card a:link, a.kcrm-button .dashicons:visited, a .dashicons:visited, .kcrm-card a:visited, .kcrm-front-screen button:hover .dashicons, .kcrm-front-screen button:focus .dashicons, a .dashicons {
 	text-decoration: none;
 }
 
@@ -141,11 +152,12 @@ a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover {
 	background: var(--kcrm-color-secondary);
 	font-size: 12px;
 	text-transform: uppercase;
-	color: #fff;
+	color: var(--kcrm-color-secondary-text);
 }
 
 .kcrm-front-table tr:hover {
 	background: var(--kcrm-color-highlight);
+	color: var(--kcrm-color-highlight-text);
 }
 
 .kcrm-pagination {
@@ -220,7 +232,7 @@ a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover {
 	border: 1px solid var(--kcrm-color-primary);
 	border-radius: 3px;
 	background: #f6f7f7;
-	color: var(--kcrm-color-primary);
+	color: var(--kcrm-color-primary-readable);
 	text-decoration: none;
 	cursor: pointer;
 	font: inherit;
@@ -230,7 +242,19 @@ a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover {
 
 .kcrm-button-primary {
 	background: var(--kcrm-color-primary);
-	color: #fff;
+	color: var(--kcrm-color-primary-text);
+}
+
+a.kcrm-button-primary:link, a.kcrm-button-primary:visited {
+	text-decoration-color: transparent;
+	text-underline-offset: 6px;
+	text-decoration-thickness: 0px !important;
+	text-decoration: underline;
+}
+
+a.kcrm-button-primary:hover, a.kcrm-button-primary:focus {
+	text-decoration-color: var(--kcrm-color-highlight);
+	text-decoration-thickness: 2px !important;
 }
 
 .kcrm-dashboard-cards {
@@ -263,7 +287,7 @@ a.kcrm-card:focus {
 	width: 32px;
 	height: 32px;
 	margin-bottom: 10px;
-	color: var(--kcrm-color-accent);
+	color: var(--kcrm-color-accent-readable);
 }
 
 .kcrm-card-number {
@@ -271,7 +295,7 @@ a.kcrm-card:focus {
 	font-size: 28px;
 	font-weight: 600;
 	line-height: 1.2;
-	color: var(--kcrm-color-accent);
+	color: var(--kcrm-color-accent-readable);
 }
 
 .kcrm-card-label {
@@ -288,7 +312,7 @@ a.kcrm-card:focus {
 	width: 14px;
 	height: 14px;
 	vertical-align: middle;
-	color: var(--kcrm-color-primary);
+	color: var(--kcrm-color-primary-readable);
 	transition: transform .15s ease;
 }
 

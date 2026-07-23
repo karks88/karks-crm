@@ -22,11 +22,7 @@ class KCRM_Front_Dashboard extends KCRM_Controller_Base {
 		//$this->company_switcher();
 		$this->render_notice_from_query();
 
-		printf(
-			'<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s">%s</a></div>',
-			esc_url( KCRM_Front::endpoint_url( 'companies', array( 'view' => 'add' ) ) ),
-			esc_html__( 'Add a Company', 'karks-crm' )
-		);
+		
 
 		$companies = KCRM_Company::all_ordered();
 
@@ -81,5 +77,17 @@ class KCRM_Front_Dashboard extends KCRM_Controller_Base {
 		</table>
 		<?php
 		echo '</div>';
+
+
+		printf(
+			'<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s">%s</a></div>',
+			esc_url( KCRM_Front::endpoint_url( 'companies', array( 'view' => 'add' ) ) ),
+			sprintf(
+				/* translators: %s: dashicon HTML */
+				esc_html__( '%s Add a Company', 'karks-crm' ),
+				'<span class="dashicons dashicons-plus-alt2"></span>'
+			)
+		);
+
 	}
 }

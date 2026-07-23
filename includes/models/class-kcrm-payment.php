@@ -123,7 +123,7 @@ class KCRM_Payment extends KCRM_Model_Base {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $where is built from %d/%s placeholder syntax only (see customers_where()), not user input; query text and args are passed to $wpdb->prepare() on this line.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $where is built from %d/%s placeholder syntax only (see customers_where()), not user input; query text and args are passed to $wpdb->prepare() on this line.
 		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE ' . $where, array_merge( array( self::table() ), $params ) ) );
 	}
 
@@ -206,7 +206,7 @@ class KCRM_Payment extends KCRM_Model_Base {
 
 		list( $where, $params ) = self::company_where( $company_id, $date_from, $date_to );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $where is built from %d/%s placeholder syntax only (see company_where()); $params holds one value per placeholder, passed as $wpdb->prepare()'s documented array-of-args form.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $where is built from %d/%s placeholder syntax only (see company_where()); $params holds one value per placeholder, passed as $wpdb->prepare()'s documented array-of-args form.
 		return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE ' . $where . ' ORDER BY payment_date DESC, id DESC', array_merge( array( self::table() ), $params ) ) );
 	}
 
@@ -216,7 +216,7 @@ class KCRM_Payment extends KCRM_Model_Base {
 
 		list( $where, $params ) = self::company_where( $company_id, $date_from, $date_to );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $where is built from %d/%s placeholder syntax only (see company_where()); $params holds one value per placeholder, passed as $wpdb->prepare()'s documented array-of-args form.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $where is built from %d/%s placeholder syntax only (see company_where()); $params holds one value per placeholder, passed as $wpdb->prepare()'s documented array-of-args form.
 		return (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(amount), 0) FROM %i WHERE ' . $where, array_merge( array( self::table() ), $params ) ) );
 	}
 

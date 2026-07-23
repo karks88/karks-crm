@@ -47,6 +47,7 @@ require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-payment.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice-email.php';
 
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-context.php';
+require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-company-transfer.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-colors.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-merge-tags.php';
 require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-controller-base.php';

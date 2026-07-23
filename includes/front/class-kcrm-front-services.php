@@ -55,11 +55,13 @@ class KCRM_Front_Services extends KCRM_Services_Controller {
 			$service = $id ? KCRM_Service::find( $id ) : null;
 
 			if ( $service ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $link is built from esc_url()/esc_html() above; safe to output as-is.
 				echo '<h2>' . $link . ': ' . esc_html( $service->name ) . '</h2>';
 				return;
 			}
 		}
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $link is built from esc_url()/esc_html() above; safe to output as-is.
 		echo '<h2>' . $link . '</h2>';
 	}
 

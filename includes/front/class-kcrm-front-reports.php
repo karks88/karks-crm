@@ -62,10 +62,12 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 		$link = sprintf( '<a href="%s">%s</a>', esc_url( $this->screen_url() ), esc_html( $label ) );
 
 		if ( isset( $sub_labels[ $view ] ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $link is built from esc_url()/esc_html() above; safe to output as-is.
 			echo '<h2>' . $link . ': ' . esc_html( $sub_labels[ $view ] ) . '</h2>';
 			return;
 		}
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $link is built from esc_url()/esc_html() above; safe to output as-is.
 		echo '<h2>' . $link . '</h2>';
 	}
 
@@ -466,6 +468,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 
 		$this->send_csv_headers( 'revenue-report-' . $company->name );
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
 		$out = fopen( 'php://output', 'w' );
 		fputcsv( $out, array( __( 'Date', 'karks-crm' ), __( 'Customer', 'karks-crm' ), __( 'Invoice #', 'karks-crm' ), __( 'Amount', 'karks-crm' ), __( 'Method', 'karks-crm' ) ) );
 
@@ -484,7 +487,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 			);
 		}
 
-		fclose( $out );
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output stream handle opened above, not a real file.
 		exit;
 	}
 
@@ -504,6 +507,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 
 		$this->send_csv_headers( 'customer-report-' . KCRM_Customer::display_name( $customer ) );
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
 		$out = fopen( 'php://output', 'w' );
 		fputcsv( $out, array( __( 'Date', 'karks-crm' ), __( 'Invoice #', 'karks-crm' ), __( 'Amount', 'karks-crm' ), __( 'Method', 'karks-crm' ), __( 'Note', 'karks-crm' ) ) );
 
@@ -521,7 +525,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 			);
 		}
 
-		fclose( $out );
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output stream handle opened above, not a real file.
 		exit;
 	}
 
@@ -531,6 +535,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 
 		$this->send_csv_headers( 'aging-report-' . $company->name );
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
 		$out = fopen( 'php://output', 'w' );
 		fputcsv( $out, array( __( 'Invoice #', 'karks-crm' ), __( 'Customer', 'karks-crm' ), __( 'Due Date', 'karks-crm' ), __( 'Days Overdue', 'karks-crm' ), __( 'Bucket', 'karks-crm' ), __( 'Balance Due', 'karks-crm' ) ) );
 
@@ -548,7 +553,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 			);
 		}
 
-		fclose( $out );
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output stream handle opened above, not a real file.
 		exit;
 	}
 }

@@ -17,14 +17,17 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 	const ENDPOINT = 'customers';
 
 	public function handle_actions() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; save() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'save_customer' === $_POST['kcrm_action'] ) {
 			$this->save();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_import_upload() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'import_upload' === $_POST['kcrm_action'] ) {
 			$this->handle_import_upload();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_import_run() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'import_run' === $_POST['kcrm_action'] ) {
 			$this->handle_import_run();
 		}

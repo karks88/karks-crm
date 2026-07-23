@@ -202,8 +202,10 @@ class KCRM_Front {
 			return;
 		}
 		wp_enqueue_style( 'dashicons' );
-		wp_enqueue_style( 'kcrm-front', KCRM_PLUGIN_URL . 'assets/css/front.css', array( 'dashicons' ), KCRM_VERSION );
-		wp_add_inline_style( 'kcrm-front', KCRM_Colors::inline_css() );
+		if ( ! KCRM_Colors::styles_disabled() ) {
+			wp_enqueue_style( 'kcrm-front', KCRM_PLUGIN_URL . 'assets/css/front.css', array( 'dashicons' ), KCRM_VERSION );
+			wp_add_inline_style( 'kcrm-front', KCRM_Colors::inline_css() );
+		}
 		wp_enqueue_media();
 		wp_enqueue_style( 'wp-color-picker' );
 		wp_enqueue_script( 'wp-color-picker' );

@@ -17,14 +17,17 @@ abstract class KCRM_Services_Controller extends KCRM_Controller_Base {
 	const ENDPOINT = 'services';
 
 	public function handle_actions() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; save() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'save_service' === $_POST['kcrm_action'] ) {
 			$this->save();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_import_upload() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'import_services_upload' === $_POST['kcrm_action'] ) {
 			$this->handle_import_upload();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_import_run() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'import_services_run' === $_POST['kcrm_action'] ) {
 			$this->handle_import_run();
 		}

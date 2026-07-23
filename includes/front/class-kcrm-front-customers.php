@@ -55,11 +55,13 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 			$customer = $id ? KCRM_Customer::find( $id ) : null;
 
 			if ( $customer ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $link is built from esc_url()/esc_html() above; safe to output as-is.
 				echo '<h2>' . $link . ': ' . esc_html( KCRM_Customer::display_name( $customer ) ) . '</h2>';
 				return;
 			}
 		}
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $link is built from esc_url()/esc_html() above; safe to output as-is.
 		echo '<h2>' . $link . '</h2>';
 	}
 

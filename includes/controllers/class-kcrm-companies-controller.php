@@ -17,8 +17,14 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 	const ENDPOINT = 'companies';
 
 	public function handle_actions() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; save() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'save_company' === $_POST['kcrm_action'] ) {
 			$this->save();
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_import_company() verifies the nonce itself.
+		if ( isset( $_POST['kcrm_action'] ) && 'import_company' === $_POST['kcrm_action'] ) {
+			$this->handle_import_company();
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- action name only; delete() verifies the nonce itself.
@@ -78,18 +84,99 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 		$this->redirect( array( 'kcrm_notice' => 'deleted' ) );
 	}
 
+	/**
+	 * Imports a full company (profile, customers, services, invoices, line
+	 * items, payments) from a previously-exported JSON file -- always as a
+	 * brand-new company (see KCRM_Company_Transfer), never merged into an
+	 * existing one.
+	 */
+	private function handle_import_company() {
+		check_admin_referer( 'kcrm_import_company' );
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- tmp_name/error/size are server-generated, never user input; $_FILES isn't slashed by WordPress in the first place (wp_unslash() here would corrupt a Windows tmp_name path). 'name' is validated (extension/size) below before use.
+		$file = isset( $_FILES['import_file'] ) ? $_FILES['import_file'] : array();
+
+		if ( empty( $file['tmp_name'] ) || ! is_uploaded_file( $file['tmp_name'] ) || ( ! empty( $file['error'] ) && UPLOAD_ERR_OK !== $file['error'] ) ) {
+			$this->redirect( array( 'view' => 'import_company', 'kcrm_notice' => 'error' ) );
+		}
+
+		$ext = strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) );
+		if ( 'json' !== $ext || $file['size'] > 5242880 ) {
+			$this->redirect( array( 'view' => 'import_company', 'kcrm_notice' => 'error' ) );
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_file_get_contents -- reading a just-uploaded tmp file, not a remote URL; WP_Filesystem offers no benefit here.
+		$contents = file_get_contents( $file['tmp_name'] );
+		$data     = json_decode( (string) $contents, true );
+
+		if ( ! is_array( $data ) ) {
+			$this->redirect( array( 'view' => 'import_company', 'kcrm_notice' => 'error' ) );
+		}
+
+		$result = KCRM_Company_Transfer::import( $data );
+
+		if ( is_wp_error( $result ) ) {
+			$this->redirect(
+				array(
+					'view'              => 'import_company',
+					'kcrm_import_error' => rawurlencode( $result->get_error_message() ),
+				)
+			);
+		}
+
+		$this->redirect(
+			array(
+				'view'       => 'import_company',
+				'stage'      => 'done',
+				'company_id' => $result['company_id'],
+				'customers'  => $result['customers'],
+				'services'   => $result['services'],
+				'invoices'   => $result['invoices'],
+				'payments'   => $result['payments'],
+			)
+		);
+	}
+
+	/**
+	 * admin-post handler: streams this company's full data (profile,
+	 * customers, services, invoices, line items, payments) as a JSON file
+	 * download, for migrating to (or duplicating on) another site. wp-admin
+	 * only -- see KCRM_Company_Transfer.
+	 */
+	public function handle_export_download() {
+		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		check_admin_referer( 'kcrm_export_company_' . $id );
+
+		if ( ! current_user_can( KCRM_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to do this.', 'karks-crm' ) );
+		}
+
+		$company = $id ? KCRM_Company::find( $id ) : null;
+		if ( ! $company ) {
+			wp_die( esc_html__( 'Company not found.', 'karks-crm' ) );
+		}
+
+		$data = KCRM_Company_Transfer::export( $id );
+
+		nocache_headers();
+		header( 'Content-Type: application/json; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $company->name . '-export-' . gmdate( 'Y-m-d' ) ) . '.json"' );
+		echo wp_json_encode( $data );
+		exit;
+	}
+
 	/** @return string[] The submitted checkboxes, restricted to known KCRM_Company::payment_types() keys. */
 	private function sanitized_payment_types() {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified in save() before this is called.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified in save() before this is called; sanitized via array_map('sanitize_key', ...) below.
 		$submitted = isset( $_POST['accepted_payment_types'] ) ? (array) wp_unslash( $_POST['accepted_payment_types'] ) : array();
 		return array_values( array_intersect( array_map( 'sanitize_key', $submitted ), array_keys( KCRM_Company::payment_types() ) ) );
 	}
 
 	/** @return string JSON-encoded [label, url] pairs from the payment-link repeater rows, blank rows dropped. */
 	private function sanitized_payment_links() {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified in save() before this is called.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified in save() before this is called; each label is sanitized per-row below (sanitize_text_field).
 		$labels = isset( $_POST['payment_link_label'] ) ? (array) wp_unslash( $_POST['payment_link_label'] ) : array();
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified in save() before this is called.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified in save() before this is called; each URL is sanitized per-row below (esc_url_raw).
 		$urls = isset( $_POST['payment_link_url'] ) ? (array) wp_unslash( $_POST['payment_link_url'] ) : array();
 
 		$links = array();

@@ -58,11 +58,13 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			$invoice = $id ? KCRM_Invoice::find( $id ) : null;
 
 			if ( $invoice ) {
-				echo '<h2>' . $link . ': ' . esc_html( $invoice->invoice_number ) . '</h2>';
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $link is built from esc_url()/esc_html() above; safe to output as-is.
+			echo '<h2>' . $link . ': ' . esc_html( $invoice->invoice_number ) . '</h2>';
 				return;
 			}
 		}
 
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $link is built from esc_url()/esc_html() above; safe to output as-is.
 		echo '<h2>' . $link . '</h2>';
 	}
 
@@ -406,6 +408,10 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 					<span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Download PDF Invoice', 'karks-crm' ); ?>
 				</a>
 				<button type="button" class="kcrm-button" id="kcrm-open-email-modal"><span class="dashicons dashicons-email"></span> <?php esc_html_e( 'Email Invoice', 'karks-crm' ); ?></button>
+				<a class="kcrm-button" href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $invoice->id ) ), 'kcrm_delete_invoice_' . $invoice->id ) ); ?>"
+					onclick="return confirm('<?php echo esc_js( __( 'Delete this invoice?', 'karks-crm' ) ); ?>');">
+					<span class="dashicons dashicons-trash"></span> <?php esc_html_e( 'Delete Invoice', 'karks-crm' ); ?>
+				</a>
 			</div>
 			<?php $this->render_last_emailed_note( $invoice->id ); ?>
 			<?php $this->render_email_modal( $invoice, $invoice_customer, $company ); ?>

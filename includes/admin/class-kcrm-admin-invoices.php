@@ -401,6 +401,10 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 				<a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_download_invoice_pdf&id=' . $invoice->id ), 'kcrm_download_invoice_pdf_' . $invoice->id ) ); ?>">
 					<?php esc_html_e( 'Download PDF', 'karks-crm' ); ?>
 				</a>
+				<a class="button" href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $invoice->id ) ), 'kcrm_delete_invoice_' . $invoice->id ) ); ?>"
+					onclick="return confirm('<?php echo esc_js( __( 'Delete this invoice?', 'karks-crm' ) ); ?>');">
+					<?php esc_html_e( 'Delete Invoice', 'karks-crm' ); ?>
+				</a>
 			</p>
 		<?php endif; ?>
 		<?php

@@ -17,30 +17,37 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 	const ENDPOINT = 'invoices';
 
 	public function handle_actions() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; save() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'save_invoice' === $_POST['kcrm_action'] ) {
 			$this->save();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; add_payment() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'add_payment' === $_POST['kcrm_action'] ) {
 			$this->add_payment();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; send_invoice_email() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'send_invoice_email' === $_POST['kcrm_action'] ) {
 			$this->send_invoice_email();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_invoice_import_upload() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'import_invoices_upload' === $_POST['kcrm_action'] ) {
 			$this->handle_invoice_import_upload();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_invoice_import_run() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'import_invoices_run' === $_POST['kcrm_action'] ) {
 			$this->handle_invoice_import_run();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_payment_import_upload() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'import_payments_upload' === $_POST['kcrm_action'] ) {
 			$this->handle_payment_import_upload();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_payment_import_run() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'import_payments_run' === $_POST['kcrm_action'] ) {
 			$this->handle_payment_import_run();
 		}
@@ -119,6 +126,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		// entirely, this is a partial/malformed request, so leave the
 		// invoice's existing line items alone instead of wiping them with
 		// nothing to replace them.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified in save() (the only caller) before this is called.
 		if ( ! isset( $_POST['item_description'] ) ) {
 			return;
 		}
