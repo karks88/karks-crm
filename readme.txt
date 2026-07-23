@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -16,12 +16,17 @@ Karks CRM is an internal customer relationship and invoicing tool for managing m
 
 Features:
 
-* Multi-company support with a company switcher in the admin
+* Multi-company support with a company switcher in the admin and on the front end
+* A front-end interface (a `/crm/` page) so a dedicated "CRM Manager" role can manage everything without wp-admin access
 * Customer records with optional parent/Job relationships
-* Hourly and project-based services
-* Invoices with line items, tax, and automatic status tracking (Open/Partially Paid/Paid) based on recorded payments
-* CSV import for customers, invoices, and payments (e.g. from QuickBooks exports)
-* PDF invoice generation and download
+* Hourly and project-based services, optionally marked Taxable
+* Invoices with line items, per-line tax, and automatic status tracking (Open/Partially Paid/Paid) based on recorded payments
+* User-managed invoice types
+* CSV import for customers, services, invoices, and payments (e.g. from QuickBooks exports), including automatic service creation from imported invoices
+* PDF invoice generation, download, and emailing
+* Reports (front-end): Revenue with a 12-month chart, per-customer revenue, and an Aging (accounts receivable) report, each with CSV export
+* Export/import a full company as a JSON file, for migrating between sites or duplicating a company as a template
+* Customizable front-end colors with automatic WCAG 2.1 contrast correction
 
 == Installation ==
 
@@ -30,6 +35,18 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.5.0 =
+* Front-end interface at /crm/, with a new "CRM Manager" role/capability for using it without wp-admin access.
+* Reports tab (front-end only): Revenue with a 12-month chart, a per-customer report, and an Aging report, each with CSV export.
+* Export a full company (profile, customers, services, invoices, payments) as a JSON file and import it into another site.
+* CSV import for services, and Product/Service mapping (with automatic service creation) when importing invoices.
+* Taxable services: mark a service (and its invoice line items) as taxable; invoice totals now only tax the marked lines.
+* User-managed Invoice Types (Karks CRM -> Invoice Types), replacing the previously hardcoded list.
+* Custom Appearance colors are now checked against WCAG 2.1 AA contrast automatically, with an option to disable the front end's stylesheet entirely.
+* Delete button added to the invoice edit screen.
+* New Getting Started screen (Karks CRM -> Getting Started).
+* Self-healing rewrite rules: the front end no longer requires manually re-saving Permalinks after cloning or restoring a site.
 
 = 0.4.0 =
 * Customers screen and customer CSV import.

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Karks CRM
  * Description: Manage customers, services, and invoices across multiple companies.
- * Version: 0.5.0
+ * Version: 0.5.1
  * Author: Eric Karkovack
  * Author URI: https://karks.com
  * Text Domain: karks-crm
@@ -16,8 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'KCRM_VERSION', '0.5.0' );
-define( 'KCRM_DB_VERSION', '1.8.1' );
+define( 'KCRM_VERSION', '0.5.1' );
+define( 'KCRM_DB_VERSION', '1.9.0' );
 define( 'KCRM_PLUGIN_FILE', __FILE__ );
 define( 'KCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -42,6 +42,7 @@ require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-company.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-customer.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-service.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice.php';
+require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice-type.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice-item.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-payment.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice-email.php';

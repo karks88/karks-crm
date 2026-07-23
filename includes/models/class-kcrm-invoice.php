@@ -11,9 +11,14 @@ class KCRM_Invoice extends KCRM_Model_Base {
 	const STATUS_PAID    = 'paid';
 	const STATUS_VOID    = 'void';
 
+	/**
+	 * These two type keys have real conditional behavior elsewhere (the
+	 * Month/Year picker vs. the free-text Custom Type field -- see
+	 * type_label() below and the invoice form/save logic), so they stay
+	 * PHP constants. Every other invoice type is just data now -- see
+	 * KCRM_Invoice_Type -- rather than a hardcoded list.
+	 */
 	const TYPE_MONTH_YEAR = 'month_year';
-	const TYPE_HOSTING    = 'web_hosting';
-	const TYPE_MAINTENANCE = 'maintenance';
 	const TYPE_OTHER      = 'other';
 
 	public static function table() {
@@ -41,13 +46,9 @@ class KCRM_Invoice extends KCRM_Model_Base {
 		);
 	}
 
+	/** @return array<string,string> type_key => label -- see KCRM_Invoice_Type, the user-managed source of this list. */
 	public static function types() {
-		return array(
-			self::TYPE_MONTH_YEAR  => __( 'Month/Year', 'karks-crm' ),
-			self::TYPE_HOSTING     => __( 'Web Hosting', 'karks-crm' ),
-			self::TYPE_MAINTENANCE => __( 'Website Maintenance Package', 'karks-crm' ),
-			self::TYPE_OTHER       => __( 'Other', 'karks-crm' ),
-		);
+		return KCRM_Invoice_Type::options();
 	}
 
 	/**

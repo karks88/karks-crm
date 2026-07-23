@@ -18,7 +18,9 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 		if ( 'list' === $view ) {
 			printf( '<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s"><span class="dashicons dashicons-plus-alt2"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
 			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'import_invoices' ) ) ), esc_html__( 'Import Invoices', 'karks-crm' ) );
-			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a></div>', esc_url( $this->screen_url( array( 'view' => 'import_payments' ) ) ), esc_html__( 'Import Payments', 'karks-crm' ) );
+			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'import_payments' ) ) ), esc_html__( 'Import Payments', 'karks-crm' ) );
+			// Invoice Types is a global (not company-scoped) wp-admin-only settings screen -- see KCRM_Admin_Invoice_Types -- so this crosses over to wp-admin rather than a front-end view. Every user who can reach this screen already has the wp-admin capabilities needed to load it.
+			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-category"></span> %s</a></div>', esc_url( admin_url( 'admin.php?page=' . KCRM_Admin_Invoice_Types::PAGE ) ), esc_html__( 'Invoice Types', 'karks-crm' ) );
 		}
 
 		$this->render_notice_from_query();

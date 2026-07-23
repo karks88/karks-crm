@@ -11,26 +11,111 @@ require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-db.php';
 class KCRM_Activator {
 
 	public static function activate() {
+		$existing_install = (bool) get_option( 'kcrm_db_version' );
+
 		self::create_tables();
 		add_option( 'kcrm_db_version', KCRM_DB_VERSION );
+		self::seed_invoice_types_if_empty( $existing_install );
 		self::add_role_and_caps();
 		self::create_front_page();
-		flush_rewrite_rules();
+		self::maybe_flush_rewrite_rules();
 	}
 
 	public static function maybe_upgrade() {
+		$existing_install = (bool) get_option( 'kcrm_db_version' );
+
 		if ( get_option( 'kcrm_db_version' ) !== KCRM_DB_VERSION ) {
 			self::create_tables();
 			update_option( 'kcrm_db_version', KCRM_DB_VERSION );
 		}
 
+		self::seed_invoice_types_if_empty( $existing_install );
 		self::add_role_and_caps();
 		self::create_front_page();
+		self::maybe_flush_rewrite_rules();
+	}
 
-		if ( ! get_option( 'kcrm_rewrite_flushed_v1' ) ) {
-			flush_rewrite_rules();
-			add_option( 'kcrm_rewrite_flushed_v1', 1 );
+	/**
+	 * Seeds the invoice_types table the first time it's empty, and only
+	 * then -- once any type exists (whether seeded here or added by hand),
+	 * this never runs again.
+	 *
+	 * A brand-new install only gets "Month/Year", per the plugin's design:
+	 * that's the one type with real conditional behavior baked into the
+	 * invoice form (the Month/Year picker), so it always needs to exist.
+	 * Everything else is now a user-managed list (Karks CRM -> Invoice
+	 * Types) instead of a hardcoded one.
+	 *
+	 * A site *upgrading* from a version before this feature existed gets
+	 * the same three extra types ("Web Hosting", "Website Maintenance
+	 * Package", "Other") that used to be hardcoded constants, seeded as
+	 * real rows with the exact same type_key strings -- so invoices that
+	 * already reference them keep displaying/working exactly as before.
+	 *
+	 * @param bool $existing_install Whether this site had already run the
+	 *                               plugin (any version) before right now.
+	 */
+	private static function seed_invoice_types_if_empty( $existing_install ) {
+		if ( KCRM_Invoice_Type::count_where() > 0 ) {
+			return;
 		}
+
+		KCRM_Invoice_Type::insert(
+			array(
+				'type_key' => 'month_year',
+				'label'    => __( 'Month/Year', 'karks-crm' ),
+			)
+		);
+
+		if ( ! $existing_install ) {
+			return;
+		}
+
+		KCRM_Invoice_Type::insert(
+			array(
+				'type_key' => 'web_hosting',
+				'label'    => __( 'Web Hosting', 'karks-crm' ),
+			)
+		);
+		KCRM_Invoice_Type::insert(
+			array(
+				'type_key' => 'maintenance',
+				'label'    => __( 'Website Maintenance Package', 'karks-crm' ),
+			)
+		);
+		KCRM_Invoice_Type::insert(
+			array(
+				'type_key' => 'other',
+				'label'    => __( 'Other', 'karks-crm' ),
+			)
+		);
+	}
+
+	/**
+	 * Flushes rewrite rules if this site's actual persisted rules don't
+	 * already include our front-end endpoints -- checked directly against
+	 * the 'rewrite_rules' option rather than a "have we ever flushed this
+	 * version" flag. That flag can travel along with a cloned/restored
+	 * database onto a site whose own rewrite rules were never actually
+	 * regenerated on it (e.g. cloning an existing install to spin up a
+	 * new test/demo site), leaving the front end 404ing until someone
+	 * happens to visit Settings -> Permalinks and save. Checking the real
+	 * rules instead makes this self-healing regardless of how the site
+	 * came to exist.
+	 */
+	private static function maybe_flush_rewrite_rules() {
+		$rules  = get_option( 'rewrite_rules' );
+		$needle = KCRM_Front::ENDPOINTS[0] . '=';
+
+		if ( is_array( $rules ) ) {
+			foreach ( $rules as $rewrite ) {
+				if ( false !== strpos( $rewrite, $needle ) ) {
+					return; // Our endpoints are already present -- nothing to do.
+				}
+			}
+		}
+
+		flush_rewrite_rules();
 	}
 
 	/**
@@ -106,6 +191,7 @@ class KCRM_Activator {
 		$invoice_items  = KCRM_DB::invoice_items();
 		$payments       = KCRM_DB::payments();
 		$invoice_emails = KCRM_DB::invoice_emails();
+		$invoice_types  = KCRM_DB::invoice_types();
 
 		$sql = array();
 
@@ -234,6 +320,14 @@ class KCRM_Activator {
 			sent_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY invoice_id (invoice_id)
+		) $charset_collate;";
+
+		$sql[] = "CREATE TABLE $invoice_types (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			type_key VARCHAR(30) NOT NULL,
+			label VARCHAR(255) NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY type_key (type_key)
 		) $charset_collate;";
 
 		foreach ( $sql as $statement ) {

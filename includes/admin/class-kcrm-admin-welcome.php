@@ -76,6 +76,15 @@ class KCRM_Admin_Welcome {
 				<li>
 					<?php
 					printf(
+						/* translators: %s: link to the Invoice Types settings screen. */
+						esc_html__( '%s -- add your own custom invoice types beyond the built-in Month/Year, and rename or remove them any time.', 'karks-crm' ),
+						'<a href="' . esc_url( admin_url( 'admin.php?page=' . KCRM_Admin_Invoice_Types::PAGE ) ) . '">' . esc_html__( 'Invoice Types', 'karks-crm' ) . '</a>'
+					);
+					?>
+				</li>
+				<li>
+					<?php
+					printf(
 						/* translators: %s: link to the Appearance settings screen. */
 						esc_html__( '%s -- customize the front end\'s 4 theme colors (contrast-checked automatically) or turn its stylesheet off entirely to use your own.', 'karks-crm' ),
 						'<a href="' . esc_url( admin_url( 'admin.php?page=' . KCRM_Admin_Appearance::PAGE ) ) . '">' . esc_html__( 'Appearance settings', 'karks-crm' ) . '</a>'

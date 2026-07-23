@@ -42,4 +42,9 @@ class KCRM_DB {
 		global $wpdb;
 		return $wpdb->prefix . 'karkscrm_invoice_emails';
 	}
+
+	public static function invoice_types() {
+		global $wpdb;
+		return $wpdb->prefix . 'karkscrm_invoice_types';
+	}
 }

@@ -10,6 +10,7 @@ require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-invoices.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-dashboard.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-appearance.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-welcome.php';
+require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-invoice-types.php';
 require_once KCRM_PLUGIN_DIR . 'includes/pdf/class-kcrm-pdf.php';
 
 class KCRM_Plugin {
@@ -22,6 +23,9 @@ class KCRM_Plugin {
 
 	/** @var KCRM_Admin_Welcome Standalone informational screen, not part of $screens (nothing to save, no handle_actions()). */
 	private $welcome;
+
+	/** @var KCRM_Admin_Invoice_Types Standalone settings screen, not part of $screens (global, not company-scoped -- see its class docblock). */
+	private $invoice_types;
 
 	public function run() {
 		// Deferred to init (priority 20, after KCRM_Front registers its rewrite
@@ -37,12 +41,14 @@ class KCRM_Plugin {
 			'services'  => new KCRM_Admin_Services(),
 			'invoices'  => new KCRM_Admin_Invoices(),
 		);
-		$this->appearance = new KCRM_Admin_Appearance();
-		$this->welcome    = new KCRM_Admin_Welcome();
+		$this->appearance    = new KCRM_Admin_Appearance();
+		$this->welcome       = new KCRM_Admin_Welcome();
+		$this->invoice_types = new KCRM_Admin_Invoice_Types();
 
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_init', array( $this, 'handle_screen_actions' ) );
 		add_action( 'admin_init', array( $this->appearance, 'handle_actions' ) );
+		add_action( 'admin_init', array( $this->invoice_types, 'handle_actions' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_enqueue_scripts', array( $this->appearance, 'enqueue_assets' ) );
 		add_action( 'admin_post_kcrm_download_invoice_pdf', array( $this->screens['invoices'], 'handle_pdf_download' ) );
@@ -65,6 +71,7 @@ class KCRM_Plugin {
 		add_submenu_page( 'karks-crm', __( 'Customers', 'karks-crm' ), __( 'Customers', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-customers', array( $this->screens['customers'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Services', 'karks-crm' ), __( 'Services', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-services', array( $this->screens['services'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Invoices', 'karks-crm' ), __( 'Invoices', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-invoices', array( $this->screens['invoices'], 'render' ) );
+		add_submenu_page( 'karks-crm', __( 'Invoice Types', 'karks-crm' ), __( 'Invoice Types', 'karks-crm' ), KCRM_CAPABILITY, KCRM_Admin_Invoice_Types::PAGE, array( $this->invoice_types, 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Companies', 'karks-crm' ), __( 'Companies', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-companies', array( $this->screens['companies'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Appearance', 'karks-crm' ), __( 'Appearance', 'karks-crm' ), KCRM_CAPABILITY, KCRM_Admin_Appearance::PAGE, array( $this->appearance, 'render' ) );
 	}

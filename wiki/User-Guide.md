@@ -44,7 +44,7 @@ A **company switcher** dropdown appears on every screen once more than one compa
 
 **Karks CRM → Invoices.** An invoice belongs to one customer and has:
 
-- **Invoice Type** — Month/Year, Web Hosting, Website Maintenance Package, or Other (with a custom label) — a display categorization, not billing logic.
+- **Invoice Type** — a display categorization, not billing logic, picked from the user-managed list under [Invoice Types](#invoice-types).
 - **Status** — Draft, Open, Partially Paid, Paid, or Void. Open/Partially Paid/Paid are derived automatically from recorded payments (see below) and can't be set by hand; only Draft and Void are manual (e.g. mark an invoice Void instead of deleting it to keep it in the record with a struck-through display).
 - **Issue Date** / **Due Date**.
 - **Tax Rate** — defaults from the company's Default Tax Rate, editable per invoice.
@@ -59,6 +59,16 @@ A **company switcher** dropdown appears on every screen once more than one compa
 - **Download PDF Invoice** — streams a PDF (company logo/accent color/footer, line items, totals, payment options).
 - **Email Invoice** — a modal composer pre-filled from the company's email template (merge tags resolved), with the same PDF attached automatically. Shows "Last emailed to X on Y" once sent at least once.
 - **Delete Invoice** — with a confirmation prompt.
+
+## Invoice Types
+
+**Karks CRM → Invoice Types** (wp-admin only — global across the whole site, not scoped to a company, so it isn't duplicated on the front end the way Companies/Customers/Services/Invoices are). A simple user-managed list: just a Label, shown in the "Invoice Type" dropdown everywhere an invoice is created or edited (wp-admin and front end alike).
+
+- **Add/rename freely.** Renaming a type's label updates everywhere it's used immediately; the internal key behind it is generated once, from the label, at creation time and never changes afterward, so renaming never breaks an invoice that's already using it.
+- **Deleting is safe.** An invoice that already used a deleted type keeps displaying whatever it had (the plugin falls back to showing the raw stored value) — deleting just removes it from the dropdown for new invoices going forward.
+- **"Month/Year" is special** and always exists: selecting it on an invoice reveals a Month/Year picker instead of a plain label, and it's the one type every install starts with (see below). Nothing else about the list has special behavior baked in.
+
+**New installs start with just "Month/Year."** Sites that already had invoice data before this feature existed (i.e. upgraded from an earlier plugin version) additionally keep the three types that used to be hardcoded — "Web Hosting," "Website Maintenance Package," and "Other" — seeded automatically with the exact same underlying keys, so nothing already using them changes.
 
 ## CSV Import
 
