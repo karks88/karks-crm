@@ -9,6 +9,7 @@ require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-services.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-invoices.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-dashboard.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-appearance.php';
+require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-welcome.php';
 require_once KCRM_PLUGIN_DIR . 'includes/pdf/class-kcrm-pdf.php';
 
 class KCRM_Plugin {
@@ -18,6 +19,9 @@ class KCRM_Plugin {
 
 	/** @var KCRM_Admin_Appearance Standalone settings screen, not part of $screens (see its class docblock). */
 	private $appearance;
+
+	/** @var KCRM_Admin_Welcome Standalone informational screen, not part of $screens (nothing to save, no handle_actions()). */
+	private $welcome;
 
 	public function run() {
 		// Deferred to init (priority 20, after KCRM_Front registers its rewrite
@@ -34,6 +38,7 @@ class KCRM_Plugin {
 			'invoices'  => new KCRM_Admin_Invoices(),
 		);
 		$this->appearance = new KCRM_Admin_Appearance();
+		$this->welcome    = new KCRM_Admin_Welcome();
 
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_init', array( $this, 'handle_screen_actions' ) );
@@ -56,6 +61,7 @@ class KCRM_Plugin {
 		);
 
 		add_submenu_page( 'karks-crm', __( 'Dashboard', 'karks-crm' ), __( 'Dashboard', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm', array( $this->screens['dashboard'], 'render' ) );
+		add_submenu_page( 'karks-crm', __( 'Getting Started', 'karks-crm' ), __( 'Getting Started', 'karks-crm' ), KCRM_CAPABILITY, KCRM_Admin_Welcome::PAGE, array( $this->welcome, 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Customers', 'karks-crm' ), __( 'Customers', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-customers', array( $this->screens['customers'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Services', 'karks-crm' ), __( 'Services', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-services', array( $this->screens['services'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Invoices', 'karks-crm' ), __( 'Invoices', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-invoices', array( $this->screens['invoices'], 'render' ) );

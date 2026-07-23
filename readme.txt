@@ -26,9 +26,8 @@ Features:
 == Installation ==
 
 1. Upload the plugin files to the `/wp-content/plugins/karks-crm` directory, or install the plugin through the WordPress plugins screen.
-2. Activate the plugin.
-3. Run `composer install` inside the plugin folder to install the Dompdf library used for PDF invoice generation.
-4. Go to Karks CRM → Companies and add your first company.
+2. Activate the plugin. The Dompdf library used for PDF invoice generation ships bundled in `vendor/` -- no `composer install` step needed.
+3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
 
