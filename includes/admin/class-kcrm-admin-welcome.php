@@ -27,6 +27,8 @@ class KCRM_Admin_Welcome {
 				<a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-companies&view=add' ) ); ?>"><?php esc_html_e( 'Add a Company', 'karks-crm' ); ?></a>
 			</p>
 
+			<hr />
+
 			<h2><?php esc_html_e( '2. Add Services', 'karks-crm' ); ?></h2>
 			<p><?php esc_html_e( "Services are the things you bill for -- an hourly rate, a flat project fee, monthly hosting, whatever you charge customers for. Add the ones you use regularly now, so they're ready to pick from a dropdown when you build an invoice later instead of typing the same rate in by hand every time.", 'karks-crm' ); ?></p>
 			<p><?php esc_html_e( 'Each service is Hourly or Project-based, has a rate, and can be marked Taxable if it should have your company\'s tax rate applied to it on invoices (off by default). You can also import a list of services from a CSV export (e.g. QuickBooks) instead of adding them one at a time.', 'karks-crm' ); ?></p>
@@ -34,11 +36,15 @@ class KCRM_Admin_Welcome {
 				<a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-services&view=add' ) ); ?>"><?php esc_html_e( 'Add a Service', 'karks-crm' ); ?></a>
 			</p>
 
+			<hr />
+
 			<h2><?php esc_html_e( '3. Add a Customer', 'karks-crm' ); ?></h2>
 			<p><?php esc_html_e( "Add the people or businesses you invoice. Each customer can optionally have \"Jobs\" nested under it -- separate sub-records for, say, different properties or projects for the same client -- which show up rolled together on that customer's balance and revenue totals.", 'karks-crm' ); ?></p>
 			<p>
 				<a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-customers&view=add' ) ); ?>"><?php esc_html_e( 'Add a Customer', 'karks-crm' ); ?></a>
 			</p>
+
+			<hr />
 
 			<h2><?php esc_html_e( '4. Create, Download, and Send an Invoice', 'karks-crm' ); ?></h2>
 			<p><?php esc_html_e( "With a company, at least one service, and a customer in place, you're ready to invoice. Pick the customer, add a line for each service (quantity/hours × rate, computed automatically), and save -- the invoice number is assigned for you based on the company's prefix and counter.", 'karks-crm' ); ?></p>
@@ -52,7 +58,9 @@ class KCRM_Admin_Welcome {
 				<a class="button button-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices&view=add' ) ); ?>"><?php esc_html_e( 'Create an Invoice', 'karks-crm' ); ?></a>
 			</p>
 
-			<h2><?php esc_html_e( 'Also Available', 'karks-crm' ); ?></h2>
+			<hr />
+
+			<h2><?php esc_html_e( 'Other Handy Features', 'karks-crm' ); ?></h2>
 			<ul style="list-style: disc; margin-left: 2em;">
 				<li>
 					<?php

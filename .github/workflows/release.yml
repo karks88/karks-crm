@@ -1,0 +1,37 @@
+name: Build and Release Plugin ZIP
+
+# Triggered by pushing a tag like v0.5.0. Builds the release zip so its
+# top-level folder is always named "karks-crm" -- unlike GitHub's own
+# auto-generated "Source code (zip)" asset, which wraps the archive in a
+# folder named "karks-crm-<tag>" that changes every release, breaking
+# in-place updates when the zip is re-uploaded via wp-admin.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage plugin files into a karks-crm/ folder
+        run: |
+          mkdir -p build/karks-crm
+          rsync -a --exclude-from='.distignore' --exclude='build' ./ build/karks-crm/
+
+      - name: Zip the staged folder
+        run: |
+          cd build
+          zip -r ../karks-crm.zip karks-crm
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: karks-crm.zip
+          generate_release_notes: true

@@ -14,11 +14,20 @@
 }
 
 .kcrm-card {
+	display: block;
 	background: #fff;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
 	padding: 16px 24px;
 	min-width: 160px;
+	text-decoration: none;
+	color: inherit;
+}
+
+.kcrm-card:hover,
+.kcrm-card:focus {
+	border-color: #2271b1;
+	text-decoration: none;
 }
 
 .kcrm-card-number {

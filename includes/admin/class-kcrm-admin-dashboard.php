@@ -47,22 +47,22 @@ class KCRM_Admin_Dashboard extends KCRM_Controller_Base {
 		?>
 		<h2><?php echo esc_html( $company->name ); ?></h2>
 		<div class="kcrm-dashboard-cards">
-			<div class="kcrm-card">
+			<a class="kcrm-card" href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-customers' ) ); ?>">
 				<span class="kcrm-card-number"><?php echo esc_html( count( $customers ) ); ?></span>
 				<span class="kcrm-card-label"><?php esc_html_e( 'Customers', 'karks-crm' ); ?></span>
-			</div>
-			<div class="kcrm-card">
+			</a>
+			<a class="kcrm-card" href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices' ) ); ?>">
 				<span class="kcrm-card-number"><?php echo esc_html( count( $invoices ) ); ?></span>
 				<span class="kcrm-card-label"><?php esc_html_e( 'Invoices', 'karks-crm' ); ?></span>
-			</div>
-			<div class="kcrm-card">
+			</a>
+			<a class="kcrm-card" href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices' ) ); ?>">
 				<span class="kcrm-card-number"><?php echo esc_html( $open_invoices ); ?></span>
 				<span class="kcrm-card-label"><?php esc_html_e( 'Open Invoices', 'karks-crm' ); ?></span>
-			</div>
-			<div class="kcrm-card">
+			</a>
+			<a class="kcrm-card" href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices' ) ); ?>">
 				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( $outstanding, 2 ) ); ?></span>
 				<span class="kcrm-card-label"><?php esc_html_e( 'Outstanding Balance', 'karks-crm' ); ?></span>
-			</div>
+			</a>
 		</div>
 
 		<h3><?php esc_html_e( 'Recent Invoices', 'karks-crm' ); ?></h3>
