@@ -40,6 +40,7 @@ Features:
 * Company Name, Status, Invoice #, Issue Date, Due Date, and Balance Due columns are now sortable on the Customers and Invoices screens (wp-admin and front end).
 * Invoices screen: filter the list down to specific statuses (Draft, Open, Partially Paid, Paid, Void) instead of always seeing everything.
 * Fixed a contrast gap where a sortable column header's link (e.g. Status) could fall back to the page's default link color instead of the WCAG-checked header text color, on the front end's dark table headers.
+* Fixed a 404 on every front-end link (Customers, Invoices, Services, Reports, etc.) when the CRM page is set as the site's homepage under Settings -> Reading. Self-heals automatically, the same way the front end already recovers after a site clone/restore.
 
 = 0.5.0 =
 * Front-end interface at /crm/, with a new "CRM Manager" role/capability for using it without wp-admin access.

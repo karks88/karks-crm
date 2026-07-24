@@ -35,6 +35,7 @@ class KCRM_Front {
 
 		add_action( 'init', array( $this, 'register_endpoints' ) );
 		add_filter( 'request', array( $this, 'sanitize_query_vars' ) );
+		add_filter( 'redirect_canonical', array( $this, 'prevent_front_page_endpoint_redirect' ) );
 		add_shortcode( 'karks_crm', array( $this, 'render_shortcode' ) );
 		add_action( 'template_redirect', array( $this, 'handle_screen_actions' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
@@ -70,6 +71,33 @@ class KCRM_Front {
 	public function register_endpoints() {
 		foreach ( self::ENDPOINTS as $endpoint ) {
 			add_rewrite_endpoint( $endpoint, EP_PAGES );
+		}
+		self::maybe_add_front_page_rewrite_rules();
+	}
+
+	/**
+	 * WordPress generates the EP_PAGES rules above per-page from each page's
+	 * own slug (e.g. crm/customers/), which stops covering our endpoints the
+	 * moment the CRM page is set as the site's static homepage: the front
+	 * page's own rewrite rule is just `^$`, with no equivalent for a bare
+	 * `/customers/`, `/invoices/`, etc. at the site root -- those requests
+	 * 404 (and the CRM page's own slug URL, e.g. /crm/customers/, redirects
+	 * to the home URL instead, since WordPress treats it as a non-canonical
+	 * alias for the front page and drops the extra path segment). Add
+	 * explicit rules mapping the bare endpoint path straight to the CRM page
+	 * whenever it's the configured homepage, so links keep working either
+	 * way. KCRM_Activator::maybe_flush_rewrite_rules() confirms these are
+	 * actually persisted, so toggling the homepage setting self-heals on
+	 * the next request instead of 404ing until Permalinks is re-saved.
+	 */
+	public static function maybe_add_front_page_rewrite_rules() {
+		$page_id = self::page_id();
+		if ( ! $page_id || 'page' !== get_option( 'show_on_front' ) || (int) get_option( 'page_on_front' ) !== $page_id ) {
+			return;
+		}
+
+		foreach ( self::ENDPOINTS as $endpoint ) {
+			add_rewrite_rule( '^' . $endpoint . '/?$', 'index.php?page_id=' . $page_id . '&' . $endpoint . '=1', 'top' );
 		}
 	}
 
@@ -110,6 +138,19 @@ class KCRM_Front {
 			}
 		}
 		return '';
+	}
+
+	/**
+	 * When the CRM page is the site's homepage, WordPress's own
+	 * redirect_canonical() treats any request for it other than the bare
+	 * "/" as a non-canonical alias and 301s straight back to the home URL --
+	 * which would otherwise undo maybe_add_front_page_rewrite_rules()'s
+	 * whole point by stripping the endpoint on every request before this
+	 * plugin ever gets to render it. Leave the redirect alone for anything
+	 * that isn't one of our own endpoints.
+	 */
+	public function prevent_front_page_endpoint_redirect( $redirect_url ) {
+		return $this->current_endpoint() ? false : $redirect_url;
 	}
 
 	public function render_shortcode() {

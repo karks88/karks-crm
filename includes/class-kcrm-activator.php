@@ -101,21 +101,48 @@ class KCRM_Activator {
 	 * new test/demo site), leaving the front end 404ing until someone
 	 * happens to visit Settings -> Permalinks and save. Checking the real
 	 * rules instead makes this self-healing regardless of how the site
-	 * came to exist.
+	 * came to exist -- including a site where the CRM page has just been
+	 * set as the static homepage (see
+	 * KCRM_Front::maybe_add_front_page_rewrite_rules()), which needs its
+	 * own rule that the generic check below wouldn't otherwise notice is
+	 * missing (the page's ordinary /crm/customers/-style rule is already
+	 * present and would satisfy it even though the homepage-specific one
+	 * isn't).
 	 */
 	private static function maybe_flush_rewrite_rules() {
-		$rules  = get_option( 'rewrite_rules' );
-		$needle = KCRM_Front::ENDPOINTS[0] . '=';
+		$rules = get_option( 'rewrite_rules' );
 
-		if ( is_array( $rules ) ) {
-			foreach ( $rules as $rewrite ) {
-				if ( false !== strpos( $rewrite, $needle ) ) {
-					return; // Our endpoints are already present -- nothing to do.
-				}
-			}
+		if ( is_array( $rules ) && self::has_endpoint_rules( $rules ) && self::has_front_page_rule_if_needed( $rules ) ) {
+			return; // Our endpoints are already present -- nothing to do.
 		}
 
 		flush_rewrite_rules();
+	}
+
+	private static function has_endpoint_rules( array $rules ) {
+		$needle = KCRM_Front::ENDPOINTS[0] . '=';
+		foreach ( $rules as $rewrite ) {
+			if ( false !== strpos( $rewrite, $needle ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** @see maybe_flush_rewrite_rules() */
+	private static function has_front_page_rule_if_needed( array $rules ) {
+		$page_id = KCRM_Front::page_id();
+		if ( ! $page_id || 'page' !== get_option( 'show_on_front' ) || (int) get_option( 'page_on_front' ) !== $page_id ) {
+			return true; // Not applicable -- the CRM page isn't the homepage.
+		}
+
+		$needle = 'page_id=' . $page_id . '&' . KCRM_Front::ENDPOINTS[0];
+		foreach ( $rules as $rewrite ) {
+			if ( false !== strpos( $rewrite, $needle ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
