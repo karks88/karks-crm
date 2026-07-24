@@ -151,9 +151,21 @@ a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover {
 
 .kcrm-front-table th {
 	background: var(--kcrm-color-secondary);
-	font-size: 12px;
+	font-size: 11px;
 	text-transform: uppercase;
 	color: var(--kcrm-color-secondary-text);
+}
+
+/*
+ * Sortable column headers (e.g. Status) wrap their label in an <a>. Links
+ * don't inherit `color` from an ancestor by default, so without this the
+ * anchor falls back to the page's default link color instead of the
+ * WCAG-paired --kcrm-color-secondary-text used for the rest of the header --
+ * on a dark header background that can drop well below 4.5:1.
+ */
+.kcrm-front-table th a:link,
+.kcrm-front-table th a:visited {
+	color: inherit;
 }
 
 .kcrm-front-table tr:hover {
@@ -195,6 +207,36 @@ a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover {
 }
 
 .kcrm-date-range-custom label {
+	font-weight: normal;
+}
+
+.kcrm-status-filter {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+	margin: 0 0 1em;
+}
+
+.kcrm-status-filter fieldset {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 12px;
+	border: none;
+	padding: 0;
+	margin: 0;
+}
+
+.kcrm-status-filter legend {
+	font-weight: 600;
+	padding: 0;
+}
+
+.kcrm-status-filter label {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 	font-weight: normal;
 }
 

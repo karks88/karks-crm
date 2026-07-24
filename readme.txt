@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.5.1
+Stable tag: 0.6.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -35,6 +35,11 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.6.0 =
+* Company Name, Status, Invoice #, Issue Date, Due Date, and Balance Due columns are now sortable on the Customers and Invoices screens (wp-admin and front end).
+* Invoices screen: filter the list down to specific statuses (Draft, Open, Partially Paid, Paid, Void) instead of always seeing everything.
+* Fixed a contrast gap where a sortable column header's link (e.g. Status) could fall back to the page's default link color instead of the WCAG-checked header text color, on the front end's dark table headers.
 
 = 0.5.0 =
 * Front-end interface at /crm/, with a new "CRM Manager" role/capability for using it without wp-admin access.

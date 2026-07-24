@@ -199,7 +199,8 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 
 	private function render_list() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
-		$orderby = isset( $_GET['orderby'] ) && 'status' === sanitize_key( wp_unslash( $_GET['orderby'] ) ) ? 'status' : 'company_name';
+		$raw_orderby = isset( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : '';
+		$orderby     = in_array( $raw_orderby, array( 'company_name', 'status' ), true ) ? $raw_orderby : 'company_name';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
 		$order = isset( $_GET['order'] ) && 'desc' === strtolower( sanitize_key( wp_unslash( $_GET['order'] ) ) ) ? 'DESC' : 'ASC';
 
@@ -209,22 +210,31 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 
 		list( $customers, $show_all ) = $this->filter_active_customers( $customers );
 
-		$status_sort_url = $this->screen_url(
-			array(
-				'orderby' => 'status',
-				'order'   => ( 'status' === $orderby && 'ASC' === $order ) ? 'desc' : 'asc',
-			)
-		);
+		$sort_url = function ( $column ) use ( $orderby, $order ) {
+			return $this->screen_url(
+				array(
+					'orderby' => $column,
+					'order'   => ( $column === $orderby && 'ASC' === $order ) ? 'desc' : 'asc',
+				)
+			);
+		};
 		$this->render_active_customers_toggle( $show_all );
 		?>
 		<table class="kcrm-front-table">
 			<thead>
 				<tr>
-					<th><?php esc_html_e( 'Company Name', 'karks-crm' ); ?></th>
+					<th>
+						<a href="<?php echo esc_url( $sort_url( 'company_name' ) ); ?>">
+							<?php esc_html_e( 'Company Name', 'karks-crm' ); ?>
+							<?php if ( 'company_name' === $orderby ) : ?>
+								<span aria-hidden="true"><?php echo 'ASC' === $order ? '&#9650;' : '&#9660;'; ?></span>
+							<?php endif; ?>
+						</a>
+					</th>
 					<th><?php esc_html_e( 'Contact Person', 'karks-crm' ); ?></th>
 					<th><?php esc_html_e( 'Email', 'karks-crm' ); ?></th>
 					<th>
-						<a href="<?php echo esc_url( $status_sort_url ); ?>">
+						<a href="<?php echo esc_url( $sort_url( 'status' ) ); ?>">
 							<?php esc_html_e( 'Status', 'karks-crm' ); ?>
 							<?php if ( 'status' === $orderby ) : ?>
 								<span aria-hidden="true"><?php echo 'ASC' === $order ? '&#9650;' : '&#9660;'; ?></span>
@@ -256,12 +266,13 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 							</strong>
 							<?php if ( $jobs ) : ?>
 								<br>
-								<small>
+								<a href="#" class="kcrm-jobs-toggle" data-kcrm-jobs-parent="<?php echo esc_attr( $customer->id ); ?>">
 									<?php
 									/* translators: %d: number of Jobs under this customer. */
 									echo esc_html( sprintf( _n( '%d Job', '%d Jobs', count( $jobs ), 'karks-crm' ), count( $jobs ) ) );
 									?>
-								</small>
+									<span class="dashicons dashicons-arrow-down-alt2" aria-hidden="true"></span>
+								</a>
 							<?php endif; ?>
 						</td>
 						<td><?php echo esc_html( $customer->contact_person ); ?></td>
@@ -281,7 +292,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 					</tr>
 					<?php foreach ( $jobs as $job ) : ?>
 						<?php $job_balance = KCRM_Customer::balance_for_ids( array( $job->id ) ); ?>
-						<tr class="kcrm-job-row">
+						<tr class="kcrm-job-row" data-kcrm-jobs-parent="<?php echo esc_attr( $customer->id ); ?>" style="display:none;">
 							<td>
 								&#8627;
 								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $job->id ) ) ); ?>">
@@ -459,12 +470,17 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		$this_year_total = KCRM_Payment::total_for_customers_in_year( $customer_ids, $this_year );
 		$last_year_total = KCRM_Payment::total_for_customers_in_year( $customer_ids, $last_year );
 		$lifetime_total  = KCRM_Payment::total_for_customers( $customer_ids );
+		$balance         = KCRM_Customer::balance_for_ids( $customer_ids );
 		?>
 		<h3><?php esc_html_e( 'Revenue', 'karks-crm' ); ?></h3>
 		<?php if ( $is_rollup ) : ?>
 			<p class="description"><?php esc_html_e( 'Includes this customer and all of its Jobs.', 'karks-crm' ); ?></p>
 		<?php endif; ?>
 		<div class="kcrm-dashboard-cards">
+			<div class="kcrm-card">
+				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></span>
+				<span class="kcrm-card-label"><?php esc_html_e( 'Current Balance', 'karks-crm' ); ?></span>
+			</div>
 			<div class="kcrm-card">
 				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( $this_year_total, 2 ) ); ?></span>
 				<span class="kcrm-card-label">
@@ -497,13 +513,47 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 	 */
 	private function render_invoices_section( array $customer_ids, $primary_customer_id, $is_rollup ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
-		$show_all     = ! empty( $_GET['kcrm_invoice_filter'] ) && 'all' === sanitize_key( wp_unslash( $_GET['kcrm_invoice_filter'] ) );
-		$statuses     = $show_all ? null : KCRM_Invoice::default_customer_statuses();
+		$show_all = ! empty( $_GET['kcrm_invoice_filter'] ) && 'all' === sanitize_key( wp_unslash( $_GET['kcrm_invoice_filter'] ) );
+		$statuses = $show_all ? null : KCRM_Invoice::default_customer_statuses();
 		list( $range, $date_from, $date_to ) = $this->resolve_date_range( 'kcrm_inv', 'all' );
-		$invoices     = KCRM_Invoice::for_customers_with_statuses( $customer_ids, $statuses, 'issue_date DESC, id DESC', $date_from, $date_to );
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
+		$raw_orderby = isset( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : '';
+		$orderby     = in_array( $raw_orderby, array( 'invoice_number', 'issue_date', 'due_date', 'balance_due' ), true ) ? $raw_orderby : 'issue_date';
+		if ( isset( $_GET['order'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
+			$order = 'asc' === strtolower( sanitize_key( wp_unslash( $_GET['order'] ) ) ) ? 'ASC' : 'DESC';
+		} else {
+			$order = 'issue_date' === $orderby ? 'DESC' : 'ASC';
+		}
+
+		$order_by_sql = 'balance_due' === $orderby ? 'issue_date DESC, id DESC' : "$orderby $order, id DESC";
+		$invoices     = KCRM_Invoice::for_customers_with_statuses( $customer_ids, $statuses, $order_by_sql, $date_from, $date_to );
 		$all_statuses = KCRM_Invoice::statuses();
 
+		$balances = array();
+		foreach ( $invoices as $invoice ) {
+			$balances[ $invoice->id ] = KCRM_Invoice::balance_due( $invoice->id );
+		}
+		if ( 'balance_due' === $orderby ) {
+			usort(
+				$invoices,
+				function ( $a, $b ) use ( $balances, $order ) {
+					$diff = $balances[ $a->id ] <=> $balances[ $b->id ];
+					return 'DESC' === $order ? -$diff : $diff;
+				}
+			);
+		}
+
 		$toggle_url = $show_all ? remove_query_arg( 'kcrm_invoice_filter' ) : add_query_arg( 'kcrm_invoice_filter', 'all' );
+		$sort_url   = function ( $column ) use ( $orderby, $order ) {
+			return add_query_arg(
+				array(
+					'orderby' => $column,
+					'order'   => ( $column === $orderby && 'ASC' === $order ) ? 'desc' : 'asc',
+				)
+			);
+		};
 		?>
 		<h3><?php esc_html_e( 'Invoices', 'karks-crm' ); ?></h3>
 		<p class="description"><?php esc_html_e( 'Invoices with a status of Draft, Open, and Partially Paid are displayed by default.', 'karks-crm' ); ?></p>
@@ -524,14 +574,42 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		<table class="kcrm-front-table">
 			<thead>
 				<tr>
-					<th><?php esc_html_e( 'Invoice #', 'karks-crm' ); ?></th>
+					<th>
+						<a href="<?php echo esc_url( $sort_url( 'invoice_number' ) ); ?>">
+							<?php esc_html_e( 'Invoice #', 'karks-crm' ); ?>
+							<?php if ( 'invoice_number' === $orderby ) : ?>
+								<span aria-hidden="true"><?php echo 'ASC' === $order ? '&#9650;' : '&#9660;'; ?></span>
+							<?php endif; ?>
+						</a>
+					</th>
 					<?php if ( $is_rollup ) : ?>
 						<th><?php esc_html_e( 'Billed To', 'karks-crm' ); ?></th>
 					<?php endif; ?>
-					<th><?php esc_html_e( 'Issue Date', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Due Date', 'karks-crm' ); ?></th>
+					<th>
+						<a href="<?php echo esc_url( $sort_url( 'issue_date' ) ); ?>">
+							<?php esc_html_e( 'Issue Date', 'karks-crm' ); ?>
+							<?php if ( 'issue_date' === $orderby ) : ?>
+								<span aria-hidden="true"><?php echo 'ASC' === $order ? '&#9650;' : '&#9660;'; ?></span>
+							<?php endif; ?>
+						</a>
+					</th>
+					<th>
+						<a href="<?php echo esc_url( $sort_url( 'due_date' ) ); ?>">
+							<?php esc_html_e( 'Due Date', 'karks-crm' ); ?>
+							<?php if ( 'due_date' === $orderby ) : ?>
+								<span aria-hidden="true"><?php echo 'ASC' === $order ? '&#9650;' : '&#9660;'; ?></span>
+							<?php endif; ?>
+						</a>
+					</th>
 					<th><?php esc_html_e( 'Total', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Balance Due', 'karks-crm' ); ?></th>
+					<th>
+						<a href="<?php echo esc_url( $sort_url( 'balance_due' ) ); ?>">
+							<?php esc_html_e( 'Balance Due', 'karks-crm' ); ?>
+							<?php if ( 'balance_due' === $orderby ) : ?>
+								<span aria-hidden="true"><?php echo 'ASC' === $order ? '&#9650;' : '&#9660;'; ?></span>
+							<?php endif; ?>
+						</a>
+					</th>
 					<th><?php esc_html_e( 'Status', 'karks-crm' ); ?></th>
 				</tr>
 			</thead>
@@ -539,8 +617,12 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 				<?php if ( empty( $invoices ) ) : ?>
 					<tr><td colspan="<?php echo $is_rollup ? '7' : '6'; ?>"><?php esc_html_e( 'No invoices found.', 'karks-crm' ); ?></td></tr>
 				<?php endif; ?>
+				<?php $total_balance = 0; ?>
 				<?php foreach ( $invoices as $invoice ) : ?>
-					<?php $balance = KCRM_Invoice::balance_due( $invoice->id ); ?>
+					<?php
+					$balance         = $balances[ $invoice->id ];
+					$total_balance  += $balance;
+					?>
 					<tr>
 						<td>
 							<strong>
@@ -566,6 +648,9 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		<?php if ( ! empty( $invoices ) ) : ?>
+			<p><strong><?php esc_html_e( 'Balance Owed (invoices shown above):', 'karks-crm' ); ?></strong> <?php echo esc_html( number_format_i18n( $total_balance, 2 ) ); ?></p>
+		<?php endif; ?>
 		<?php
 	}
 

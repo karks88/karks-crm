@@ -203,30 +203,95 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 	}
 
 	private function render_list() {
-		$invoices = KCRM_Invoice::for_company( $this->current_company_id() );
-		$statuses = KCRM_Invoice::statuses();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
+		$raw_orderby = isset( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : '';
+		$orderby     = in_array( $raw_orderby, array( 'invoice_number', 'issue_date', 'due_date', 'balance_due' ), true ) ? $raw_orderby : 'issue_date';
+		if ( isset( $_GET['order'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
+			$order = 'asc' === strtolower( sanitize_key( wp_unslash( $_GET['order'] ) ) ) ? 'ASC' : 'DESC';
+		} else {
+			$order = 'issue_date' === $orderby ? 'DESC' : 'ASC';
+		}
+
+		$order_by_sql = 'balance_due' === $orderby ? 'issue_date DESC, id DESC' : "$orderby $order, id DESC";
+		$statuses     = KCRM_Invoice::statuses();
+
+		list( $selected_statuses, $status_filtered ) = $this->resolve_status_filter( 'kcrm_status', $statuses );
+		$invoices = KCRM_Invoice::for_company_with_statuses( $this->current_company_id(), $selected_statuses, $order_by_sql );
+
+		$balances = array();
+		foreach ( $invoices as $invoice ) {
+			$balances[ $invoice->id ] = KCRM_Invoice::balance_due( $invoice->id );
+		}
+		if ( 'balance_due' === $orderby ) {
+			usort(
+				$invoices,
+				function ( $a, $b ) use ( $balances, $order ) {
+					$diff = $balances[ $a->id ] <=> $balances[ $b->id ];
+					return 'DESC' === $order ? -$diff : $diff;
+				}
+			);
+		}
+
+		$sort_url = function ( $column ) use ( $orderby, $order ) {
+			return add_query_arg(
+				array(
+					'orderby' => $column,
+					'order'   => ( $column === $orderby && 'ASC' === $order ) ? 'desc' : 'asc',
+				)
+			);
+		};
+		$this->render_status_filter( 'kcrm_status', $statuses, $selected_statuses );
 		?>
 		<table class="wp-list-table widefat fixed striped">
 			<thead>
 				<tr>
-					<th><?php esc_html_e( 'Invoice #', 'karks-crm' ); ?></th>
+					<th>
+						<a href="<?php echo esc_url( $sort_url( 'invoice_number' ) ); ?>">
+							<?php esc_html_e( 'Invoice #', 'karks-crm' ); ?>
+							<?php if ( 'invoice_number' === $orderby ) : ?>
+								<span aria-hidden="true"><?php echo 'ASC' === $order ? '&#9650;' : '&#9660;'; ?></span>
+							<?php endif; ?>
+						</a>
+					</th>
 					<th><?php esc_html_e( 'Customer', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Issue Date', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Due Date', 'karks-crm' ); ?></th>
+					<th>
+						<a href="<?php echo esc_url( $sort_url( 'issue_date' ) ); ?>">
+							<?php esc_html_e( 'Issue Date', 'karks-crm' ); ?>
+							<?php if ( 'issue_date' === $orderby ) : ?>
+								<span aria-hidden="true"><?php echo 'ASC' === $order ? '&#9650;' : '&#9660;'; ?></span>
+							<?php endif; ?>
+						</a>
+					</th>
+					<th>
+						<a href="<?php echo esc_url( $sort_url( 'due_date' ) ); ?>">
+							<?php esc_html_e( 'Due Date', 'karks-crm' ); ?>
+							<?php if ( 'due_date' === $orderby ) : ?>
+								<span aria-hidden="true"><?php echo 'ASC' === $order ? '&#9650;' : '&#9660;'; ?></span>
+							<?php endif; ?>
+						</a>
+					</th>
 					<th><?php esc_html_e( 'Total', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Balance Due', 'karks-crm' ); ?></th>
+					<th>
+						<a href="<?php echo esc_url( $sort_url( 'balance_due' ) ); ?>">
+							<?php esc_html_e( 'Balance Due', 'karks-crm' ); ?>
+							<?php if ( 'balance_due' === $orderby ) : ?>
+								<span aria-hidden="true"><?php echo 'ASC' === $order ? '&#9650;' : '&#9660;'; ?></span>
+							<?php endif; ?>
+						</a>
+					</th>
 					<th><?php esc_html_e( 'Status', 'karks-crm' ); ?></th>
 					<th><?php esc_html_e( 'Actions', 'karks-crm' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
 				<?php if ( empty( $invoices ) ) : ?>
-					<tr><td colspan="8"><?php esc_html_e( 'No invoices yet for this company.', 'karks-crm' ); ?></td></tr>
+					<tr><td colspan="8"><?php echo esc_html( $status_filtered ? __( 'No invoices match the selected statuses.', 'karks-crm' ) : __( 'No invoices yet for this company.', 'karks-crm' ) ); ?></td></tr>
 				<?php endif; ?>
 				<?php foreach ( $invoices as $invoice ) : ?>
 					<?php
 					$customer = KCRM_Customer::find( $invoice->customer_id );
-					$balance  = KCRM_Invoice::balance_due( $invoice->id );
+					$balance  = $balances[ $invoice->id ];
 					?>
 					<tr>
 						<td>

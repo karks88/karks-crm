@@ -165,6 +165,15 @@
 	});
 
 	$(function () {
+		$('.kcrm-jobs-toggle').on('click', function (e) {
+			e.preventDefault();
+			var parentId = $(this).data('kcrm-jobs-parent');
+			$('tr.kcrm-job-row[data-kcrm-jobs-parent="' + parentId + '"]').toggle();
+			$(this).find('.dashicons').toggleClass('dashicons-arrow-down-alt2 dashicons-arrow-up-alt2');
+		});
+	});
+
+	$(function () {
 		var $modal = $('#kcrm-email-modal');
 		if (!$modal.length) {
 			return;

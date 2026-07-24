@@ -182,6 +182,70 @@ abstract class KCRM_Controller_Base {
 	}
 
 	/**
+	 * Resolves a multi-select status filter from $_GET["{$prefix}[]"],
+	 * with an explicit "submitted" marker ($_GET["{$prefix}_filtered"]) so
+	 * an unchecked checkbox (which browsers simply omit from the request)
+	 * can be told apart from the filter never having been touched at all --
+	 * the former means "show nothing selected", the latter means "show
+	 * everything" (today's unfiltered default, before this filter existed).
+	 *
+	 * @param array $all_statuses status_key => label, e.g. KCRM_Invoice::statuses().
+	 * @return array [ $selected_status_keys|null, $filtered ] -- null means no filtering (show all); $filtered is true once the form has been submitted at all.
+	 */
+	protected function resolve_status_filter( $prefix, array $all_statuses ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
+		if ( ! isset( $_GET[ "{$prefix}_filtered" ] ) ) {
+			return array( null, false );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
+		$raw      = isset( $_GET[ $prefix ] ) && is_array( $_GET[ $prefix ] ) ? wp_unslash( $_GET[ $prefix ] ) : array();
+		$selected = array_values( array_intersect( array_keys( $all_statuses ), array_map( 'sanitize_key', $raw ) ) );
+
+		return array( $selected, true );
+	}
+
+	/**
+	 * Renders a checkbox-per-status filter form (GET, so it's
+	 * bookmarkable/shareable) for resolve_status_filter(), preserving every
+	 * other query arg already on the URL as hidden fields so submitting it
+	 * doesn't lose page context (e.g. view=edit&id=X) or an active sort.
+	 *
+	 * @param array      $all_statuses status_key => label.
+	 * @param array|null $selected Currently-selected status keys, or null when unfiltered (checks every box).
+	 */
+	protected function render_status_filter( $prefix, array $all_statuses, $selected ) {
+		$checked_keys = null === $selected ? array_keys( $all_statuses ) : $selected;
+
+		$preserve = array();
+		foreach ( $_GET as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only, used only to rebuild hidden fields for this same filter form.
+			$key = sanitize_key( $key );
+			if ( in_array( $key, array( $prefix, "{$prefix}_filtered" ), true ) || is_array( $value ) ) {
+				continue;
+			}
+			$preserve[ $key ] = sanitize_text_field( wp_unslash( $value ) );
+		}
+		?>
+		<form method="get" action="<?php echo esc_url( $this->screen_url() ); ?>" class="kcrm-status-filter">
+			<?php foreach ( $preserve as $key => $value ) : ?>
+				<input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>">
+			<?php endforeach; ?>
+			<input type="hidden" name="<?php echo esc_attr( "{$prefix}_filtered" ); ?>" value="1">
+			<fieldset>
+				<legend><?php esc_html_e( 'Statuses:', 'karks-crm' ); ?></legend>
+				<?php foreach ( $all_statuses as $key => $label ) : ?>
+					<label>
+						<input type="checkbox" name="<?php echo esc_attr( $prefix ); ?>[]" value="<?php echo esc_attr( $key ); ?>" <?php checked( in_array( $key, $checked_keys, true ) ); ?>>
+						<?php echo esc_html( $label ); ?>
+					</label>
+				<?php endforeach; ?>
+			</fieldset>
+			<button type="submit" class="kcrm-button"><?php esc_html_e( 'Apply', 'karks-crm' ); ?></button>
+		</form>
+		<?php
+	}
+
+	/**
 	 * Filters a customer list down to active-only unless
 	 * $_GET['kcrm_status_filter'] = all. Centralizes the active/inactive
 	 * filter shared by the Customers list and the company overview page,

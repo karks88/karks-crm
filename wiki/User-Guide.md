@@ -24,7 +24,7 @@ A **company switcher** dropdown appears on every screen once more than one compa
 
 ## Customers & Jobs
 
-**Karks CRM → Customers.** Fields: Company Name, Contact Person (+ a Secondary Contact), Address, Phone, Email (+ Secondary Email), Notes, and Status (Active/Inactive — the Customers list and Company Overview default to showing Active only, with a toggle to show all).
+**Karks CRM → Customers.** Fields: Company Name, Contact Person (+ a Secondary Contact), Address, Phone, Email (+ Secondary Email), Notes, and Status (Active/Inactive — the Customers list and Company Overview default to showing Active only, with a toggle to show all). The Company Name and Status columns are sortable (click the column header).
 
 **Jobs** are customers nested under a parent customer (e.g. separate properties or ongoing projects for the same client). A Job:
 - Is added from the parent customer's own page ("Add Job").
@@ -50,6 +50,8 @@ A **company switcher** dropdown appears on every screen once more than one compa
 - **Tax Rate** — defaults from the company's Default Tax Rate, editable per invoice.
 - **Line Items** — each references a Service (or "Custom" for a one-off line with its own description/type/rate), plus Quantity, Rate, and a per-line **Taxable** checkbox (defaults from the selected service; blank/Custom lines default to non-taxable).
 - **Notes**.
+
+The Invoices list (wp-admin and front end) can be sorted by Invoice #, Issue Date, Due Date, or Balance Due (click the column header), and filtered down to specific statuses via the checkboxes above the table -- leave all boxes checked (the default) to see everything.
 
 **Totals** are always computed, never hand-entered: Subtotal = sum of every line's amount; Tax Amount = the invoice's tax rate applied only to the sum of lines marked Taxable; Total = Subtotal + Tax Amount.
 
