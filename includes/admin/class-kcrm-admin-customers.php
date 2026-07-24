@@ -405,6 +405,7 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 			<?php endif; ?>
 			<?php $this->render_revenue_section( $rollup_ids, ! empty( $job_ids ) ); ?>
 			<?php $this->render_invoices_section( $rollup_ids, $customer->id, ! empty( $job_ids ) ); ?>
+			<?php do_action( 'kcrm_customer_edit_after_sections', $customer, $rollup_ids ); ?>
 		<?php endif; ?>
 		<?php
 	}

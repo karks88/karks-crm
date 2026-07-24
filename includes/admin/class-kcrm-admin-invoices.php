@@ -53,8 +53,12 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 					array( 'skipped_no_customer', __( '%d rows skipped — customer name did not match an existing customer.', 'karks-crm' ) ),
 					/* translators: %d: number of rows skipped because an invoice with that number already exists. */
 					array( 'skipped_duplicate', __( '%d rows skipped — an invoice with that number already exists.', 'karks-crm' ) ),
-					/* translators: %d: number of rows skipped due to missing customer name, issue date, or amount. */
-					array( 'skipped_missing', __( '%d rows skipped — missing customer name, issue date, or amount.', 'karks-crm' ) ),
+					/* translators: %d: number of invoices skipped due to missing customer name, issue date, or every one of its rows having an unusable amount. */
+					array( 'skipped_missing', __( '%d invoices skipped — missing customer name, issue date, or amount.', 'karks-crm' ) ),
+					/* translators: %d: number of individual line items skipped within an otherwise-imported invoice, due to an unusable amount on that row. */
+					array( 'skipped_lines', __( '%d line items skipped within imported invoices — unusable amount on that row.', 'karks-crm' ) ),
+					/* translators: %d: number of new services created because the mapped service name didn't match an existing one. */
+					array( 'services_created', __( '%d new services created.', 'karks-crm' ) ),
 				)
 			);
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
@@ -67,7 +71,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 				'kcrm_import_invoices_run',
 				'import_invoices_run',
 				__( 'Map CSV Columns', 'karks-crm' ),
-				__( 'Choose which column maps to each invoice field. Each row becomes an invoice with a single line item for the mapped amount — open the invoice afterward to add more detail. Status starts as Open and moves to Partially Paid/Paid automatically once you import the matching payments below; map the status column only to flag rows as Draft or Void.', 'karks-crm' )
+				__( 'Choose which column maps to each invoice field. Rows sharing the same Invoice Number are combined into one invoice with a line item per row — handy for an hourly client billed out by day or task; rows with no invoice number each become their own single-line invoice instead, with a number auto-assigned. If you map a Service column, each row is matched to an existing service by name (case-insensitive); if no match is found, a new service is created automatically using that name and the row\'s amount as its rate. Status starts as Open and moves to Partially Paid/Paid automatically once you import the matching payments below; map the status column only to flag rows as Draft or Void.', 'karks-crm' )
 			);
 		} else {
 			$this->render_import_upload(
@@ -90,6 +94,8 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 					array( 'imported', __( '%d payments imported.', 'karks-crm' ) ),
 					/* translators: %d: number of rows skipped because the invoice number did not match an existing invoice. */
 					array( 'skipped_no_invoice', __( '%d rows skipped — invoice number did not match an existing invoice.', 'karks-crm' ) ),
+					/* translators: %d: number of rows skipped because a payment with the same invoice, date, and amount was already recorded. */
+					array( 'skipped_duplicate', __( '%d rows skipped — a payment with the same invoice, date, and amount already exists.', 'karks-crm' ) ),
 					/* translators: %d: number of rows skipped due to missing invoice number, date, or a positive amount. */
 					array( 'skipped_missing', __( '%d rows skipped — missing invoice number, date, or a positive amount.', 'karks-crm' ) ),
 				)
@@ -436,7 +442,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 				</select>
 			</td>
 			<td><input type="number" step="0.01" min="0" class="kcrm-item-quantity" name="item_quantity[]" value="<?php echo esc_attr( $quantity ); ?>" style="width:100%;"></td>
-			<td><input type="number" step="0.01" min="0" class="kcrm-item-rate" name="item_rate[]" value="<?php echo esc_attr( $rate ); ?>" style="width:100%;"></td>
+			<td><input type="number" step="0.01" class="kcrm-item-rate" name="item_rate[]" value="<?php echo esc_attr( $rate ); ?>" style="width:100%;"></td>
 			<td class="kcrm-item-amount">0.00</td>
 			<td>
 				<input type="hidden" class="kcrm-item-taxable-value" name="item_is_taxable[]" value="<?php echo $is_taxable ? '1' : '0'; ?>">

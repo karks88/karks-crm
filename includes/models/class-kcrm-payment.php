@@ -26,6 +26,22 @@ class KCRM_Payment extends KCRM_Model_Base {
 		return self::where( array( 'invoice_id' => $invoice_id ), 'payment_date DESC, id DESC' );
 	}
 
+	/**
+	 * Whether a payment already exists for this invoice with this exact
+	 * date and amount -- used by the CSV importer to avoid double-recording
+	 * a payment if the same file (or an overlapping export) is imported
+	 * more than once.
+	 */
+	public static function exists_duplicate( $invoice_id, $payment_date, $amount ) {
+		return self::count_where(
+			array(
+				'invoice_id'   => $invoice_id,
+				'payment_date' => $payment_date,
+				'amount'       => $amount,
+			)
+		) > 0;
+	}
+
 	/** Deletes every payment recorded against an invoice (called when the invoice itself is deleted, so they don't become orphaned). */
 	public static function delete_for_invoice( $invoice_id ) {
 		global $wpdb;

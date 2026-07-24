@@ -61,7 +61,7 @@ class KCRM_PDF {
 		return $dompdf;
 	}
 
-	private static function logo_data_uri( $company ) {
+	public static function logo_data_uri( $company ) {
 		if ( ! $company || empty( $company->logo_attachment_id ) ) {
 			return '';
 		}

@@ -310,11 +310,16 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 	}
 
 	/**
-	 * Each row becomes an invoice with a single line item for the mapped
-	 * amount. Status is left Open (or Draft/Void, if mapped) — Open/Partial/
-	 * Paid are always derived from actual payments, so historical invoices
-	 * only reach "Paid" once their payments are imported via the payments
-	 * importer below, same as they would from a payment recorded by hand.
+	 * Rows sharing the same (mapped) Invoice Number are grouped into one
+	 * invoice with a line item per row -- e.g. an hourly client's invoice
+	 * broken out by day/task in the source export. A row with no invoice
+	 * number mapped, or blank on that row, has nothing to group it with,
+	 * so it becomes its own single-line invoice (auto-assigned a number)
+	 * exactly like before. Status is left Open (or Draft/Void, if mapped)
+	 * — Open/Partial/Paid are always derived from actual payments, so
+	 * historical invoices only reach "Paid" once their payments are
+	 * imported via the payments importer below, same as they would from a
+	 * payment recorded by hand.
 	 */
 	private function handle_invoice_import_run() {
 		check_admin_referer( 'kcrm_import_invoices_run' );
@@ -339,9 +344,11 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 
 		$rows = KCRM_CSV_Import::read_rows( $path );
 
-		$customers_by_name = array();
+		$customers_by_name      = array();
+		$customers_by_norm_name = array();
 		foreach ( KCRM_Customer::for_company( $company_id ) as $customer ) {
-			$customers_by_name[ strtolower( trim( $customer->company_name ) ) ] = (int) $customer->id;
+			$customers_by_name[ strtolower( trim( $customer->company_name ) ) ]                 = (int) $customer->id;
+			$customers_by_norm_name[ $this->normalize_company_name( $customer->company_name ) ] = (int) $customer->id;
 		}
 
 		$existing_numbers = array();
@@ -359,30 +366,52 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			);
 		}
 
+		// Group rows sharing a mapped invoice number into one invoice; a
+		// row with no number mapped/present is its own single-row group,
+		// since there's nothing to group it with.
+		$groups      = array();
+		$group_order = array();
+		foreach ( $rows as $i => $row ) {
+			$invoice_number = $this->mapped_cell( $row, $map, 'invoice_number' );
+			$group_key      = '' !== $invoice_number ? 'num:' . strtolower( $invoice_number ) : 'row:' . $i;
+
+			if ( ! isset( $groups[ $group_key ] ) ) {
+				$groups[ $group_key ] = array();
+				$group_order[]        = $group_key;
+			}
+			$groups[ $group_key ][] = $row;
+		}
+
 		$imported            = 0;
 		$skipped_missing     = 0;
 		$skipped_no_customer = 0;
 		$skipped_duplicate   = 0;
+		$skipped_lines       = 0;
 		$services_created    = 0;
 		$seen_numbers        = array();
 
-		foreach ( $rows as $row ) {
-			$customer_name = $this->mapped_cell( $row, $map, 'customer_name' );
-			$issue_date    = $this->sanitize_date( $this->mapped_cell( $row, $map, 'issue_date' ) );
-			$amount        = $this->mapped_amount( $row, $map, 'amount' );
+		foreach ( $group_order as $group_key ) {
+			$group_rows = $groups[ $group_key ];
+			$first_row  = $group_rows[0];
 
-			if ( '' === $customer_name || ! $issue_date || null === $amount ) {
+			$customer_name = $this->mapped_cell( $first_row, $map, 'customer_name' );
+			$issue_date    = $this->sanitize_date( $this->mapped_cell( $first_row, $map, 'issue_date' ) );
+
+			if ( '' === $customer_name || ! $issue_date ) {
 				$skipped_missing++;
 				continue;
 			}
 
 			$customer_id = $customers_by_name[ strtolower( $customer_name ) ] ?? 0;
 			if ( ! $customer_id ) {
+				$customer_id = $customers_by_norm_name[ $this->normalize_company_name( $customer_name ) ] ?? 0;
+			}
+			if ( ! $customer_id ) {
 				$skipped_no_customer++;
 				continue;
 			}
 
-			$invoice_number = $this->mapped_cell( $row, $map, 'invoice_number' );
+			$invoice_number = $this->mapped_cell( $first_row, $map, 'invoice_number' );
 			if ( '' !== $invoice_number ) {
 				$key = strtolower( $invoice_number );
 				if ( isset( $existing_numbers[ $key ] ) || isset( $seen_numbers[ $key ] ) ) {
@@ -394,67 +423,128 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 				$invoice_number = KCRM_Company::next_invoice_number( $company_id );
 			}
 
-			$service_name = $this->mapped_cell( $row, $map, 'service_name' );
-
-			$description = $this->mapped_cell( $row, $map, 'description' );
-			if ( '' === $description ) {
-				$description = '' !== $service_name ? $service_name : __( 'Imported Invoice', 'karks-crm' );
-			}
-
-			$service_id      = null;
-			$item_is_taxable = 0;
-			if ( '' !== $service_name ) {
-				$service_key = strtolower( $service_name );
-				if ( isset( $services_by_name[ $service_key ] ) ) {
-					$service_id      = $services_by_name[ $service_key ]['id'];
-					$item_is_taxable = $services_by_name[ $service_key ]['is_taxable'];
-				} else {
-					$service_id = KCRM_Service::create(
-						array(
-							'company_id' => $company_id,
-							'name'       => sanitize_text_field( $service_name ),
-							'type'       => KCRM_Service::TYPE_PROJECT,
-							'rate'       => $amount,
-						)
-					);
-					$services_by_name[ $service_key ] = array(
-						'id'         => $service_id,
-						'is_taxable' => 0,
-					);
-					$services_created++;
+			// Build one line item per row in the group -- malformed
+			// individual lines (unparseable amount) are dropped rather
+			// than discarding the whole invoice over one bad row.
+			$items = array();
+			foreach ( $group_rows as $row ) {
+				$amount = $this->mapped_amount( $row, $map, 'amount' );
+				if ( null === $amount ) {
+					$skipped_lines++;
+					continue;
 				}
+
+				$service_name = $this->mapped_cell( $row, $map, 'service_name' );
+
+				$description = $this->mapped_cell( $row, $map, 'description' );
+				if ( '' === $description ) {
+					$description = '' !== $service_name ? $service_name : __( 'Imported Invoice', 'karks-crm' );
+				}
+
+				// A line whose service/description names it as a discount
+				// is recorded as a negative amount here, so it actually
+				// reduces the invoice total -- regardless of how the
+				// source export represented its sign. (QuickBooks itself
+				// isn't consistent about this: a normal revenue line's
+				// credit-side "Sales" row exports negative -- already
+				// normalized to positive by mapped_amount() above -- while
+				// a "Discounts Given"-account discount line exports
+				// positive, the opposite of what it needs to be here.)
+				if ( false !== stripos( $service_name, 'discount' ) || false !== stripos( $description, 'discount' ) ) {
+					$amount = -$amount;
+				}
+
+				// An optional Quantity/Hours column preserves the real
+				// breakdown (e.g. "0.25 hrs" against a maintenance
+				// package's allotted hours) instead of collapsing every
+				// line to a flat quantity of 1 -- the rate is derived by
+				// dividing the mapped amount back out, so the invoice
+				// total is identical either way.
+				$quantity_raw = $this->mapped_amount( $row, $map, 'quantity' );
+				$quantity     = ( null !== $quantity_raw && $quantity_raw > 0 ) ? $quantity_raw : 1.0;
+				$rate         = round( $amount / $quantity, 2 );
+				$item_type    = ( null !== $quantity_raw && $quantity_raw > 0 ) ? KCRM_Service::TYPE_HOURLY : KCRM_Service::TYPE_PROJECT;
+
+				$service_id      = null;
+				$item_is_taxable = 0;
+				if ( '' !== $service_name ) {
+					$service_key = strtolower( $service_name );
+					if ( isset( $services_by_name[ $service_key ] ) ) {
+						$service_id      = $services_by_name[ $service_key ]['id'];
+						$item_is_taxable = $services_by_name[ $service_key ]['is_taxable'];
+					} else {
+						$service_id = KCRM_Service::create(
+							array(
+								'company_id' => $company_id,
+								'name'       => sanitize_text_field( $service_name ),
+								'type'       => $item_type,
+								'rate'       => $rate,
+							)
+						);
+						$services_by_name[ $service_key ] = array(
+							'id'         => $service_id,
+							'is_taxable' => 0,
+						);
+						$services_created++;
+					}
+				}
+
+				$items[] = array(
+					'description' => $description,
+					'service_id'  => $service_id,
+					'type'        => $item_type,
+					'quantity'    => $quantity,
+					'rate'        => $rate,
+					'amount'      => $amount,
+					'is_taxable'  => $item_is_taxable,
+				);
 			}
 
-			$tax_rate = $this->mapped_amount( $row, $map, 'tax_rate' );
+			if ( empty( $items ) ) {
+				$skipped_missing++;
+				continue;
+			}
+
+			$tax_rate = $this->mapped_amount( $first_row, $map, 'tax_rate' );
+
+			// A single line's description doubles as the invoice's own
+			// label (matches the previous one-row-one-invoice behavior);
+			// a multi-line grouped invoice uses a generic label instead
+			// of arbitrarily picking one line's description for the whole
+			// invoice.
+			$invoice_label = 1 === count( $items ) ? $items[0]['description'] : __( 'Imported Invoice', 'karks-crm' );
 
 			$invoice_id = KCRM_Invoice::create(
 				array(
 					'company_id'         => $company_id,
 					'customer_id'        => $customer_id,
 					'invoice_number'     => $invoice_number,
-					'status'             => $this->parse_invoice_status( $this->mapped_cell( $row, $map, 'status_source' ) ),
+					'status'             => $this->parse_invoice_status( $this->mapped_cell( $first_row, $map, 'status_source' ) ),
 					'issue_date'         => $issue_date,
-					'due_date'           => $this->sanitize_date( $this->mapped_cell( $row, $map, 'due_date' ) ),
+					'due_date'           => $this->sanitize_date( $this->mapped_cell( $first_row, $map, 'due_date' ) ),
 					'invoice_type'       => KCRM_Invoice::TYPE_OTHER,
-					'invoice_type_other' => $description,
-					'notes'              => sanitize_textarea_field( $this->mapped_cell( $row, $map, 'notes' ) ),
+					'invoice_type_other' => $invoice_label,
+					'notes'              => sanitize_textarea_field( $this->mapped_cell( $first_row, $map, 'notes' ) ),
 					'tax_rate'           => $tax_rate ?? 0,
 				)
 			);
 
-			KCRM_Invoice_Item::insert(
-				array(
-					'invoice_id'  => $invoice_id,
-					'service_id'  => $service_id,
-					'description' => $description,
-					'type'        => KCRM_Service::TYPE_PROJECT,
-					'quantity'    => 1,
-					'rate'        => $amount,
-					'amount'      => $amount,
-					'is_taxable'  => $item_is_taxable,
-					'sort_order'  => 0,
-				)
-			);
+			$sort = 0;
+			foreach ( $items as $item ) {
+				KCRM_Invoice_Item::insert(
+					array(
+						'invoice_id'  => $invoice_id,
+						'service_id'  => $item['service_id'],
+						'description' => $item['description'],
+						'type'        => $item['type'],
+						'quantity'    => $item['quantity'],
+						'rate'        => $item['rate'],
+						'amount'      => $item['amount'],
+						'is_taxable'  => $item['is_taxable'],
+						'sort_order'  => $sort++,
+					)
+				);
+			}
 
 			KCRM_Invoice::recalculate_totals( $invoice_id );
 
@@ -471,6 +561,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 				'skipped_no_customer' => $skipped_no_customer,
 				'skipped_duplicate'   => $skipped_duplicate,
 				'skipped_missing'     => $skipped_missing,
+				'skipped_lines'       => $skipped_lines,
 				'services_created'    => $services_created,
 			)
 		);
@@ -538,6 +629,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		$imported           = 0;
 		$skipped_missing    = 0;
 		$skipped_no_invoice = 0;
+		$skipped_duplicate  = 0;
 
 		foreach ( $rows as $row ) {
 			$invoice_number = $this->mapped_cell( $row, $map, 'invoice_number' );
@@ -552,6 +644,11 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			$invoice = $invoices_by_number[ strtolower( $invoice_number ) ] ?? null;
 			if ( ! $invoice ) {
 				$skipped_no_invoice++;
+				continue;
+			}
+
+			if ( KCRM_Payment::exists_duplicate( $invoice->id, $payment_date, $amount ) ) {
+				$skipped_duplicate++;
 				continue;
 			}
 
@@ -578,6 +675,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 				'stage'              => 'done',
 				'imported'           => $imported,
 				'skipped_no_invoice' => $skipped_no_invoice,
+				'skipped_duplicate'  => $skipped_duplicate,
 				'skipped_missing'    => $skipped_missing,
 			)
 		);
@@ -591,14 +689,39 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		return sanitize_text_field( trim( (string) $row[ $index ] ) );
 	}
 
-	/** @return float|null Parsed numeric value (currency symbols/commas stripped), or null if blank/non-numeric. */
+	/**
+	 * @return string Lowercased company name with a trailing entity suffix
+	 * (Inc/LLC/Corp/Co/Ltd, with or without a comma/period) and periods
+	 * within initials stripped, so e.g. "Center for Spiritual Formation"
+	 * and "Center for Spiritual Formation, Inc." -- or "E.W. Mainhart LLC"
+	 * and "EW Mainhart LLC" -- match. QuickBooks Desktop's own reports are
+	 * inconsistent about including a customer's full legal suffix, so
+	 * matching import rows to existing customers by exact name is too
+	 * strict for real-world exports.
+	 */
+	protected function normalize_company_name( $name ) {
+		$name = preg_replace( '/\s*,?\s*(Inc\.?|LLC\.?|Corp\.?|Co\.?|Ltd\.?)\s*$/i', '', trim( $name ) );
+		$name = str_replace( '.', '', $name );
+		$name = preg_replace( '/\s+/', ' ', trim( $name ) );
+		return strtolower( $name );
+	}
+
+	/**
+	 * @return float|null Parsed numeric value (currency symbols/commas
+	 * stripped), or null if blank/non-numeric. Always non-negative --
+	 * QuickBooks-style exports commonly show the credit side of a
+	 * transaction as negative (e.g. a "Sales" account row on an invoice
+	 * whose "Accounts Receivable" row carries the same amount positive),
+	 * and this plugin has no concept of a negative invoice/line/payment
+	 * amount, so the sign is normalized away here rather than per caller.
+	 */
 	protected function mapped_amount( array $row, array $map, $field ) {
 		$raw = $this->mapped_cell( $row, $map, $field );
 		if ( '' === $raw ) {
 			return null;
 		}
 		$clean = preg_replace( '/[^0-9.\-]/', '', $raw );
-		return is_numeric( $clean ) ? (float) $clean : null;
+		return is_numeric( $clean ) ? abs( (float) $clean ) : null;
 	}
 
 	/** Header label for column $i, falling back to "Column N" (1-based) when the CSV header cell is blank. */
@@ -638,7 +761,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 				'guess'    => array( 'customer name', 'customer', 'company name', 'company' ),
 			),
 			'invoice_number' => array(
-				'label' => __( 'Invoice Number (leave unmapped to auto-assign)', 'karks-crm' ),
+				'label' => __( 'Invoice Number (rows sharing a number become one invoice with a line per row; leave unmapped to auto-assign a separate number to every row instead)', 'karks-crm' ),
 				'guess' => array( 'invoice #', 'invoice no', 'invoice number', 'number' ),
 			),
 			'issue_date'     => array(
@@ -655,12 +778,16 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 				'required' => true,
 				'guess'    => array( 'amount', 'subtotal', 'total' ),
 			),
+			'quantity'       => array(
+				'label' => __( 'Quantity / Hours (optional; preserves the real hours/quantity per line -- e.g. "0.25 hrs" -- with the rate derived from Amount, instead of every line showing quantity 1)', 'karks-crm' ),
+				'guess' => array( 'qty', 'quantity', 'hours' ),
+			),
 			'tax_rate'       => array(
 				'label' => __( 'Tax Rate (%)', 'karks-crm' ),
 				'guess' => array( 'tax rate', 'tax %', 'tax' ),
 			),
 			'description'    => array(
-				'label' => __( 'Description (used as the line item and invoice label)', 'karks-crm' ),
+				'label' => __( "Description (each row's line item label; also becomes the invoice's own label, for single-line invoices)", 'karks-crm' ),
 				'guess' => array( 'description', 'memo' ),
 			),
 			'service_name'   => array(
@@ -707,12 +834,28 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		);
 	}
 
+	/**
+	 * @return string|null A 'Y-m-d' date, or null if $value isn't a
+	 * recognized date. Accepts the plugin's own ISO 'Y-m-d' (what every
+	 * `<input type=date>` submits, regardless of the visitor's locale)
+	 * and, for CSV imports, US-style 'M/D/Y' or 'MM/DD/YYYY' -- what
+	 * QuickBooks Desktop exports by default.
+	 */
 	protected function sanitize_date( $value ) {
 		$value = sanitize_text_field( wp_unslash( $value ) );
-		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
-			return null;
+
+		if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+			return $value;
 		}
-		return $value;
+
+		if ( preg_match( '#^(\d{1,2})/(\d{1,2})/(\d{4})$#', $value, $matches ) ) {
+			list( , $month, $day, $year ) = $matches;
+			if ( checkdate( (int) $month, (int) $day, (int) $year ) ) {
+				return sprintf( '%04d-%02d-%02d', $year, $month, $day );
+			}
+		}
+
+		return null;
 	}
 
 	protected function sanitize_month( $value ) {
