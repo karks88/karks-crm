@@ -346,9 +346,14 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 
 		$customers_by_name      = array();
 		$customers_by_norm_name = array();
+		$jobs_by_parent         = array();
 		foreach ( KCRM_Customer::for_company( $company_id ) as $customer ) {
 			$customers_by_name[ strtolower( trim( $customer->company_name ) ) ]                 = (int) $customer->id;
 			$customers_by_norm_name[ $this->normalize_company_name( $customer->company_name ) ] = (int) $customer->id;
+
+			if ( $customer->parent_customer_id ) {
+				$jobs_by_parent[ (int) $customer->parent_customer_id ][ $this->normalize_company_name( $customer->company_name ) ] = (int) $customer->id;
+			}
 		}
 
 		$existing_numbers = array();
@@ -405,6 +410,9 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			$customer_id = $customers_by_name[ strtolower( $customer_name ) ] ?? 0;
 			if ( ! $customer_id ) {
 				$customer_id = $customers_by_norm_name[ $this->normalize_company_name( $customer_name ) ] ?? 0;
+			}
+			if ( ! $customer_id && false !== strpos( $customer_name, ':' ) ) {
+				$customer_id = $this->match_parent_child_customer( $customer_name, $customers_by_name, $customers_by_norm_name, $jobs_by_parent );
 			}
 			if ( ! $customer_id ) {
 				$skipped_no_customer++;
@@ -704,6 +712,36 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		$name = str_replace( '.', '', $name );
 		$name = preg_replace( '/\s+/', ' ', trim( $name ) );
 		return strtolower( $name );
+	}
+
+	/**
+	 * Matches QuickBooks "Parent:Child" sub-customer naming (e.g.
+	 * "Kessler Freedman, Inc.:AAA Federation") to the corresponding Job --
+	 * a child customer record whose own company_name is just "AAA
+	 * Federation" (Karks CRM's own convention; see
+	 * KCRM_Customer::display_name()) -- by splitting on the last colon,
+	 * finding the parent customer, then matching the remainder against
+	 * that parent's own Jobs specifically, not a global name search, so
+	 * two different parents' same-named Jobs can't collide.
+	 *
+	 * @param array $jobs_by_parent Parent customer id => [ normalized Job company_name => Job customer id ].
+	 * @return int Matched Job's customer id, or 0 if no match.
+	 */
+	private function match_parent_child_customer( $customer_name, array $customers_by_name, array $customers_by_norm_name, array $jobs_by_parent ) {
+		$parts       = explode( ':', $customer_name );
+		$job_part    = trim( array_pop( $parts ) );
+		$parent_part = trim( implode( ':', $parts ) );
+
+		if ( '' === $job_part || '' === $parent_part ) {
+			return 0;
+		}
+
+		$parent_id = $customers_by_name[ strtolower( $parent_part ) ] ?? $customers_by_norm_name[ $this->normalize_company_name( $parent_part ) ] ?? 0;
+		if ( ! $parent_id || ! isset( $jobs_by_parent[ $parent_id ] ) ) {
+			return 0;
+		}
+
+		return $jobs_by_parent[ $parent_id ][ $this->normalize_company_name( $job_part ) ] ?? 0;
 	}
 
 	/**
