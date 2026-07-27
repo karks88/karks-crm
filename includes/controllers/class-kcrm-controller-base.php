@@ -186,19 +186,21 @@ abstract class KCRM_Controller_Base {
 	 * with an explicit "submitted" marker ($_GET["{$prefix}_filtered"]) so
 	 * an unchecked checkbox (which browsers simply omit from the request)
 	 * can be told apart from the filter never having been touched at all --
-	 * the former means "show nothing selected", the latter means "show
-	 * everything" (today's unfiltered default, before this filter existed).
+	 * the former means "show nothing selected", the latter falls back to
+	 * $default (or "show everything" if $default is null, matching the
+	 * unfiltered behavior from before this filter existed).
 	 *
-	 * @param array $all_statuses status_key => label, e.g. KCRM_Invoice::statuses().
+	 * @param array      $all_statuses status_key => label, e.g. KCRM_Invoice::statuses().
+	 * @param array|null $default Status keys to show before the filter has been touched. Null means no filtering (show all).
 	 * @return array [ $selected_status_keys|null, $filtered ] -- null means no filtering (show all); $filtered is true once the form has been submitted at all.
 	 */
-	protected function resolve_status_filter( $prefix, array $all_statuses ) {
+	protected function resolve_status_filter( $prefix, array $all_statuses, $default = null ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
 		if ( ! isset( $_GET[ "{$prefix}_filtered" ] ) ) {
-			return array( null, false );
+			return array( $default, false );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display filter, no state change; each value is sanitize_key()'d on the next line before use.
 		$raw      = isset( $_GET[ $prefix ] ) && is_array( $_GET[ $prefix ] ) ? wp_unslash( $_GET[ $prefix ] ) : array();
 		$selected = array_values( array_intersect( array_keys( $all_statuses ), array_map( 'sanitize_key', $raw ) ) );
 

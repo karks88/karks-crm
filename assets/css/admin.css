@@ -109,3 +109,11 @@
 	gap: 4px;
 	font-weight: normal;
 }
+
+.kcrm-list-search {
+	margin: 12px 0;
+}
+
+.kcrm-list-search input[type="search"] {
+	max-width: 320px;
+}

@@ -206,6 +206,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
 		$raw_orderby = isset( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : '';
 		$orderby     = in_array( $raw_orderby, array( 'invoice_number', 'issue_date', 'due_date', 'balance_due' ), true ) ? $raw_orderby : 'issue_date';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
 		if ( isset( $_GET['order'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
 			$order = 'asc' === strtolower( sanitize_key( wp_unslash( $_GET['order'] ) ) ) ? 'ASC' : 'DESC';
@@ -216,7 +217,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 		$order_by_sql = 'balance_due' === $orderby ? 'issue_date DESC, id DESC' : "$orderby $order, id DESC";
 		$statuses     = KCRM_Invoice::statuses();
 
-		list( $selected_statuses, $status_filtered ) = $this->resolve_status_filter( 'kcrm_status', $statuses );
+		list( $selected_statuses, $status_filtered ) = $this->resolve_status_filter( 'kcrm_status', $statuses, KCRM_Invoice::default_customer_statuses() );
 		$invoices = KCRM_Invoice::for_company_with_statuses( $this->current_company_id(), $selected_statuses, $order_by_sql );
 
 		$balances = array();
@@ -241,8 +242,9 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 				)
 			);
 		};
-		$this->render_status_filter( 'kcrm_status', $statuses, $selected_statuses );
 		?>
+		<p class="description"><?php esc_html_e( 'Draft, Open, and Partially Paid invoices are shown by default.', 'karks-crm' ); ?></p>
+		<?php $this->render_status_filter( 'kcrm_status', $statuses, $selected_statuses ); ?>
 		<table class="wp-list-table widefat fixed striped">
 			<thead>
 				<tr>
@@ -286,7 +288,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 			</thead>
 			<tbody>
 				<?php if ( empty( $invoices ) ) : ?>
-					<tr><td colspan="8"><?php echo esc_html( $status_filtered ? __( 'No invoices match the selected statuses.', 'karks-crm' ) : __( 'No invoices yet for this company.', 'karks-crm' ) ); ?></td></tr>
+					<tr><td colspan="8"><?php echo esc_html( $status_filtered ? __( 'No invoices match the selected statuses.', 'karks-crm' ) : __( 'No invoices match the default statuses (Draft, Open, Partially Paid).', 'karks-crm' ) ); ?></td></tr>
 				<?php endif; ?>
 				<?php foreach ( $invoices as $invoice ) : ?>
 					<?php

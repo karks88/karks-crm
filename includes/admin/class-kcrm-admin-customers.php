@@ -202,7 +202,13 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 			);
 		};
 		?>
-		<table class="wp-list-table widefat fixed striped">
+		<?php if ( ! empty( $customers ) ) : ?>
+			<p class="kcrm-list-search">
+				<label for="kcrm-customer-search" class="screen-reader-text"><?php esc_html_e( 'Search customers', 'karks-crm' ); ?></label>
+				<input type="search" id="kcrm-customer-search" class="regular-text kcrm-instant-search" data-kcrm-search-table="kcrm-customers-table" data-kcrm-search-empty="<?php esc_attr_e( 'No customers match your search.', 'karks-crm' ); ?>" placeholder="<?php esc_attr_e( 'Search by company, contact, or email…', 'karks-crm' ); ?>">
+			</p>
+		<?php endif; ?>
+		<table class="wp-list-table widefat fixed striped" id="kcrm-customers-table">
 			<thead>
 				<tr>
 					<th>
@@ -238,7 +244,7 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 					$job_ids = wp_list_pluck( $jobs, 'id' );
 					$balance = KCRM_Customer::balance_for_ids( array_merge( array( $customer->id ), $job_ids ) );
 					?>
-					<tr>
+					<tr class="kcrm-customer-row" data-kcrm-customer-row="<?php echo esc_attr( $customer->id ); ?>">
 						<td>
 							<strong>
 								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $customer->id ) ) ); ?>">
@@ -507,6 +513,7 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
 		$raw_orderby = isset( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : '';
 		$orderby     = in_array( $raw_orderby, array( 'invoice_number', 'issue_date', 'due_date', 'balance_due' ), true ) ? $raw_orderby : 'issue_date';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
 		if ( isset( $_GET['order'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
 			$order = 'asc' === strtolower( sanitize_key( wp_unslash( $_GET['order'] ) ) ) ? 'ASC' : 'DESC';

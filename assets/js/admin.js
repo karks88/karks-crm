@@ -173,6 +173,77 @@
 		});
 	});
 
+	/**
+	 * Instant, client-side search for a wp-list-table: type into any
+	 * `.kcrm-instant-search` input and its `data-kcrm-search-table` target
+	 * table's rows are filtered by text match as you type, no page reload.
+	 * A row tagged `data-kcrm-jobs-parent` (a child/detail row normally
+	 * hidden behind a toggle, e.g. Jobs under a customer) is shown on match
+	 * along with its parent row (found via `data-kcrm-customer-row`), so a
+	 * search hit isn't left orphaned under a collapsed toggle.
+	 */
+	$(function () {
+		$('.kcrm-instant-search').each(function () {
+			var $input = $(this);
+			var $table = $('#' + $input.data('kcrm-search-table'));
+			var $tbody = $table.find('tbody');
+			if (!$tbody.length) {
+				return;
+			}
+
+			var $rows = $tbody.find('tr');
+			var colspan = $table.find('thead th').length || 1;
+			var $noResults = $('<tr class="kcrm-search-no-results" style="display:none;"><td colspan="' + colspan + '"></td></tr>');
+			$noResults.find('td').text($input.data('kcrm-search-empty') || '');
+			$tbody.append($noResults);
+
+			var timer = null;
+			$input.on('input', function () {
+				clearTimeout(timer);
+				timer = setTimeout(applyFilter, 150);
+			});
+
+			function applyFilter() {
+				var term = $input.val().toString().trim().toLowerCase();
+
+				if (!term) {
+					$rows.each(function () {
+						var $row = $(this);
+						$row.toggle(typeof $row.data('kcrm-jobs-parent') === 'undefined');
+					});
+					$noResults.hide();
+					return;
+				}
+
+				var visibleCount = 0;
+
+				$rows.not('.kcrm-search-no-results').each(function () {
+					var $row = $(this);
+					if (typeof $row.data('kcrm-jobs-parent') !== 'undefined') {
+						return;
+					}
+					var matches = $row.text().toLowerCase().indexOf(term) !== -1;
+					$row.toggle(matches);
+					if (matches) {
+						visibleCount++;
+					}
+				});
+
+				$rows.filter('[data-kcrm-jobs-parent]').each(function () {
+					var $row = $(this);
+					var matches = $row.text().toLowerCase().indexOf(term) !== -1;
+					$row.toggle(matches);
+					if (matches) {
+						visibleCount++;
+						$tbody.find('[data-kcrm-customer-row="' + $row.data('kcrm-jobs-parent') + '"]').show();
+					}
+				});
+
+				$noResults.toggle(visibleCount === 0);
+			}
+		});
+	});
+
 	$(function () {
 		var $modal = $('#kcrm-email-modal');
 		if (!$modal.length) {
