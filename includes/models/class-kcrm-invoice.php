@@ -73,6 +73,33 @@ class KCRM_Invoice extends KCRM_Model_Base {
 		return $types[ $type ] ?? $type;
 	}
 
+	/**
+	 * "{customer name} - {type label} Invoice" -- shared base for the PDF
+	 * filename (both the direct download and the emailed attachment) and
+	 * the default "Email Invoice" subject line, so all three stay in sync.
+	 * Falls back to the invoice number if there's no customer on record
+	 * (e.g. a deleted customer).
+	 *
+	 * @param object      $invoice
+	 * @param object|null $customer Pass the already-loaded customer to avoid a redundant lookup.
+	 */
+	public static function display_title( $invoice, $customer = null ) {
+		if ( null === $customer ) {
+			$customer = KCRM_Customer::find( $invoice->customer_id );
+		}
+
+		if ( ! $customer ) {
+			return $invoice->invoice_number ? $invoice->invoice_number : 'invoice-' . $invoice->id;
+		}
+
+		return sprintf(
+			/* translators: 1: customer name, 2: invoice type (e.g. "July 2026", "Web Hosting"). */
+			__( '%1$s - %2$s Invoice', 'karks-crm' ),
+			KCRM_Customer::display_name( $customer ),
+			self::type_label( $invoice )
+		);
+	}
+
 	public static function statuses() {
 		return array(
 			self::STATUS_DRAFT   => __( 'Draft', 'karks-crm' ),

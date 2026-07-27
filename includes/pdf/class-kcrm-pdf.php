@@ -13,7 +13,7 @@ class KCRM_PDF {
 		self::require_dompdf_or_die();
 
 		$dompdf   = self::render_invoice( $invoice );
-		$filename = sanitize_file_name( $invoice->invoice_number ? $invoice->invoice_number : 'invoice-' . $invoice->id );
+		$filename = sanitize_file_name( KCRM_Invoice::display_title( $invoice ) );
 		$dompdf->stream( $filename . '.pdf', array( 'Attachment' => true ) );
 		exit;
 	}

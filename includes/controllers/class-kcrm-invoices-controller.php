@@ -242,7 +242,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		}
 
 		$pdf_bytes = KCRM_PDF::invoice_pdf_bytes( $invoice );
-		$filename  = sanitize_file_name( $invoice->invoice_number ? $invoice->invoice_number : 'invoice-' . $invoice->id ) . '.pdf';
+		$filename  = sanitize_file_name( KCRM_Invoice::display_title( $invoice ) ) . '.pdf';
 
 		$attach_pdf = function ( $phpmailer ) use ( $pdf_bytes, $filename ) {
 			$phpmailer->addStringAttachment( $pdf_bytes, $filename, 'base64', 'application/pdf' );

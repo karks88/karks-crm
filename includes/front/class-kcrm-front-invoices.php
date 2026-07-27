@@ -579,12 +579,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 	 * the page reloads with a success/error notice afterward.
 	 */
 	private function render_email_modal( $invoice, $customer, $company ) {
-		$default_subject = sprintf(
-			/* translators: 1: invoice number, 2: company name. */
-			__( 'Invoice %1$s from %2$s', 'karks-crm' ),
-			$invoice->invoice_number,
-			$company ? $company->name : ''
-		);
+		$default_subject = KCRM_Invoice::display_title( $invoice, $customer );
 		$default_body = KCRM_Merge_Tags::replace( KCRM_Company::email_template( $company ), $invoice, $customer, $company );
 		?>
 		<div class="kcrm-modal-overlay" id="kcrm-email-modal" style="display:none;">
