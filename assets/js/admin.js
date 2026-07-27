@@ -173,6 +173,18 @@
 		});
 	});
 
+	$(function () {
+		$('.kcrm-recent-actions-toggle').on('click', function (e) {
+			e.preventDefault();
+			var $link = $(this);
+			var expanded = $link.data('kcrm-expanded') === true;
+			$link.closest('.kcrm-recent-actions-wrap').find('.kcrm-recent-actions-extra').toggle(!expanded);
+			$link.find('.dashicons').toggleClass('dashicons-arrow-down-alt2 dashicons-arrow-up-alt2');
+			$link.find('.kcrm-recent-actions-toggle-label').text(expanded ? $link.data('kcrm-more-label') : $link.data('kcrm-less-label'));
+			$link.data('kcrm-expanded', !expanded);
+		});
+	});
+
 	/**
 	 * Instant, client-side search for a wp-list-table: type into any
 	 * `.kcrm-instant-search` input and its `data-kcrm-search-table` target

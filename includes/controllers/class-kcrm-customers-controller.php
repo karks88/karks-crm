@@ -87,7 +87,7 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 			$id = KCRM_Customer::create( $data );
 		}
 
-		$this->redirect( array( 'kcrm_notice' => 'saved' ) );
+		$this->redirect( array( 'view' => 'edit', 'id' => $id, 'kcrm_notice' => 'saved' ) );
 	}
 
 	private function delete( $id ) {

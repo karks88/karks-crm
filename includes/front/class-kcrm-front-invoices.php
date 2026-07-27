@@ -261,7 +261,13 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 		?>
 		<p class="description"><?php esc_html_e( 'Draft, Open, and Partially Paid invoices are shown by default.', 'karks-crm' ); ?></p>
 		<?php $this->render_status_filter( 'kcrm_status', $statuses, $selected_statuses ); ?>
-		<table class="kcrm-front-table">
+		<?php if ( ! empty( $invoices ) ) : ?>
+			<p class="kcrm-list-search">
+				<label for="kcrm-invoice-search" class="screen-reader-text"><?php esc_html_e( 'Search invoices', 'karks-crm' ); ?></label>
+				<input type="search" id="kcrm-invoice-search" class="kcrm-instant-search" data-kcrm-search-table="kcrm-front-invoices-table" data-kcrm-search-empty="<?php esc_attr_e( 'No invoices match your search.', 'karks-crm' ); ?>" placeholder="<?php esc_attr_e( 'Search by invoice # or customer…', 'karks-crm' ); ?>">
+			</p>
+		<?php endif; ?>
+		<table class="kcrm-front-table" id="kcrm-front-invoices-table">
 			<thead>
 				<tr>
 					<th>
@@ -389,9 +395,25 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 					<?php endforeach; ?>
 				</select>
 			</p>
+			<?php
+			$month_year_value = ( $invoice && $invoice->invoice_type_month ) ? $invoice->invoice_type_month : '';
+			$selected_month   = $month_year_value ? substr( $month_year_value, 5, 2 ) : '';
+			$selected_year    = $month_year_value ? substr( $month_year_value, 0, 4 ) : '';
+			?>
 			<p id="kcrm-invoice-type-month-row">
-				<label for="invoice_type_month"><?php esc_html_e( 'Month/Year', 'karks-crm' ); ?></label>
-				<input type="month" name="invoice_type_month" id="invoice_type_month" value="<?php echo esc_attr( $invoice ? $invoice->invoice_type_month : '' ); ?>">
+				<label for="invoice_type_month_month"><?php esc_html_e( 'Month/Year', 'karks-crm' ); ?></label>
+				<select name="invoice_type_month_month" id="invoice_type_month_month">
+					<option value=""><?php esc_html_e( 'Month', 'karks-crm' ); ?></option>
+					<?php foreach ( $this->month_options() as $key => $label ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $selected_month, $key ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<select name="invoice_type_month_year" id="invoice_type_month_year">
+					<option value=""><?php esc_html_e( 'Year', 'karks-crm' ); ?></option>
+					<?php foreach ( $this->year_options() as $year ) : ?>
+						<option value="<?php echo esc_attr( $year ); ?>" <?php selected( $selected_year, (string) $year ); ?>><?php echo esc_html( $year ); ?></option>
+					<?php endforeach; ?>
+				</select>
 			</p>
 			<p id="kcrm-invoice-type-other-row">
 				<label for="invoice_type_other"><?php esc_html_e( 'Custom Type', 'karks-crm' ); ?></label>

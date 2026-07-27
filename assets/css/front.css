@@ -312,10 +312,26 @@ a.kcrm-button-primary:hover, a.kcrm-button-primary:focus {
 	text-decoration-thickness: 2px !important;
 }
 
+.kcrm-overview-columns {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	margin: 2.5em 0 24px;
+}
+
+.kcrm-overview-cards-col,
+.kcrm-overview-actions-col {
+	flex: 1;
+}
+
+.kcrm-overview-cards-col .kcrm-button-group {
+	margin-top: 0;
+}
+
 .kcrm-dashboard-cards {
 	display: flex;
 	gap: 2.5em;
-	margin: 2.5em 0 24px;
+	margin: 0;
 	flex-wrap: wrap;
 }
 
@@ -425,6 +441,44 @@ a.kcrm-card:focus .kcrm-card-arrow {
 .kcrm-status-active { background: #d4f4dd; color: #1a7a3a; }
 .kcrm-status-inactive { background: #f0f0f1; color: #787c82; }
 
+.kcrm-recent-actions {
+	margin: 0 0 1em;
+	padding: 0;
+	list-style: none;
+}
+
+.kcrm-recent-actions li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.kcrm-recent-actions li:last-child {
+	border-bottom: none;
+}
+
+.kcrm-recent-actions .dashicons {
+	color: #646970;
+	flex-shrink: 0;
+}
+
+.kcrm-recent-actions-time {
+	margin-left: auto;
+	color: #646970;
+	font-size: 12px;
+	white-space: nowrap;
+}
+
+.kcrm-recent-actions-extra {
+	display: none;
+}
+
+.kcrm-recent-actions-toggle .dashicons {
+	vertical-align: middle;
+}
+
 .kcrm-front #kcrm-line-items .kcrm-item-amount {
 	text-align: right;
 	font-weight: 600;
@@ -528,5 +582,47 @@ a.kcrm-card:focus .kcrm-card-arrow {
 
 	.kcrm-bar-chart-label {
 		font-size: 9px;
+	}
+}
+
+@media (min-width: 960px) {
+	.kcrm-overview-columns {
+		flex-direction: row;
+		align-items: flex-start;
+	}
+
+	.kcrm-overview-cards-col {
+		flex: 2;
+	}
+
+	.kcrm-overview-actions-col {
+		flex: 1;
+		min-width: 300px;
+	}
+
+	.kcrm-overview-actions-col h3 {
+		border-top: none;
+		margin-top: 0;
+		padding-top: 0;
+	}
+
+	.kcrm-dashboard-cards {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1.5em;
+	}
+
+	.kcrm-card {
+		padding: 2em 1.75em;
+	}
+
+	.kcrm-card-icon {
+		font-size: 40px;
+		width: 40px;
+		height: 40px;
+	}
+
+	.kcrm-card-number {
+		font-size: 34px;
 	}
 }

@@ -34,4 +34,17 @@ class KCRM_Invoice_Email extends KCRM_Model_Base {
 		$rows = self::where( array( 'invoice_id' => $invoice_id ), 'sent_at DESC, id DESC', 1 );
 		return $rows ? $rows[0] : null;
 	}
+
+	/**
+	 * Email sends on/after a cutoff (a 'Y-m-d H:i:s' string) for invoices
+	 * belonging to a company -- for the company profile's Recent Actions
+	 * feed. Joins to the invoices table since this table has no company_id
+	 * of its own, and pulls invoice_number/customer_id along for the link.
+	 */
+	public static function recent_for_company( $company_id, $since ) {
+		global $wpdb;
+		$sql = 'SELECT e.*, i.invoice_number, i.customer_id FROM %i e INNER JOIN %i i ON i.id = e.invoice_id WHERE i.company_id = %d AND e.sent_at >= %s ORDER BY e.sent_at DESC, e.id DESC';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is a %i/%d/%s placeholder template filled in via $wpdb->prepare() on the same line.
+		return $wpdb->get_results( $wpdb->prepare( $sql, self::table(), KCRM_DB::invoices(), $company_id, $since ) );
+	}
 }

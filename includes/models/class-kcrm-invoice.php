@@ -117,6 +117,13 @@ class KCRM_Invoice extends KCRM_Model_Base {
 		return array( self::STATUS_DRAFT, self::STATUS_OPEN, self::STATUS_PARTIAL );
 	}
 
+	/** Invoices created for this company on/after a cutoff (a 'Y-m-d H:i:s' string) -- for the company profile's Recent Actions feed. */
+	public static function created_since( $company_id, $since ) {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is a %i/%d/%s placeholder template filled in via $wpdb->prepare() on the same line.
+		return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE company_id = %d AND created_at >= %s ORDER BY created_at DESC, id DESC', self::table(), $company_id, $since ) );
+	}
+
 	/**
 	 * @param array|null $statuses Limit to these statuses, or null for all statuses.
 	 */

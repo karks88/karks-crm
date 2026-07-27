@@ -57,6 +57,13 @@ class KCRM_Customer extends KCRM_Model_Base {
 		return self::where( array( 'parent_customer_id' => $parent_customer_id ), $order_by );
 	}
 
+	/** Customers (including Jobs) added to this company on/after a cutoff (a 'Y-m-d H:i:s' string) -- for the company profile's Recent Actions feed. */
+	public static function created_since( $company_id, $since ) {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is a %i/%d/%s placeholder template filled in via $wpdb->prepare() on the same line.
+		return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE company_id = %d AND created_at >= %s ORDER BY created_at DESC, id DESC', self::table(), $company_id, $since ) );
+	}
+
 	/** @return string "Job Name (Parent Name)" for a Job, otherwise just the company name. */
 	public static function display_name( $customer ) {
 		if ( empty( $customer->parent_customer_id ) ) {

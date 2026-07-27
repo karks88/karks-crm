@@ -100,7 +100,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			'issue_date'         => $this->field_or_existing( 'issue_date', function ( $v ) { return $this->sanitize_date( $v ); }, $existing ),
 			'due_date'           => $this->field_or_existing( 'due_date', function ( $v ) { return $this->sanitize_date( $v ); }, $existing ),
 			'invoice_type'       => $invoice_type,
-			'invoice_type_month' => KCRM_Invoice::TYPE_MONTH_YEAR === $invoice_type ? $this->field_or_existing( 'invoice_type_month', function ( $v ) { return $this->sanitize_month( $v ); }, $existing ) : null,
+			'invoice_type_month' => KCRM_Invoice::TYPE_MONTH_YEAR === $invoice_type ? $this->sanitize_month_year_fields( $existing ) : null,
 			'invoice_type_other' => KCRM_Invoice::TYPE_OTHER === $invoice_type ? $this->field_or_existing( 'invoice_type_other', function ( $v ) { return sanitize_text_field( wp_unslash( $v ) ); }, $existing ) : null,
 			'notes'              => $this->field_or_existing( 'notes', function ( $v ) { return sanitize_textarea_field( wp_unslash( $v ) ); }, $existing ),
 			'tax_rate'           => $this->field_or_existing( 'tax_rate', function ( $v ) { return (float) $v; }, $existing, 0 ),
@@ -896,12 +896,54 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		return null;
 	}
 
-	protected function sanitize_month( $value ) {
-		$value = sanitize_text_field( wp_unslash( $value ) );
-		if ( ! preg_match( '/^\d{4}-\d{2}$/', $value ) ) {
+	/**
+	 * Options for the Month/Year invoice type's month <select> -- '01' => 'January', etc.
+	 * Kept as a plain <select> pair (see year_options()) rather than an
+	 * <input type="month"> because Firefox and desktop Safari don't support
+	 * that input type at all: it silently falls back to plain text with no
+	 * format hint, so whatever gets typed fails sanitize_month_year()'s
+	 * validation and is discarded -- invisibly, since nothing errors.
+	 *
+	 * @return array<string,string>
+	 */
+	protected function month_options() {
+		$months = array();
+		for ( $m = 1; $m <= 12; $m++ ) {
+			$key             = sprintf( '%02d', $m );
+			$months[ $key ] = date_i18n( 'F', mktime( 0, 0, 0, $m, 1 ) );
+		}
+		return $months;
+	}
+
+	/**
+	 * @return int[] A reasonable year range for the Month/Year invoice type picker.
+	 */
+	protected function year_options() {
+		$current = (int) gmdate( 'Y' );
+		return range( $current - 5, $current + 2 );
+	}
+
+	/**
+	 * Combines the invoice_type_month_month/invoice_type_month_year <select>
+	 * fields into the stored 'YYYY-MM' format, falling back to the existing
+	 * invoice's value if the fields aren't present in the request at all
+	 * (matching field_or_existing()'s convention).
+	 */
+	protected function sanitize_month_year_fields( $existing ) {
+		if ( ! array_key_exists( 'invoice_type_month_month', $_POST ) && ! array_key_exists( 'invoice_type_month_year', $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified by the caller before this is used.
+			return ( $existing && isset( $existing->invoice_type_month ) ) ? $existing->invoice_type_month : null;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified by the caller before this is used.
+		$month = isset( $_POST['invoice_type_month_month'] ) ? sanitize_text_field( wp_unslash( $_POST['invoice_type_month_month'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified by the caller before this is used.
+		$year = isset( $_POST['invoice_type_month_year'] ) ? sanitize_text_field( wp_unslash( $_POST['invoice_type_month_year'] ) ) : '';
+
+		if ( ! preg_match( '/^(0[1-9]|1[0-2])$/', $month ) || ! preg_match( '/^\d{4}$/', $year ) ) {
 			return null;
 		}
-		return $value;
+
+		return $year . '-' . $month;
 	}
 
 	/**

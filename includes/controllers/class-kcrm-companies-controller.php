@@ -75,7 +75,7 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 			update_user_meta( get_current_user_id(), KCRM_Context::META_KEY, $id );
 		}
 
-		$this->redirect( array( 'kcrm_notice' => 'saved' ) );
+		$this->redirect( array( 'view' => 'edit', 'id' => $id, 'kcrm_notice' => 'saved' ) );
 	}
 
 	private function delete( $id ) {
