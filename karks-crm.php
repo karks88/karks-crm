@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Karks CRM
  * Description: Manage customers, services, and invoices across multiple companies.
- * Version: 0.6.1
+ * Version: 0.6.2
  * Author: Eric Karkovack
  * Author URI: https://karks.com
  * Text Domain: karks-crm
