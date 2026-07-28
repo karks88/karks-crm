@@ -42,6 +42,33 @@ abstract class KCRM_Model_Base {
 	}
 
 	/**
+	 * Batched find() for a list of ids -- one query instead of one per id,
+	 * for call sites that would otherwise call find() inside a loop.
+	 *
+	 * @return array<int,object> Row objects keyed by id. Missing/invalid ids are simply absent.
+	 */
+	public static function find_many( array $ids ) {
+		global $wpdb;
+
+		$ids = array_unique( array_filter( array_map( 'absint', $ids ) ) );
+		if ( empty( $ids ) ) {
+			return array();
+		}
+
+		$table        = static::table();
+		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $placeholders is only repeated %d placeholder syntax (its count matches count( $ids )), not user input; query text and args are passed to $wpdb->prepare() on this line.
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE id IN (' . $placeholders . ')', array_merge( array( $table ), $ids ) ) );
+
+		$indexed = array();
+		foreach ( $rows as $row ) {
+			$indexed[ (int) $row->id ] = $row;
+		}
+		return $indexed;
+	}
+
+	/**
 	 * @param array  $where    Column => value equality filters (column names are hardcoded by callers, not user input).
 	 * @param string $order_by Raw ORDER BY clause (not user input); restricted to identifier characters as defense in depth.
 	 */

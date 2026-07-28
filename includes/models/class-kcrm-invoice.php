@@ -110,8 +110,8 @@ class KCRM_Invoice extends KCRM_Model_Base {
 		);
 	}
 
-	public static function for_company( $company_id, $order_by = 'issue_date DESC, id DESC' ) {
-		return self::where( array( 'company_id' => $company_id ), $order_by );
+	public static function for_company( $company_id, $order_by = 'issue_date DESC, id DESC', $limit = 0, $offset = 0 ) {
+		return self::where( array( 'company_id' => $company_id ), $order_by, $limit, $offset );
 	}
 
 	public static function for_customer( $customer_id, $order_by = 'issue_date DESC, id DESC' ) {
@@ -121,11 +121,11 @@ class KCRM_Invoice extends KCRM_Model_Base {
 	/**
 	 * @param array|null $statuses Limit to these statuses, or null for all statuses.
 	 */
-	public static function for_company_with_statuses( $company_id, $statuses = null, $order_by = 'issue_date DESC, id DESC' ) {
+	public static function for_company_with_statuses( $company_id, $statuses = null, $order_by = 'issue_date DESC, id DESC', $limit = 0, $offset = 0 ) {
 		global $wpdb;
 
 		if ( null === $statuses ) {
-			return self::for_company( $company_id, $order_by );
+			return self::for_company( $company_id, $order_by, $limit, $offset );
 		}
 
 		if ( empty( $statuses ) ) {
@@ -135,8 +135,39 @@ class KCRM_Invoice extends KCRM_Model_Base {
 		$placeholders = implode( ', ', array_fill( 0, count( $statuses ), '%s' ) );
 		$params       = array_merge( array( self::table(), $company_id ), array_values( $statuses ) );
 
+		$sql = 'SELECT * FROM %i WHERE company_id = %d AND status IN (' . $placeholders . ') ORDER BY ' . self::safe_order_by( $order_by );
+
+		if ( $limit > 0 ) {
+			$sql     .= ' LIMIT %d OFFSET %d';
+			$params[] = $limit;
+			$params[] = $offset;
+		}
+
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $placeholders is only repeated %s placeholder syntax (its count matches count( $statuses )); $params holds one value per placeholder, passed as $wpdb->prepare()'s documented array-of-args form.
-		return $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE company_id = %d AND status IN (' . $placeholders . ') ORDER BY ' . self::safe_order_by( $order_by ), $params ) );
+		return $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
+	}
+
+	/**
+	 * Count companion to for_company_with_statuses(), for pagination.
+	 *
+	 * @param array|null $statuses Limit to these statuses, or null for all statuses.
+	 */
+	public static function count_for_company_with_statuses( $company_id, $statuses = null ) {
+		global $wpdb;
+
+		if ( null === $statuses ) {
+			return self::count_where( array( 'company_id' => $company_id ) );
+		}
+
+		if ( empty( $statuses ) ) {
+			return 0;
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $statuses ), '%s' ) );
+		$params       = array_merge( array( self::table(), $company_id ), array_values( $statuses ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $placeholders is only repeated %s placeholder syntax (its count matches count( $statuses )); $params holds one value per placeholder, passed as $wpdb->prepare()'s documented array-of-args form.
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE company_id = %d AND status IN (' . $placeholders . ')', $params ) );
 	}
 
 	/** Statuses shown by default on the customer profile's invoice list. */
@@ -304,5 +335,25 @@ class KCRM_Invoice extends KCRM_Model_Base {
 		}
 		$paid = KCRM_Payment::total_for_invoice( $invoice_id );
 		return round( (float) $invoice->total - $paid, 2 );
+	}
+
+	/**
+	 * Batched balance_due() for a list of already-loaded invoice objects --
+	 * one grouped payments query total, instead of a find() plus a SUM
+	 * query per invoice. Use this instead of calling balance_due() inside
+	 * a loop over a list of invoices.
+	 *
+	 * @param object[] $invoices Invoice rows (each needs ->id and ->total).
+	 * @return array<int,float> invoice_id => balance due.
+	 */
+	public static function balances_for( array $invoices ) {
+		$ids   = wp_list_pluck( $invoices, 'id' );
+		$paid  = KCRM_Payment::totals_for_invoices( $ids );
+		$result = array();
+		foreach ( $invoices as $invoice ) {
+			$id             = (int) $invoice->id;
+			$result[ $id ] = round( (float) $invoice->total - ( $paid[ $id ] ?? 0.0 ), 2 );
+		}
+		return $result;
 	}
 }

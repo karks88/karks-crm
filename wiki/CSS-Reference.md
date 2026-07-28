@@ -31,9 +31,9 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 |---|---|
 | `.kcrm-front` | Outer wrapper for the whole `/crm/` page — max-width, base font size/line-height. |
 | `.kcrm-front-screen` | Wrapper for a single screen's content within `.kcrm-front`. |
-| `.kcrm-front-nav` | The tab bar (Dashboard/Customers/Services/Invoices/Reports/Company Profile). |
+| `.kcrm-front-nav` | The tab bar (Company Profile/Customers/Services/Invoices/Reports/Tools). |
 | `.kcrm-front-nav a.is-active` | The current tab. |
-| `.kcrm-company-header` | Two-column header (logo left, company switcher right) shown above the heading on every screen except the Dashboard. |
+| `.kcrm-company-header` | Two-column header (logo left, company switcher right) shown above the heading on every screen except Tools. |
 | `.kcrm-current-company-logo` | Wraps the company logo image inside `.kcrm-company-header`. |
 | `.kcrm-company-switcher` | Wraps the company `<select>` dropdown. |
 

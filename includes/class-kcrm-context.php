@@ -15,7 +15,24 @@ class KCRM_Context {
 	 * Handles the company switcher form and returns the active company id
 	 * for the current user (persisted in user meta).
 	 */
+	private static $resolved_company_id = null;
+
+	/**
+	 * Memoized per-request -- this is called repeatedly across a single
+	 * page render (header, company switcher, screen body, ...) and the
+	 * answer can't change mid-request, so only the first call actually
+	 * hits the database.
+	 */
 	public static function get_current_company_id() {
+		if ( null !== self::$resolved_company_id ) {
+			return self::$resolved_company_id;
+		}
+
+		self::$resolved_company_id = self::resolve_current_company_id();
+		return self::$resolved_company_id;
+	}
+
+	private static function resolve_current_company_id() {
 		$user_id = get_current_user_id();
 
 		if ( isset( $_GET['kcrm_company'] ) && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'kcrm_switch_company' ) ) {

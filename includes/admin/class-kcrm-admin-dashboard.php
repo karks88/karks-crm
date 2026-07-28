@@ -28,17 +28,18 @@ class KCRM_Admin_Dashboard extends KCRM_Controller_Base {
 			return;
 		}
 
-		$company       = KCRM_Company::find( $company_id );
-		$customers     = KCRM_Customer::for_company( $company_id );
-		$invoices      = KCRM_Invoice::for_company( $company_id );
-		$outstanding   = 0.0;
-		$open_invoices = 0;
+		$company        = KCRM_Company::find( $company_id );
+		$customer_count = KCRM_Customer::count_where( array( 'company_id' => $company_id ) );
+		$invoices       = KCRM_Invoice::for_company( $company_id );
+		$balances       = KCRM_Invoice::balances_for( $invoices );
+		$outstanding    = 0.0;
+		$open_invoices  = 0;
 
 		foreach ( $invoices as $invoice ) {
 			if ( KCRM_Invoice::STATUS_VOID === $invoice->status ) {
 				continue;
 			}
-			$due = KCRM_Invoice::balance_due( $invoice->id );
+			$due = $balances[ (int) $invoice->id ];
 			if ( $due > 0.004 ) {
 				$outstanding += $due;
 				$open_invoices++;
@@ -48,7 +49,7 @@ class KCRM_Admin_Dashboard extends KCRM_Controller_Base {
 		<h2><?php echo esc_html( $company->name ); ?></h2>
 		<div class="kcrm-dashboard-cards">
 			<a class="kcrm-card" href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-customers' ) ); ?>">
-				<span class="kcrm-card-number"><?php echo esc_html( count( $customers ) ); ?></span>
+				<span class="kcrm-card-number"><?php echo esc_html( $customer_count ); ?></span>
 				<span class="kcrm-card-label"><?php esc_html_e( 'Customers', 'karks-crm' ); ?></span>
 			</a>
 			<a class="kcrm-card" href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices' ) ); ?>">
@@ -66,7 +67,10 @@ class KCRM_Admin_Dashboard extends KCRM_Controller_Base {
 		</div>
 
 		<h3><?php esc_html_e( 'Recent Invoices', 'karks-crm' ); ?></h3>
-		<?php $recent = array_slice( $invoices, 0, 10 ); ?>
+		<?php
+		$recent          = array_slice( $invoices, 0, 10 );
+		$recent_customers = KCRM_Customer::find_many( wp_list_pluck( $recent, 'customer_id' ) );
+		?>
 		<table class="wp-list-table widefat fixed striped">
 			<thead>
 				<tr>
@@ -81,7 +85,7 @@ class KCRM_Admin_Dashboard extends KCRM_Controller_Base {
 					<tr><td colspan="4"><?php esc_html_e( 'No invoices yet.', 'karks-crm' ); ?></td></tr>
 				<?php endif; ?>
 				<?php foreach ( $recent as $invoice ) : ?>
-					<?php $customer = KCRM_Customer::find( $invoice->customer_id ); ?>
+					<?php $customer = $recent_customers[ (int) $invoice->customer_id ] ?? null; ?>
 					<tr>
 						<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices&view=edit&id=' . $invoice->id ) ); ?>"><?php echo esc_html( $invoice->invoice_number ); ?></a></td>
 						<td><?php echo esc_html( $customer ? $customer->company_name : '' ); ?></td>

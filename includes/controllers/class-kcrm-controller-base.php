@@ -256,8 +256,7 @@ abstract class KCRM_Controller_Base {
 	 * @return array [ $filtered_customers, $show_all ]
 	 */
 	protected function filter_active_customers( array $customers ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
-		$show_all = ! empty( $_GET['kcrm_status_filter'] ) && 'all' === sanitize_key( wp_unslash( $_GET['kcrm_status_filter'] ) );
+		$show_all = $this->show_all_customers_requested();
 
 		if ( $show_all ) {
 			return array( $customers, true );
@@ -273,6 +272,12 @@ abstract class KCRM_Controller_Base {
 		);
 
 		return array( $active, false );
+	}
+
+	/** Whether $_GET['kcrm_status_filter'] = all is in effect -- the raw query-var check behind filter_active_customers(), exposed for callers that need to know before running their own query (e.g. to push the status filter into SQL for pagination instead of filtering an already-fetched list). */
+	protected function show_all_customers_requested() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
+		return ! empty( $_GET['kcrm_status_filter'] ) && 'all' === sanitize_key( wp_unslash( $_GET['kcrm_status_filter'] ) );
 	}
 
 	/**

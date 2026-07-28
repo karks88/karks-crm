@@ -61,6 +61,33 @@ class KCRM_Payment extends KCRM_Model_Base {
 		);
 	}
 
+	/**
+	 * Batched total_for_invoice() for a list of invoice ids -- one grouped
+	 * query instead of one SUM query per invoice, for call sites that would
+	 * otherwise call total_for_invoice()/balance_due() inside a loop.
+	 *
+	 * @return array<int,float> invoice_id => total paid. Invoices with no payments are simply absent (treat as 0.0).
+	 */
+	public static function totals_for_invoices( array $invoice_ids ) {
+		global $wpdb;
+
+		$invoice_ids = array_unique( array_filter( array_map( 'absint', $invoice_ids ) ) );
+		if ( empty( $invoice_ids ) ) {
+			return array();
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $invoice_ids ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $placeholders is only repeated %d placeholder syntax (its count matches count( $invoice_ids )), not user input; query text and args are passed to $wpdb->prepare() on this line.
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT invoice_id, COALESCE(SUM(amount), 0) AS total FROM %i WHERE invoice_id IN (' . $placeholders . ') GROUP BY invoice_id', array_merge( array( self::table() ), $invoice_ids ) ) );
+
+		$totals = array();
+		foreach ( $rows as $row ) {
+			$totals[ (int) $row->invoice_id ] = (float) $row->total;
+		}
+		return $totals;
+	}
+
 	/** Lifetime total paid by a customer. */
 	public static function total_for_customer( $customer_id ) {
 		global $wpdb;

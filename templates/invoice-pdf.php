@@ -59,6 +59,11 @@ $kcrm_accent     = $kcrm_hex_or( KCRM_Company::pdf_accent_color( $company ), $kc
 	table.totals td { padding: 4px 8px; }
 	table.totals tr.total-row td { font-weight: bold; border-top: 2px solid <?php echo esc_html( $kcrm_accent ); ?>; color: <?php echo esc_html( $kcrm_accent ); ?>; font-size: 14px; }
 	.status-badge { display: inline-block; padding: 3px 10px; border-radius: 3px; background: #eee; font-size: 11px; text-transform: uppercase; }
+	.status-badge.status-paid { background: #d4f4dd; color: #1a7a3a; }
+	.status-badge.status-partial { background: #fff3cd; color: #8a6100; }
+	.status-badge.status-open { background: #fde8d2; color: #9a5b12; }
+	.status-badge.status-void { background: #f0f0f1; color: #787c82; text-decoration: line-through; }
+	.status-badge.status-draft { background: #f0f0f1; color: #50575e; }
 	.notes { margin-top: 24px; }
 	.payments { margin-top: 20px; }
 	.payments table { width: 100%; border-collapse: collapse; }
@@ -91,7 +96,7 @@ $kcrm_accent     = $kcrm_hex_or( KCRM_Company::pdf_accent_color( $company ), $kc
 					<?php if ( $invoice->due_date ) : ?>
 						<div><?php esc_html_e( 'Due:', 'karks-crm' ); ?> <?php echo esc_html( $invoice->due_date ); ?></div>
 					<?php endif; ?>
-					<div><span class="status-badge"><?php echo esc_html( $kcrm_statuses[ $invoice->status ] ?? $invoice->status ); ?></span></div>
+					<div><span class="status-badge status-<?php echo esc_attr( $invoice->status ); ?>"><?php echo esc_html( $kcrm_statuses[ $invoice->status ] ?? $invoice->status ); ?></span></div>
 				</div>
 			</td>
 		</tr>

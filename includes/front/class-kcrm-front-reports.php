@@ -76,10 +76,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 		$revenue_this_year = KCRM_Payment::total_for_company_in_year( $company_id, $current_year );
 
 		$open_invoices = KCRM_Invoice::for_company_with_statuses( $company_id, array( KCRM_Invoice::STATUS_OPEN, KCRM_Invoice::STATUS_PARTIAL ) );
-		$outstanding   = 0.0;
-		foreach ( $open_invoices as $invoice ) {
-			$outstanding += KCRM_Invoice::balance_due( $invoice->id );
-		}
+		$outstanding   = array_sum( KCRM_Invoice::balances_for( $open_invoices ) );
 
 		$customer_count = count( KCRM_Customer::top_level_for_company( $company_id ) );
 		?>
@@ -153,10 +150,12 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 				<?php if ( empty( $payments ) ) : ?>
 					<tr><td colspan="5"><?php esc_html_e( 'No payments found for this range.', 'karks-crm' ); ?></td></tr>
 				<?php endif; ?>
+				<?php $payment_customers = KCRM_Customer::find_many( wp_list_pluck( $payments, 'customer_id' ) ); ?>
+				<?php $payment_invoices  = KCRM_Invoice::find_many( wp_list_pluck( $payments, 'invoice_id' ) ); ?>
 				<?php foreach ( $payments as $payment ) : ?>
 					<?php
-					$customer = KCRM_Customer::find( $payment->customer_id );
-					$invoice  = KCRM_Invoice::find( $payment->invoice_id );
+					$customer = $payment_customers[ (int) $payment->customer_id ] ?? null;
+					$invoice  = $payment_invoices[ (int) $payment->invoice_id ] ?? null;
 					?>
 					<tr>
 						<td><?php echo esc_html( $payment->payment_date ); ?></td>
@@ -273,8 +272,9 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 				<?php if ( empty( $payments ) ) : ?>
 					<tr><td colspan="5"><?php esc_html_e( 'No payments found for this range.', 'karks-crm' ); ?></td></tr>
 				<?php endif; ?>
+				<?php $report_invoices = KCRM_Invoice::find_many( wp_list_pluck( $payments, 'invoice_id' ) ); ?>
 				<?php foreach ( $payments as $payment ) : ?>
-					<?php $invoice = KCRM_Invoice::find( $payment->invoice_id ); ?>
+					<?php $invoice = $report_invoices[ (int) $payment->invoice_id ] ?? null; ?>
 					<tr>
 						<td><?php echo esc_html( $payment->payment_date ); ?></td>
 						<td>
@@ -367,10 +367,12 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 	private function aging_rows( $company_id ) {
 		$invoices = KCRM_Invoice::for_company_with_statuses( $company_id, array( KCRM_Invoice::STATUS_OPEN, KCRM_Invoice::STATUS_PARTIAL ), 'due_date ASC, id ASC' );
 		$today    = current_time( 'timestamp' ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- only used for a day-granularity diff against due_date, timezone precision doesn't matter here.
+		$balances = KCRM_Invoice::balances_for( $invoices );
+		$customers = KCRM_Customer::find_many( wp_list_pluck( $invoices, 'customer_id' ) );
 
 		$rows = array();
 		foreach ( $invoices as $invoice ) {
-			$balance = KCRM_Invoice::balance_due( $invoice->id );
+			$balance = $balances[ (int) $invoice->id ];
 			if ( $balance <= 0.004 ) {
 				continue;
 			}
@@ -392,7 +394,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 				$bucket = 'b90_plus';
 			}
 
-			$customer = KCRM_Customer::find( $invoice->customer_id );
+			$customer = $customers[ (int) $invoice->customer_id ] ?? null;
 
 			$rows[] = array(
 				'invoice'       => $invoice,
@@ -472,9 +474,12 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 		$out = fopen( 'php://output', 'w' );
 		fputcsv( $out, array( __( 'Date', 'karks-crm' ), __( 'Customer', 'karks-crm' ), __( 'Invoice #', 'karks-crm' ), __( 'Amount', 'karks-crm' ), __( 'Method', 'karks-crm' ) ) );
 
+		$csv_customers = KCRM_Customer::find_many( wp_list_pluck( $payments, 'customer_id' ) );
+		$csv_invoices  = KCRM_Invoice::find_many( wp_list_pluck( $payments, 'invoice_id' ) );
+
 		foreach ( $payments as $payment ) {
-			$customer = KCRM_Customer::find( $payment->customer_id );
-			$invoice  = KCRM_Invoice::find( $payment->invoice_id );
+			$customer = $csv_customers[ (int) $payment->customer_id ] ?? null;
+			$invoice  = $csv_invoices[ (int) $payment->invoice_id ] ?? null;
 			fputcsv(
 				$out,
 				array(
@@ -511,8 +516,10 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 		$out = fopen( 'php://output', 'w' );
 		fputcsv( $out, array( __( 'Date', 'karks-crm' ), __( 'Invoice #', 'karks-crm' ), __( 'Amount', 'karks-crm' ), __( 'Method', 'karks-crm' ), __( 'Note', 'karks-crm' ) ) );
 
+		$csv_invoices = KCRM_Invoice::find_many( wp_list_pluck( $payments, 'invoice_id' ) );
+
 		foreach ( $payments as $payment ) {
-			$invoice = KCRM_Invoice::find( $payment->invoice_id );
+			$invoice = $csv_invoices[ (int) $payment->invoice_id ] ?? null;
 			fputcsv(
 				$out,
 				array(

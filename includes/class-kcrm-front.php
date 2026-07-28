@@ -3,12 +3,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-dashboard.php';
 require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-companies.php';
 require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-customers.php';
 require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-services.php';
 require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-invoices.php';
 require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-reports.php';
+require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-tools.php';
 
 /**
  * Front-end counterpart to KCRM_Plugin: a [karks_crm] shortcode, placed by
@@ -19,7 +19,7 @@ require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-reports.php';
 class KCRM_Front {
 
 	/** Rewrite endpoints registered under the CRM page, in nav order. */
-	const ENDPOINTS = array( 'companies', 'customers', 'services', 'invoices', 'reports' );
+	const ENDPOINTS = array( 'companies', 'customers', 'services', 'invoices', 'reports', 'tools' );
 
 	/** @var array<string,KCRM_Controller_Base> */
 	private $screens = array();
@@ -31,12 +31,14 @@ class KCRM_Front {
 			'services'  => new KCRM_Front_Services(),
 			'invoices'  => new KCRM_Front_Invoices(),
 			'reports'   => new KCRM_Front_Reports(),
+			'tools'     => new KCRM_Front_Tools(),
 		);
 
 		add_action( 'init', array( $this, 'register_endpoints' ) );
 		add_filter( 'request', array( $this, 'sanitize_query_vars' ) );
 		add_filter( 'redirect_canonical', array( $this, 'prevent_front_page_endpoint_redirect' ) );
 		add_shortcode( 'karks_crm', array( $this, 'render_shortcode' ) );
+		add_action( 'template_redirect', array( $this, 'redirect_bare_endpoint' ) );
 		add_action( 'template_redirect', array( $this, 'handle_screen_actions' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_post_kcrm_export_report_csv', array( $this->screens['reports'], 'handle_csv_export' ) );
@@ -153,6 +155,31 @@ class KCRM_Front {
 		return $this->current_endpoint() ? false : $redirect_url;
 	}
 
+	/**
+	 * The bare CRM page (no endpoint matched) used to render a multi-company
+	 * Dashboard; that's now the Tools tab instead, so bare requests jump
+	 * straight to the current company's Profile -- or to Tools if there's no
+	 * current company yet (nothing to show a Profile for), so "add your
+	 * first company" is still reachable.
+	 */
+	public function redirect_bare_endpoint() {
+		if ( ! self::is_crm_page() || ! is_user_logged_in() || ! current_user_can( KCRM_CAPABILITY ) ) {
+			return;
+		}
+
+		if ( '' !== $this->current_endpoint() ) {
+			return;
+		}
+
+		$company_id  = KCRM_Context::get_current_company_id();
+		$destination = $company_id
+			? self::endpoint_url( 'companies', array( 'view' => 'overview', 'id' => $company_id ) )
+			: self::endpoint_url( 'tools' );
+
+		wp_safe_redirect( $destination );
+		exit;
+	}
+
 	public function render_shortcode() {
 		if ( ! is_user_logged_in() ) {
 			ob_start();
@@ -177,7 +204,8 @@ class KCRM_Front {
 		if ( $screen ) {
 			$screen->render();
 		} else {
-			( new KCRM_Front_Dashboard() )->render();
+			// Bare endpoint -- redirect_bare_endpoint() handles this on template_redirect for real requests; this is just a safety net (e.g. a shortcode preview) so the page isn't left blank.
+			$this->screens['tools']->render();
 		}
 		echo '</div>';
 		return ob_get_clean();
@@ -185,37 +213,37 @@ class KCRM_Front {
 
 	/**
 	 * Companies' own list/add/edit screens are deliberately left out of the
-	 * nav -- the Dashboard already lists every company (with an "Add a
-	 * Company" button) and links to each one's overview hub, which itself
-	 * links to Edit Company. That "companies" endpoint still exists and is
-	 * still reachable (add/edit/delete all redirect back to it), it's just
-	 * not a top-level tab. A "Company Profile" tab is shown instead,
-	 * linking straight to the *current* company's overview hub.
+	 * nav -- a "Company Profile" tab is shown instead, linking straight to
+	 * the *current* company's overview hub (that "companies" endpoint still
+	 * exists and is still reachable; add/edit/delete all redirect back to
+	 * it, it's just not a top-level tab). "Add a Company" and the
+	 * all-companies-at-a-glance table live under the Tools tab instead,
+	 * which is why it's placed last -- it's a utility, not a primary
+	 * destination the way Company Profile is (that's the bare endpoint's
+	 * redirect target too, see redirect_bare_endpoint()).
 	 */
 	private function render_nav( $current ) {
 		$labels = array(
-			''          => __( 'Dashboard', 'karks-crm' ),
 			'customers' => __( 'Customers', 'karks-crm' ),
 			'services'  => __( 'Services', 'karks-crm' ),
 			'invoices'  => __( 'Invoices', 'karks-crm' ),
 			'reports'   => __( 'Reports', 'karks-crm' ),
+			'tools'     => __( 'Tools', 'karks-crm' ),
 		);
 		$icons = array(
-			''          => 'dashboard',
 			'customers' => 'groups',
 			'services'  => 'hammer',
 			'invoices'  => 'media-spreadsheet',
 			'reports'   => 'chart-bar',
+			'tools'     => 'admin-tools',
 		);
 		$current_company_id = KCRM_Context::get_current_company_id();
 		?>
 		<nav class="kcrm-front-nav">
-			<a href="<?php echo esc_url( self::endpoint_url( '' ) ); ?>" class="<?php echo '' === $current ? 'is-active' : ''; ?>"><span class="dashicons dashicons-<?php echo esc_attr( $icons[''] ); ?>"></span> <?php echo esc_html( $labels[''] ); ?></a>
 			<?php if ( $current_company_id ) : ?>
 				<a href="<?php echo esc_url( self::endpoint_url( 'companies', array( 'view' => 'overview', 'id' => $current_company_id ) ) ); ?>" class="<?php echo 'companies' === $current ? 'is-active' : ''; ?>"><span class="dashicons dashicons-building"></span> <?php esc_html_e( 'Company Profile', 'karks-crm' ); ?></a>
 			<?php endif; ?>
 			<?php foreach ( $labels as $endpoint => $label ) : ?>
-				<?php if ( '' === $endpoint ) { continue; } ?>
 				<a href="<?php echo esc_url( self::endpoint_url( $endpoint ) ); ?>" class="<?php echo $current === $endpoint ? 'is-active' : ''; ?>"><span class="dashicons dashicons-<?php echo esc_attr( $icons[ $endpoint ] ); ?>"></span> <?php echo esc_html( $label ); ?></a>
 			<?php endforeach; ?>
 		</nav>

@@ -80,6 +80,7 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 		list( $customers, $show_all_customers ) = $this->filter_active_customers( $customers );
 
 		$all_invoices  = KCRM_Invoice::for_company( $id );
+		$balances      = KCRM_Invoice::balances_for( $all_invoices );
 		$outstanding   = 0.0;
 		$open_invoices = 0;
 
@@ -87,7 +88,7 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 			if ( KCRM_Invoice::STATUS_VOID === $invoice->status ) {
 				continue;
 			}
-			$due = KCRM_Invoice::balance_due( $invoice->id );
+			$due = $balances[ (int) $invoice->id ];
 			if ( $due > 0.004 ) {
 				$outstanding += $due;
 				$open_invoices++;
@@ -171,10 +172,12 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 						<td colspan="6"><?php echo esc_html( $this->no_customers_message( $show_all_customers ) ); ?></td>
 					</tr>
 				<?php endif; ?>
+				<?php $balances = KCRM_Customer::balances_for_top_level( $customers ); ?>
+				<?php $jobs_by_parent = KCRM_Customer::jobs_for_many( wp_list_pluck( $customers, 'id' ) ); ?>
 				<?php foreach ( $customers as $customer ) : ?>
 					<?php
-					$job_ids = wp_list_pluck( KCRM_Customer::jobs_for( $customer->id ), 'id' );
-					$balance = KCRM_Customer::balance_for_ids( array_merge( array( $customer->id ), $job_ids ) );
+					$job_ids = wp_list_pluck( $jobs_by_parent[ $customer->id ] ?? array(), 'id' );
+					$balance = $balances[ (int) $customer->id ];
 					?>
 					<tr>
 						<td>
@@ -353,10 +356,12 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 				<?php if ( empty( $invoices ) ) : ?>
 					<tr><td colspan="6"><?php esc_html_e( 'No invoices found.', 'karks-crm' ); ?></td></tr>
 				<?php endif; ?>
+				<?php $invoice_customers = KCRM_Customer::find_many( wp_list_pluck( $invoices, 'customer_id' ) ); ?>
+				<?php $invoice_balances  = KCRM_Invoice::balances_for( $invoices ); ?>
 				<?php foreach ( $invoices as $invoice ) : ?>
 					<?php
-					$customer = KCRM_Customer::find( $invoice->customer_id );
-					$balance  = KCRM_Invoice::balance_due( $invoice->id );
+					$customer = $invoice_customers[ (int) $invoice->customer_id ] ?? null;
+					$balance  = $invoice_balances[ (int) $invoice->id ];
 					?>
 					<tr>
 						<td>

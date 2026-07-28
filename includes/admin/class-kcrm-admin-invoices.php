@@ -216,22 +216,35 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 
 		$order_by_sql = 'balance_due' === $orderby ? 'issue_date DESC, id DESC' : "$orderby $order, id DESC";
 		$statuses     = KCRM_Invoice::statuses();
+		$company_id   = $this->current_company_id();
+		$per_page     = 200;
 
 		list( $selected_statuses, $status_filtered ) = $this->resolve_status_filter( 'kcrm_status', $statuses, KCRM_Invoice::default_customer_statuses() );
-		$invoices = KCRM_Invoice::for_company_with_statuses( $this->current_company_id(), $selected_statuses, $order_by_sql );
 
-		$balances = array();
-		foreach ( $invoices as $invoice ) {
-			$balances[ $invoice->id ] = KCRM_Invoice::balance_due( $invoice->id );
-		}
 		if ( 'balance_due' === $orderby ) {
+			// balance_due isn't a DB column, so sorting by it needs every matching invoice in memory first (can't LIMIT before sorting) -- paginate the already-sorted PHP array instead of the query.
+			$all_invoices = KCRM_Invoice::for_company_with_statuses( $company_id, $selected_statuses, $order_by_sql );
+			$all_balances = KCRM_Invoice::balances_for( $all_invoices );
 			usort(
-				$invoices,
-				function ( $a, $b ) use ( $balances, $order ) {
-					$diff = $balances[ $a->id ] <=> $balances[ $b->id ];
+				$all_invoices,
+				function ( $a, $b ) use ( $all_balances, $order ) {
+					$diff = $all_balances[ $a->id ] <=> $all_balances[ $b->id ];
 					return 'DESC' === $order ? -$diff : $diff;
 				}
 			);
+
+			$total        = count( $all_invoices );
+			$total_pages  = (int) ceil( $total / $per_page );
+			$current_page = $this->current_page_number( 'kcrm_pg', $total_pages );
+			$invoices     = array_slice( $all_invoices, ( $current_page - 1 ) * $per_page, $per_page );
+			$balances     = $all_balances;
+		} else {
+			$total        = KCRM_Invoice::count_for_company_with_statuses( $company_id, $selected_statuses );
+			$total_pages  = (int) ceil( $total / $per_page );
+			$current_page = $this->current_page_number( 'kcrm_pg', $total_pages );
+			$offset       = ( $current_page - 1 ) * $per_page;
+			$invoices     = KCRM_Invoice::for_company_with_statuses( $company_id, $selected_statuses, $order_by_sql, $per_page, $offset );
+			$balances     = KCRM_Invoice::balances_for( $invoices );
 		}
 
 		$sort_url = function ( $column ) use ( $orderby, $order ) {
@@ -296,9 +309,10 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 				<?php if ( empty( $invoices ) ) : ?>
 					<tr><td colspan="8"><?php echo esc_html( $status_filtered ? __( 'No invoices match the selected statuses.', 'karks-crm' ) : __( 'No invoices match the default statuses (Draft, Open, Partially Paid).', 'karks-crm' ) ); ?></td></tr>
 				<?php endif; ?>
+				<?php $list_customers = KCRM_Customer::find_many( wp_list_pluck( $invoices, 'customer_id' ) ); ?>
 				<?php foreach ( $invoices as $invoice ) : ?>
 					<?php
-					$customer = KCRM_Customer::find( $invoice->customer_id );
+					$customer = $list_customers[ (int) $invoice->customer_id ] ?? null;
 					$balance  = $balances[ $invoice->id ];
 					?>
 					<tr>
@@ -329,6 +343,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		<?php $this->render_pagination( $current_page, $total_pages, 'kcrm_pg' ); ?>
 		<?php
 	}
 

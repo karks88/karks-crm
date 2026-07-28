@@ -204,11 +204,20 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only list-table sort params, no state change.
 		$order = isset( $_GET['order'] ) && 'desc' === strtolower( sanitize_key( wp_unslash( $_GET['order'] ) ) ) ? 'DESC' : 'ASC';
 
-		$order_by  = 'status' === $orderby ? "status $order, company_name ASC" : "company_name $order";
-		$customers = KCRM_Customer::top_level_for_company( $this->current_company_id(), $order_by );
-		$statuses  = KCRM_Customer::statuses();
+		$order_by   = 'status' === $orderby ? "status $order, company_name ASC" : "company_name $order";
+		$company_id = $this->current_company_id();
+		$statuses   = KCRM_Customer::statuses();
 
-		list( $customers, $show_all ) = $this->filter_active_customers( $customers );
+		$show_all      = $this->show_all_customers_requested();
+		$status_filter = $show_all ? null : KCRM_Customer::STATUS_ACTIVE;
+
+		$per_page     = 200;
+		$total        = KCRM_Customer::count_top_level_for_company( $company_id, $status_filter );
+		$total_pages  = (int) ceil( $total / $per_page );
+		$current_page = $this->current_page_number( 'kcrm_pg', $total_pages );
+		$offset       = ( $current_page - 1 ) * $per_page;
+
+		$customers = KCRM_Customer::top_level_for_company( $company_id, $order_by, $status_filter, $per_page, $offset );
 
 		$sort_url = function ( $column ) use ( $orderby, $order ) {
 			return $this->screen_url(
@@ -257,11 +266,16 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 						<td colspan="6"><?php echo esc_html( $this->no_customers_message( $show_all ) ); ?></td>
 					</tr>
 				<?php endif; ?>
+				<?php
+				$jobs_by_parent     = KCRM_Customer::jobs_for_many( wp_list_pluck( $customers, 'id' ) );
+				$top_level_balances = KCRM_Customer::balances_for_top_level( $customers );
+				$all_jobs           = empty( $jobs_by_parent ) ? array() : array_merge( ...array_values( $jobs_by_parent ) );
+				$job_balances       = KCRM_Customer::balances_for( wp_list_pluck( $all_jobs, 'id' ) );
+				?>
 				<?php foreach ( $customers as $customer ) : ?>
 					<?php
-					$jobs    = KCRM_Customer::jobs_for( $customer->id );
-					$job_ids = wp_list_pluck( $jobs, 'id' );
-					$balance = KCRM_Customer::balance_for_ids( array_merge( array( $customer->id ), $job_ids ) );
+					$jobs    = $jobs_by_parent[ $customer->id ] ?? array();
+					$balance = $top_level_balances[ (int) $customer->id ];
 					?>
 					<tr class="kcrm-customer-row" data-kcrm-customer-row="<?php echo esc_attr( $customer->id ); ?>">
 						<td>
@@ -297,7 +311,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 						</td>
 					</tr>
 					<?php foreach ( $jobs as $job ) : ?>
-						<?php $job_balance = KCRM_Customer::balance_for_ids( array( $job->id ) ); ?>
+						<?php $job_balance = $job_balances[ (int) $job->id ]; ?>
 						<tr class="kcrm-job-row" data-kcrm-jobs-parent="<?php echo esc_attr( $customer->id ); ?>" style="display:none;">
 							<td>
 								&#8627;
@@ -324,6 +338,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		<?php $this->render_pagination( $current_page, $total_pages, 'kcrm_pg' ); ?>
 		<?php
 	}
 
@@ -456,11 +471,12 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 					</tr>
 				</thead>
 				<tbody>
+					<?php $job_balances = KCRM_Customer::balances_for( wp_list_pluck( $jobs, 'id' ) ); ?>
 					<?php foreach ( $jobs as $job ) : ?>
 						<tr>
 							<td><a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $job->id ) ) ); ?>"><?php echo esc_html( $job->company_name ); ?></a></td>
 							<td><?php echo esc_html( $job->contact_person ); ?></td>
-							<td><?php echo esc_html( number_format_i18n( KCRM_Customer::balance_for_ids( array( $job->id ) ), 2 ) ); ?></td>
+							<td><?php echo esc_html( number_format_i18n( $job_balances[ (int) $job->id ], 2 ) ); ?></td>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
@@ -538,10 +554,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		$invoices     = KCRM_Invoice::for_customers_with_statuses( $customer_ids, $statuses, $order_by_sql, $date_from, $date_to );
 		$all_statuses = KCRM_Invoice::statuses();
 
-		$balances = array();
-		foreach ( $invoices as $invoice ) {
-			$balances[ $invoice->id ] = KCRM_Invoice::balance_due( $invoice->id );
-		}
+		$balances = KCRM_Invoice::balances_for( $invoices );
 		if ( 'balance_due' === $orderby ) {
 			usort(
 				$invoices,
@@ -625,6 +638,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 					<tr><td colspan="<?php echo $is_rollup ? '7' : '6'; ?>"><?php esc_html_e( 'No invoices found.', 'karks-crm' ); ?></td></tr>
 				<?php endif; ?>
 				<?php $total_balance = 0; ?>
+				<?php $billed_to_customers = $is_rollup ? KCRM_Customer::find_many( wp_list_pluck( $invoices, 'customer_id' ) ) : array(); ?>
 				<?php foreach ( $invoices as $invoice ) : ?>
 					<?php
 					$balance         = $balances[ $invoice->id ];
@@ -641,7 +655,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 						<?php if ( $is_rollup ) : ?>
 							<td>
 								<?php
-								$billed_to = (int) $invoice->customer_id === (int) $primary_customer_id ? null : KCRM_Customer::find( $invoice->customer_id );
+								$billed_to = (int) $invoice->customer_id === (int) $primary_customer_id ? null : ( $billed_to_customers[ (int) $invoice->customer_id ] ?? null );
 								echo esc_html( $billed_to ? $billed_to->company_name : __( '(this customer)', 'karks-crm' ) );
 								?>
 							</td>
@@ -692,8 +706,9 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 				<?php if ( empty( $payments ) ) : ?>
 					<tr><td colspan="5"><?php esc_html_e( 'No payments recorded yet.', 'karks-crm' ); ?></td></tr>
 				<?php endif; ?>
+				<?php $payment_invoices = KCRM_Invoice::find_many( wp_list_pluck( $payments, 'invoice_id' ) ); ?>
 				<?php foreach ( $payments as $payment ) : ?>
-					<?php $invoice = KCRM_Invoice::find( $payment->invoice_id ); ?>
+					<?php $invoice = $payment_invoices[ (int) $payment->invoice_id ] ?? null; ?>
 					<tr>
 						<td><?php echo esc_html( $payment->payment_date ); ?></td>
 						<td>

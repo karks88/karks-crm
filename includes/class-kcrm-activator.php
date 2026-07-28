@@ -119,14 +119,21 @@ class KCRM_Activator {
 		flush_rewrite_rules();
 	}
 
+	/**
+	 * Every registered endpoint needs its own rule present, not just one --
+	 * checking a single endpoint (e.g. only the first) would report "we're
+	 * fine" as soon as that one endpoint's rule exists, even if a newer
+	 * endpoint added to KCRM_Front::ENDPOINTS later never got its own rule
+	 * persisted, silently 404ing that one endpoint until Permalinks is
+	 * re-saved by hand.
+	 */
 	private static function has_endpoint_rules( array $rules ) {
-		$needle = KCRM_Front::ENDPOINTS[0] . '=';
-		foreach ( $rules as $rewrite ) {
-			if ( false !== strpos( $rewrite, $needle ) ) {
-				return true;
+		foreach ( KCRM_Front::ENDPOINTS as $endpoint ) {
+			if ( ! self::rules_contain( $rules, $endpoint . '=' ) ) {
+				return false;
 			}
 		}
-		return false;
+		return true;
 	}
 
 	/** @see maybe_flush_rewrite_rules() */
@@ -136,7 +143,16 @@ class KCRM_Activator {
 			return true; // Not applicable -- the CRM page isn't the homepage.
 		}
 
-		$needle = 'page_id=' . $page_id . '&' . KCRM_Front::ENDPOINTS[0];
+		foreach ( KCRM_Front::ENDPOINTS as $endpoint ) {
+			if ( ! self::rules_contain( $rules, 'page_id=' . $page_id . '&' . $endpoint ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** @see has_endpoint_rules() @see has_front_page_rule_if_needed() */
+	private static function rules_contain( array $rules, $needle ) {
 		foreach ( $rules as $rewrite ) {
 			if ( false !== strpos( $rewrite, $needle ) ) {
 				return true;
@@ -267,7 +283,8 @@ class KCRM_Activator {
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY company_id (company_id),
-			KEY parent_customer_id (parent_customer_id)
+			KEY parent_customer_id (parent_customer_id),
+			KEY status (status)
 		) $charset_collate;";
 
 		$sql[] = "CREATE TABLE $services (
@@ -305,7 +322,10 @@ class KCRM_Activator {
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY company_id (company_id),
-			KEY customer_id (customer_id)
+			KEY customer_id (customer_id),
+			KEY status (status),
+			KEY due_date (due_date),
+			KEY company_status (company_id, status)
 		) $charset_collate;";
 
 		$sql[] = "CREATE TABLE $invoice_items (
@@ -320,7 +340,8 @@ class KCRM_Activator {
 			is_taxable TINYINT(1) NOT NULL DEFAULT 0,
 			sort_order INT NOT NULL DEFAULT 0,
 			PRIMARY KEY  (id),
-			KEY invoice_id (invoice_id)
+			KEY invoice_id (invoice_id),
+			KEY service_id (service_id)
 		) $charset_collate;";
 
 		$sql[] = "CREATE TABLE $payments (
@@ -335,7 +356,9 @@ class KCRM_Activator {
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY invoice_id (invoice_id),
-			KEY customer_id (customer_id)
+			KEY customer_id (customer_id),
+			KEY company_id (company_id),
+			KEY payment_date (payment_date)
 		) $charset_collate;";
 
 		$sql[] = "CREATE TABLE $invoice_emails (
