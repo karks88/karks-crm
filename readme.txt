@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.6.1
+Stable tag: 0.8.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -35,6 +35,22 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.8.0 =
+* The front-end Dashboard is no longer a separate landing screen -- visiting the CRM page now goes straight to the current company's Profile. Its "Add a Company" button and the all-companies overview table moved to a new Tools tab at the end of the navigation.
+* PDF invoices now color-code the status badge (Paid/Partially Paid/Open/Void/Draft), matching the front end's existing status colors, so a Paid invoice stands out at a glance.
+* Fixed the Company Profile's Recent Actions "Show more" toggle not working on the first click.
+* Performance: added database indexes for the most common invoice, payment, and customer lookups; batched dozens of duplicate per-row database queries across the Dashboard, Company Profile, Customers, Invoices, and Reports screens; added pagination to the Customers and Invoices screens (200 per page) instead of always loading every row.
+* Fixed a bug where adding a new front-end URL could silently 404 until Permalinks was manually re-saved.
+
+= 0.7.2 =
+* PDF invoice downloads/attachments and the default "Email Invoice" subject line now use a "{Customer Name} - {Type} Invoice" pattern instead of just the invoice number.
+
+= 0.7.1 =
+* Instant, client-side search added to the Customers and Invoices screens (wp-admin and front end).
+* Paid invoices are now hidden from the Invoices screen by default (Draft, Open, and Partially Paid show unless you choose otherwise).
+* Recent Actions area added to the Company Profile, showing recent invoice and customer activity.
+* Various security hardening fixes identified via the WordPress Plugin Check tool.
 
 = 0.6.1 =
 * Fixed a 404 on every front-end link (Customers, Invoices, Services, Reports, etc.) when the CRM page is set as the site's homepage under Settings -> Reading. Self-heals automatically, the same way the front end already recovers after a site clone/restore.
