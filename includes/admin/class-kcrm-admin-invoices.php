@@ -343,7 +343,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 				<?php endforeach; ?>
 			</tbody>
 		</table>
-		<?php $this->render_pagination( $current_page, $total_pages, 'kcrm_pg' ); ?>
+		<?php $this->render_pagination( $current_page, $total_pages, 'kcrm_pg', 'kcrm-invoices-table' ); ?>
 		<?php
 	}
 

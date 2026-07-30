@@ -353,12 +353,14 @@ class KCRM_Activator {
 			payment_date DATE NOT NULL,
 			method VARCHAR(50) NULL,
 			note VARCHAR(255) NULL,
+			batch_id VARCHAR(36) NULL,
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY invoice_id (invoice_id),
 			KEY customer_id (customer_id),
 			KEY company_id (company_id),
-			KEY payment_date (payment_date)
+			KEY payment_date (payment_date),
+			KEY batch_id (batch_id)
 		) $charset_collate;";
 
 		$sql[] = "CREATE TABLE $invoice_emails (

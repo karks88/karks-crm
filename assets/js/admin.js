@@ -257,6 +257,40 @@
 	});
 
 	$(function () {
+		var $form = $('#kcrm-receive-payment-form');
+		if (!$form.length) {
+			return;
+		}
+
+		var $amountInputs = $form.find('.kcrm-receive-payment-amount');
+
+		function updateAllocatedTotal() {
+			var total = 0;
+			$amountInputs.each(function () {
+				total += parseFloat($(this).val()) || 0;
+			});
+			$('#kcrm-receive-payment-allocated').text(total.toFixed(2));
+		}
+
+		$amountInputs.on('input', updateAllocatedTotal);
+		updateAllocatedTotal();
+
+		$('#kcrm-receive-payment-autofill').on('click', function () {
+			var remaining = parseFloat($('#kcrm-receive-payment-total').val()) || 0;
+
+			$form.find('#kcrm-receive-payment-body tr').each(function () {
+				var $row = $(this);
+				var balance = parseFloat($row.find('.kcrm-receive-payment-balance').data('balance')) || 0;
+				var apply = Math.round(Math.min(remaining, balance) * 100) / 100;
+				$row.find('.kcrm-receive-payment-amount').val(apply > 0 ? apply.toFixed(2) : '');
+				remaining = Math.round((remaining - apply) * 100) / 100;
+			});
+
+			updateAllocatedTotal();
+		});
+	});
+
+	$(function () {
 		var $modal = $('#kcrm-email-modal');
 		if (!$modal.length) {
 			return;

@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.8.0
+Stable tag: 0.9.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -21,6 +21,7 @@ Features:
 * Customer records with optional parent/Job relationships
 * Hourly and project-based services, optionally marked Taxable
 * Invoices with line items, per-line tax, and automatic status tracking (Open/Partially Paid/Paid) based on recorded payments
+* Receive Payment: split one payment across several open invoices for a customer and its Jobs in a single entry, from the customer profile
 * User-managed invoice types
 * CSV import for customers, services, invoices, and payments (e.g. from QuickBooks exports), including automatic service creation from imported invoices
 * PDF invoice generation, download, and emailing
@@ -35,6 +36,10 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.0 =
+* New "Receive Payment" section on the customer profile (front end): split one payment across several open invoices for a customer and its Jobs in a single entry, with an oldest-invoice-first auto-fill you can still adjust per invoice before saving.
+* Pagination Previous/Next links (Customers, Invoices, and a customer's Payments Received list) now jump back to that list instead of scrolling to the top of the page.
 
 = 0.8.0 =
 * The front-end Dashboard is no longer a separate landing screen -- visiting the CRM page now goes straight to the current company's Profile. Its "Add a Company" button and the all-companies overview table moved to a new Tools tab at the end of the navigation.

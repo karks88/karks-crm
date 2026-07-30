@@ -22,6 +22,11 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 			$this->save();
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; receive_payment() verifies the nonce itself.
+		if ( isset( $_POST['kcrm_action'] ) && 'receive_payment' === $_POST['kcrm_action'] ) {
+			$this->receive_payment();
+		}
+
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- action name only; handle_import_upload() verifies the nonce itself.
 		if ( isset( $_POST['kcrm_action'] ) && 'import_upload' === $_POST['kcrm_action'] ) {
 			$this->handle_import_upload();
@@ -88,6 +93,90 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 		}
 
 		$this->redirect( array( 'view' => 'edit', 'id' => $id, 'kcrm_notice' => 'saved' ) );
+	}
+
+	/**
+	 * Splits one payment across several open invoices for a customer and its
+	 * Jobs in a single submission -- QuickBooks' "Receive Payment" workflow.
+	 * Every row this creates is a completely normal single-invoice payment
+	 * (see KCRM_Payment::create()); they're only linked by a shared batch_id
+	 * so they can be traced back to the same submission later. Validated
+	 * fully before any row is written, so a rejected submission never
+	 * partially applies.
+	 */
+	private function receive_payment() {
+		check_admin_referer( 'kcrm_receive_payment' );
+
+		$company_id  = $this->current_company_id();
+		$customer_id = isset( $_POST['customer_id'] ) ? absint( $_POST['customer_id'] ) : 0;
+
+		if ( ! $company_id || ! $customer_id ) {
+			$this->redirect( array( 'kcrm_notice' => 'error' ) );
+		}
+
+		$method = sanitize_text_field( wp_unslash( $_POST['method'] ?? '' ) );
+		if ( '__other__' === $method ) {
+			$method = sanitize_text_field( wp_unslash( $_POST['method_other'] ?? '' ) );
+		}
+
+		$payment_date = isset( $_POST['payment_date'] ) ? $this->sanitize_date_or_null( wp_unslash( $_POST['payment_date'] ) ) : null;
+		if ( ! $payment_date ) {
+			$payment_date = current_time( 'Y-m-d' );
+		}
+
+		$note = sanitize_text_field( wp_unslash( $_POST['note'] ?? '' ) );
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce already verified above; each entry is cast with absint() below.
+		$invoice_ids = isset( $_POST['invoice_id'] ) ? (array) wp_unslash( $_POST['invoice_id'] ) : array();
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- nonce already verified above; each entry is cast with (float) below.
+		$amounts = isset( $_POST['allocation_amount'] ) ? (array) wp_unslash( $_POST['allocation_amount'] ) : array();
+
+		$rows = array();
+		foreach ( $invoice_ids as $index => $raw_invoice_id ) {
+			$amount = isset( $amounts[ $index ] ) ? (float) $amounts[ $index ] : 0;
+			if ( $amount <= 0 ) {
+				continue;
+			}
+
+			$invoice = KCRM_Invoice::find( absint( $raw_invoice_id ) );
+			if ( ! $invoice || (int) $invoice->company_id !== $company_id ) {
+				$this->redirect( array( 'view' => 'edit', 'id' => $customer_id, 'kcrm_notice' => 'error' ) );
+			}
+
+			// Reject the whole submission rather than capping the amount --
+			// silently truncating would apply less than the client actually
+			// paid without telling anyone.
+			if ( $amount > KCRM_Invoice::balance_due( $invoice->id ) + 0.005 ) {
+				$this->redirect( array( 'view' => 'edit', 'id' => $customer_id, 'kcrm_notice' => 'overpay' ) );
+			}
+
+			$rows[] = array(
+				'invoice' => $invoice,
+				'amount'  => round( $amount, 2 ),
+			);
+		}
+
+		if ( empty( $rows ) ) {
+			$this->redirect( array( 'view' => 'edit', 'id' => $customer_id, 'kcrm_notice' => 'error' ) );
+		}
+
+		$batch_id = wp_generate_uuid4();
+		foreach ( $rows as $row ) {
+			KCRM_Payment::create(
+				array(
+					'invoice_id'   => $row['invoice']->id,
+					'customer_id'  => $row['invoice']->customer_id,
+					'company_id'   => $company_id,
+					'amount'       => $row['amount'],
+					'payment_date' => $payment_date,
+					'method'       => $method,
+					'note'         => $note,
+					'batch_id'     => $batch_id,
+				)
+			);
+		}
+
+		$this->redirect( array( 'view' => 'edit', 'id' => $customer_id, 'kcrm_notice' => 'saved' ) );
 	}
 
 	private function delete( $id ) {

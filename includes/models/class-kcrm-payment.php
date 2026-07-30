@@ -18,6 +18,7 @@ class KCRM_Payment extends KCRM_Model_Base {
 			'payment_date' => '%s',
 			'method'       => '%s',
 			'note'         => '%s',
+			'batch_id'     => '%s',
 			'created_at'   => '%s',
 		);
 	}
@@ -326,5 +327,17 @@ class KCRM_Payment extends KCRM_Model_Base {
 		$result = self::delete( $id );
 		KCRM_Invoice::refresh_payment_status( $payment->invoice_id );
 		return $result;
+	}
+
+	/** All payment rows created together from one "Receive Payment" (split-payment) submission. */
+	public static function for_batch( $batch_id ) {
+		return self::where( array( 'batch_id' => $batch_id ), 'invoice_id ASC' );
+	}
+
+	/** Deletes every payment row in a batch and refreshes each affected invoice's status. */
+	public static function delete_batch( $batch_id ) {
+		foreach ( self::for_batch( $batch_id ) as $payment ) {
+			self::delete_and_refresh( $payment->id );
+		}
 	}
 }

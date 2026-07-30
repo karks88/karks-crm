@@ -69,14 +69,20 @@ abstract class KCRM_Controller_Base {
 	}
 
 	/** Renders Prev/Next + a page-count status for a paginated list, preserving the current URL's other query args. */
-	protected function render_pagination( $current_page, $total_pages, $query_arg ) {
+	/**
+	 * @param string $anchor Optional element id (no leading '#') to append as a URL fragment to
+	 * both links, so following Previous/Next on a section partway down a long page lands back on
+	 * that section instead of the top of the page.
+	 */
+	protected function render_pagination( $current_page, $total_pages, $query_arg, $anchor = '' ) {
 		if ( $total_pages <= 1 ) {
 			return;
 		}
+		$fragment = $anchor ? '#' . $anchor : '';
 		?>
 		<div class="kcrm-pagination">
 			<?php if ( $current_page > 1 ) : ?>
-				<a class="kcrm-button" href="<?php echo esc_url( add_query_arg( $query_arg, $current_page - 1 ) ); ?>">&laquo; <?php esc_html_e( 'Previous', 'karks-crm' ); ?></a>
+				<a class="kcrm-button" href="<?php echo esc_url( add_query_arg( $query_arg, $current_page - 1 ) . $fragment ); ?>">&laquo; <?php esc_html_e( 'Previous', 'karks-crm' ); ?></a>
 			<?php endif; ?>
 			<span class="kcrm-pagination-status">
 				<?php
@@ -89,7 +95,7 @@ abstract class KCRM_Controller_Base {
 				?>
 			</span>
 			<?php if ( $current_page < $total_pages ) : ?>
-				<a class="kcrm-button" href="<?php echo esc_url( add_query_arg( $query_arg, $current_page + 1 ) ); ?>"><?php esc_html_e( 'Next', 'karks-crm' ); ?> &raquo;</a>
+				<a class="kcrm-button" href="<?php echo esc_url( add_query_arg( $query_arg, $current_page + 1 ) . $fragment ); ?>"><?php esc_html_e( 'Next', 'karks-crm' ); ?> &raquo;</a>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -323,6 +329,7 @@ abstract class KCRM_Controller_Base {
 			'no_company' => array( 'error', __( 'Please create a company first.', 'karks-crm' ) ),
 			'email_sent' => array( 'success', __( 'Invoice emailed successfully.', 'karks-crm' ) ),
 			'email_error' => array( 'error', __( 'Could not send the email. Please check the recipient address and try again.', 'karks-crm' ) ),
+			'overpay'    => array( 'error', __( 'One or more amounts exceeded that invoice\'s balance due. No payment was recorded.', 'karks-crm' ) ),
 		);
 
 		if ( isset( $messages[ $notice ] ) ) {

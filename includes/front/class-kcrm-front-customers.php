@@ -338,7 +338,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 				<?php endforeach; ?>
 			</tbody>
 		</table>
-		<?php $this->render_pagination( $current_page, $total_pages, 'kcrm_pg' ); ?>
+		<?php $this->render_pagination( $current_page, $total_pages, 'kcrm_pg', 'kcrm-front-customers-table' ); ?>
 		<?php
 	}
 
@@ -449,6 +449,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 			<?php $this->render_revenue_section( $rollup_ids, ! empty( $job_ids ) ); ?>
 			<?php $this->render_invoices_section( $rollup_ids, $customer->id, ! empty( $job_ids ) ); ?>
 			<?php $this->render_payments_section( $rollup_ids, ! empty( $job_ids ) ); ?>
+			<?php $this->render_receive_payment_section( $rollup_ids, $customer->id ); ?>
 			<?php do_action( 'kcrm_customer_edit_after_sections', $customer, $rollup_ids ); ?>
 		<?php endif; ?>
 		<?php
@@ -687,7 +688,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 
 		$payments = KCRM_Payment::for_customers( $customer_ids, $per_page, $offset, $date_from, $date_to );
 		?>
-		<h3><?php esc_html_e( 'Payments Received', 'karks-crm' ); ?></h3>
+		<h3 id="kcrm-payments-received"><?php esc_html_e( 'Payments Received', 'karks-crm' ); ?></h3>
 		<?php if ( $is_rollup ) : ?>
 			<p class="description"><?php esc_html_e( 'Includes this customer and all of its Jobs.', 'karks-crm' ); ?></p>
 		<?php endif; ?>
@@ -717,13 +718,132 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 							<?php endif; ?>
 						</td>
 						<td><?php echo esc_html( $payment->method ); ?></td>
-						<td><?php echo esc_html( $payment->note ); ?></td>
+						<td>
+							<?php echo esc_html( $payment->note ); ?>
+							<?php if ( ! empty( $payment->batch_id ) ) : ?>
+								<br><small><?php esc_html_e( 'Split payment', 'karks-crm' ); ?></small>
+							<?php endif; ?>
+						</td>
 						<td><?php echo esc_html( number_format_i18n( (float) $payment->amount, 2 ) ); ?></td>
 					</tr>
 				<?php endforeach; ?>
 			</tbody>
 		</table>
-		<?php $this->render_pagination( $current_page, $total_pages, 'kcrm_pg' ); ?>
+		<?php $this->render_pagination( $current_page, $total_pages, 'kcrm_pg', 'kcrm-payments-received' ); ?>
+		<?php
+	}
+
+	/**
+	 * "Receive Payment" -- splits one payment across several open invoices
+	 * for this customer and its Jobs in a single submission (QuickBooks'
+	 * "Receive Payment" workflow). Every row this creates is a completely
+	 * normal single-invoice payment (see
+	 * KCRM_Customers_Controller::receive_payment()); entering an amount for
+	 * more than one invoice just means several such rows get created
+	 * together, sharing a batch_id so they're traceable as one submission.
+	 *
+	 * @param array $customer_ids The customer plus its Jobs (rolled up), when it has any.
+	 */
+	private function render_receive_payment_section( array $customer_ids, $primary_customer_id ) {
+		$invoices = KCRM_Invoice::for_customers_with_statuses( $customer_ids, KCRM_Invoice::default_customer_statuses(), 'issue_date ASC' );
+		$balances = KCRM_Invoice::balances_for( $invoices );
+		$invoices = array_values(
+			array_filter(
+				$invoices,
+				function ( $invoice ) use ( $balances ) {
+					return $balances[ $invoice->id ] > 0.005;
+				}
+			)
+		);
+
+		if ( empty( $invoices ) ) {
+			return;
+		}
+
+		$is_rollup            = count( $customer_ids ) > 1;
+		$billed_to_customers  = $is_rollup ? KCRM_Customer::find_many( wp_list_pluck( $invoices, 'customer_id' ) ) : array();
+		$company              = KCRM_Company::find( $this->current_company_id() );
+		?>
+		<h3><?php esc_html_e( 'Receive Payment', 'karks-crm' ); ?></h3>
+		<p class="description"><?php esc_html_e( 'Enter a payment amount and split it across as many of these invoices as you like — amounts default to oldest-invoice-first once you enter a total, and can be edited per invoice before saving.', 'karks-crm' ); ?></p>
+		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>" class="kcrm-front-form" id="kcrm-receive-payment-form">
+			<?php wp_nonce_field( 'kcrm_receive_payment' ); ?>
+			<input type="hidden" name="kcrm_action" value="receive_payment">
+			<input type="hidden" name="customer_id" value="<?php echo esc_attr( $primary_customer_id ); ?>">
+
+			<p>
+				<label for="kcrm-receive-payment-total"><?php esc_html_e( 'Payment Amount', 'karks-crm' ); ?></label>
+				<input type="number" step="0.01" min="0" id="kcrm-receive-payment-total">
+				<button type="button" class="kcrm-button" id="kcrm-receive-payment-autofill"><?php esc_html_e( 'Auto-fill (oldest first)', 'karks-crm' ); ?></button>
+			</p>
+
+			<table class="kcrm-front-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'Invoice #', 'karks-crm' ); ?></th>
+						<?php if ( $is_rollup ) : ?>
+							<th><?php esc_html_e( 'Billed To', 'karks-crm' ); ?></th>
+						<?php endif; ?>
+						<th><?php esc_html_e( 'Balance Due', 'karks-crm' ); ?></th>
+						<th><?php esc_html_e( 'Amount to Apply', 'karks-crm' ); ?></th>
+					</tr>
+				</thead>
+				<tbody id="kcrm-receive-payment-body">
+					<?php foreach ( $invoices as $invoice ) : ?>
+						<?php $balance = $balances[ $invoice->id ]; ?>
+						<tr>
+							<td>
+								<input type="hidden" name="invoice_id[]" value="<?php echo esc_attr( $invoice->id ); ?>">
+								<?php echo esc_html( $invoice->invoice_number ); ?>
+							</td>
+							<?php if ( $is_rollup ) : ?>
+								<td>
+									<?php
+									$billed_to = (int) $invoice->customer_id === (int) $primary_customer_id ? null : ( $billed_to_customers[ (int) $invoice->customer_id ] ?? null );
+									echo esc_html( $billed_to ? $billed_to->company_name : __( '(this customer)', 'karks-crm' ) );
+									?>
+								</td>
+							<?php endif; ?>
+							<td class="kcrm-receive-payment-balance" data-balance="<?php echo esc_attr( $balance ); ?>"><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
+							<td><input type="number" step="0.01" min="0" max="<?php echo esc_attr( $balance ); ?>" name="allocation_amount[]" class="kcrm-receive-payment-amount"></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+			<p><?php esc_html_e( 'Total allocated:', 'karks-crm' ); ?> <strong id="kcrm-receive-payment-allocated">0.00</strong></p>
+
+			<p>
+				<label for="payment_date"><?php esc_html_e( 'Date', 'karks-crm' ); ?></label>
+				<input type="date" name="payment_date" id="payment_date" value="<?php echo esc_attr( gmdate( 'Y-m-d' ) ); ?>" required>
+			</p>
+			<?php $kcrm_accepted_type_keys = KCRM_Company::accepted_payment_type_keys( $company ); ?>
+			<?php if ( ! empty( $kcrm_accepted_type_keys ) ) : ?>
+				<?php $kcrm_all_types = KCRM_Company::payment_types(); ?>
+				<p>
+					<label for="method"><?php esc_html_e( 'Method', 'karks-crm' ); ?></label>
+					<select name="method" id="method">
+						<?php foreach ( $kcrm_accepted_type_keys as $kcrm_type_key ) : ?>
+							<option value="<?php echo esc_attr( $kcrm_all_types[ $kcrm_type_key ] ?? $kcrm_type_key ); ?>"><?php echo esc_html( $kcrm_all_types[ $kcrm_type_key ] ?? $kcrm_type_key ); ?></option>
+						<?php endforeach; ?>
+						<option value="__other__"><?php esc_html_e( 'Other…', 'karks-crm' ); ?></option>
+					</select>
+				</p>
+				<p id="kcrm-method-other-row" style="display:none;">
+					<label for="method_other"><?php esc_html_e( 'Other Method', 'karks-crm' ); ?></label>
+					<input type="text" name="method_other" id="method_other">
+				</p>
+			<?php else : ?>
+				<p>
+					<label for="method"><?php esc_html_e( 'Method', 'karks-crm' ); ?></label>
+					<input type="text" name="method" id="method" placeholder="<?php esc_attr_e( 'e.g. Check, ACH, Credit Card', 'karks-crm' ); ?>">
+				</p>
+			<?php endif; ?>
+			<p>
+				<label for="note"><?php esc_html_e( 'Note', 'karks-crm' ); ?></label>
+				<input type="text" name="note" id="note">
+			</p>
+			<p><button type="submit" class="kcrm-button kcrm-button-primary"><?php esc_html_e( 'Record Payment', 'karks-crm' ); ?></button></p>
+		</form>
 		<?php
 	}
 }
