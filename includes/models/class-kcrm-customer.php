@@ -33,6 +33,8 @@ class KCRM_Customer extends KCRM_Model_Base {
 			'phone'                     => '%s',
 			'email'                     => '%s',
 			'secondary_email'           => '%s',
+			'invoice_recipient_name'    => '%s',
+			'invoice_recipient_email'   => '%s',
 			'notes'                     => '%s',
 			'status'                    => '%s',
 			'created_at'                => '%s',
@@ -141,6 +143,32 @@ class KCRM_Customer extends KCRM_Model_Base {
 		return $parent
 			? sprintf( '%s (%s)', $customer->company_name, $parent->company_name )
 			: $customer->company_name;
+	}
+
+	/**
+	 * Outstanding balance across every customer (and Job) in a company -- same
+	 * invoiced-minus-paid definition as balance()/balance_for_ids(), scoped by
+	 * company_id directly rather than a customer id list, so it's unaffected
+	 * by list-view pagination.
+	 */
+	public static function balance_for_company( $company_id ) {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; no core caching API applies.
+		$invoiced = (float) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COALESCE(SUM(total), 0) FROM %i WHERE company_id = %d AND status != 'void'",
+				KCRM_DB::invoices(),
+				$company_id
+			)
+		);
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table CRUD helper; no core caching API applies.
+		$paid = (float) $wpdb->get_var(
+			$wpdb->prepare( 'SELECT COALESCE(SUM(amount), 0) FROM %i WHERE company_id = %d', KCRM_DB::payments(), $company_id )
+		);
+
+		return round( $invoiced - $paid, 2 );
 	}
 
 	/**

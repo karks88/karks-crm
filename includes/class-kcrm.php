@@ -53,6 +53,8 @@ class KCRM_Plugin {
 		add_action( 'admin_enqueue_scripts', array( $this->appearance, 'enqueue_assets' ) );
 		add_action( 'admin_post_kcrm_download_invoice_pdf', array( $this->screens['invoices'], 'handle_pdf_download' ) );
 		add_action( 'admin_post_kcrm_export_company', array( $this->screens['companies'], 'handle_export_download' ) );
+		add_action( 'admin_post_kcrm_export_customer_open_balance_pdf', array( $this->screens['customers'], 'handle_open_balance_pdf' ) );
+		add_action( 'admin_post_kcrm_export_customer_open_balance_csv', array( $this->screens['customers'], 'handle_open_balance_csv' ) );
 	}
 
 	public function register_menu() {

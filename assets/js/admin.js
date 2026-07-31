@@ -173,6 +173,25 @@
 		});
 	});
 
+	/**
+	 * Collapse/expand toggle for a "Customers with Jobs" invoice group (see
+	 * the Invoices list): unlike .kcrm-jobs-toggle above, these groups start
+	 * expanded (the whole point is to show a customer's + its Jobs' invoices
+	 * together), so the icon starts in the "expanded" state and flips on
+	 * first click instead of the other way around.
+	 */
+	$(function () {
+		$('.kcrm-invoice-group-toggle').on('click', function (e) {
+			e.preventDefault();
+			var $link = $(this);
+			var groupId = $link.data('kcrm-invoice-group');
+			var expanded = $link.data('kcrm-expanded') !== false;
+			$('tr[data-kcrm-invoice-group="' + groupId + '"]').toggle(!expanded);
+			$link.find('.dashicons').toggleClass('dashicons-arrow-up-alt2 dashicons-arrow-down-alt2');
+			$link.data('kcrm-expanded', !expanded);
+		});
+	});
+
 	$(function () {
 		$('.kcrm-recent-actions-toggle').on('click', function (e) {
 			e.preventDefault();
@@ -182,6 +201,26 @@
 			$link.find('.dashicons').toggleClass('dashicons-arrow-down-alt2 dashicons-arrow-up-alt2');
 			$link.find('.kcrm-recent-actions-toggle-label').text(expanded ? $link.data('kcrm-more-label') : $link.data('kcrm-less-label'));
 			$link.data('kcrm-expanded', !expanded);
+		});
+	});
+
+	/**
+	 * "Also on file" CC suggestions in the Email Invoice modal: clicking one
+	 * appends that address to the CC field instead of overwriting it, so
+	 * multiple suggestions (or a suggestion plus something typed by hand)
+	 * can be combined. The CC field itself starts blank -- these are just
+	 * one-click shortcuts, not an auto-fill.
+	 */
+	$(function () {
+		$('.kcrm-cc-suggestion').on('click', function (e) {
+			e.preventDefault();
+			var email = $(this).data('kcrm-cc-email');
+			var $input = $('#email_cc');
+			var current = $input.val().split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+			if (current.indexOf(email) === -1) {
+				current.push(email);
+			}
+			$input.val(current.join(', '));
 		});
 	});
 

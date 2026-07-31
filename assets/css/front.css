@@ -252,6 +252,34 @@ a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover {
 	border-radius: 3px;
 }
 
+.kcrm-job-row {
+	background: #f6f7f7;
+}
+
+.kcrm-job-row td:first-child {
+	padding-left: 24px;
+	color: #50575e;
+}
+
+.kcrm-invoice-group-header td {
+	background: #eef0f2;
+	font-weight: 600;
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+.kcrm-invoice-group-toggle {
+	text-decoration: none;
+	color: inherit;
+}
+
+.kcrm-invoice-group-toggle .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	vertical-align: text-bottom;
+}
+
 .kcrm-front-form p {
 	margin: 0 0 14px;
 }

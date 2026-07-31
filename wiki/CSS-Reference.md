@@ -60,6 +60,9 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 | `.kcrm-pagination` / `.kcrm-pagination-status` | Prev/Next controls and the "Page X of Y" text. |
 | `.kcrm-date-range-filter` | The This Year/Last Year/All/Custom Range filter form (Invoices, Reports). |
 | `.kcrm-date-range-custom` | The From/To date inputs, shown only when "Custom Range" is selected. |
+| `.kcrm-job-row` | Indents/shades a Job's invoice row within a "Customers with Multiple Jobs" group on the Invoices list (see [User Guide](User-Guide#invoices-line-items--payments)). |
+| `.kcrm-invoice-group-header` | The customer/subtotal header row above each "Customers with Multiple Jobs" group. |
+| `.kcrm-invoice-group-toggle` | The collapse/expand link inside a `.kcrm-invoice-group-header` row. |
 
 ### Status badges
 
@@ -87,8 +90,11 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 
 ## wp-admin (`assets/css/admin.css`)
 
-Scoped under `.kcrm-wrap` (the outer wrapper on every Karks CRM wp-admin screen). Reuses `.kcrm-dashboard-cards`/`.kcrm-card`/`.kcrm-card-number`/`.kcrm-card-label` and the `.kcrm-status*` badges from above (same names, plain colors — no CSS variables/Appearance theming in wp-admin). One admin-only class:
+Scoped under `.kcrm-wrap` (the outer wrapper on every Karks CRM wp-admin screen). Reuses `.kcrm-dashboard-cards`/`.kcrm-card`/`.kcrm-card-number`/`.kcrm-card-label` and the `.kcrm-status*` badges from above (same names, plain colors — no CSS variables/Appearance theming in wp-admin). Admin-only classes:
 
 | Class | Purpose |
 |---|---|
-| `.kcrm-job-row` | Indents and shades a Job's row under its parent customer in the Customers list table. |
+| `.kcrm-job-row` | Indents and shades a Job's row under its parent customer in the Customers list, and a Job's invoice row within a "Customers with Multiple Jobs" group on the Invoices list. |
+| `.kcrm-customer-filter` | Wraps the Customer filter dropdown on the Invoices list. |
+| `.kcrm-invoice-group-header` | The customer/subtotal header row above each "Customers with Multiple Jobs" group. |
+| `.kcrm-invoice-group-toggle` | The collapse/expand link inside a `.kcrm-invoice-group-header` row. |

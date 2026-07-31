@@ -19,6 +19,7 @@ class KCRM_Invoice_Email extends KCRM_Model_Base {
 			'invoice_id'    => '%d',
 			'sent_to_name'  => '%s',
 			'sent_to_email' => '%s',
+			'sent_cc'       => '%s',
 			'sent_by'       => '%d',
 			'sent_at'       => '%s',
 		);

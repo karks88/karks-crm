@@ -175,6 +175,26 @@ class KCRM_Invoice extends KCRM_Model_Base {
 		return array( self::STATUS_DRAFT, self::STATUS_OPEN, self::STATUS_PARTIAL );
 	}
 
+	/**
+	 * Open invoices (status Open or Partially Paid) across a customer and its
+	 * Jobs, oldest issue date first -- the row data behind the "Open Balance"
+	 * export (PDF/CSV), which mirrors QuickBooks' "Customer Open Balance"
+	 * report. Excludes $0.00 invoices (e.g. a placeholder left "Open" with
+	 * nothing ever billed on it) -- QuickBooks' own report doesn't surface
+	 * those either, and a stray $0.00 line looks like a mistake to a client.
+	 */
+	public static function open_for_customers( array $customer_ids ) {
+		$invoices = self::for_customers_with_statuses( $customer_ids, array( self::STATUS_OPEN, self::STATUS_PARTIAL ), 'issue_date ASC' );
+		return array_values(
+			array_filter(
+				$invoices,
+				static function ( $invoice ) {
+					return (float) $invoice->total > 0.004;
+				}
+			)
+		);
+	}
+
 	/** Invoices created for this company on/after a cutoff (a 'Y-m-d H:i:s' string) -- for the company profile's Recent Actions feed. */
 	public static function created_since( $company_id, $since ) {
 		global $wpdb;

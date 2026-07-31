@@ -24,12 +24,14 @@ A **company switcher** dropdown appears on every screen once more than one compa
 
 ## Customers & Jobs
 
-**Karks CRM → Customers.** Fields: Company Name, Contact Person (+ a Secondary Contact), Address, Phone, Email (+ Secondary Email), Notes, and Status (Active/Inactive — the Customers list and Company Overview default to showing Active only, with a toggle to show all). The Company Name and Status columns are sortable (click the column header).
+**Karks CRM → Customers.** Fields: Company Name, Contact Person (+ a Secondary Contact), Address, Phone, Email (+ Secondary Email), a **Send Invoices To** Name/Email (optional — when set, this is who the Email Invoice form defaults to for this customer, instead of the primary Contact Person/Email), Notes, and Status (Active/Inactive — the Customers list and Company Overview default to showing Active only, with a toggle to show all). The Company Name and Status columns are sortable (click the column header). The Customers list also shows a company-wide **Open Balance** total.
 
 **Jobs** are customers nested under a parent customer (e.g. separate properties or ongoing projects for the same client). A Job:
 - Is added from the parent customer's own page ("Add Job").
 - Displays as "Job Name (Parent Name)" wherever it's picked (e.g. the invoice customer dropdown).
 - Rolls up into the parent's combined balance and revenue totals, while still being invoiced individually.
+
+**Open Balance export.** From a customer's own profile page (or the [Customer Report](#reports)), **Export Open Balance PDF/CSV** downloads every open/partially-paid invoice for that customer (rolled up with its Jobs), oldest first — mirrors QuickBooks' "Customer Open Balance" report. $0.00 invoices are left out, the same way QuickBooks' own report excludes them.
 
 ## Services
 
@@ -53,13 +55,15 @@ A **company switcher** dropdown appears on every screen once more than one compa
 
 The Invoices list (wp-admin and front end) can be sorted by Invoice #, Issue Date, Due Date, or Balance Due (click the column header), and filtered down to specific statuses via the checkboxes above the table -- leave all boxes checked (the default) to see everything.
 
+**Customers with Multiple Jobs** get their own section at the top of the list: a customer with two or more Jobs shows its own invoices together with every Job's invoices in one collapsible block (sorted by issue date, newest first), instead of those invoices being scattered through the regular sorted list below by whatever column you're sorting on. wp-admin also has a **Customer** filter dropdown to narrow the whole list down to one customer (+ its Jobs).
+
 **Totals** are always computed, never hand-entered: Subtotal = sum of every line's amount; Tax Amount = the invoice's tax rate applied only to the sum of lines marked Taxable; Total = Subtotal + Tax Amount.
 
 **Recording a Payment** (date, amount, method, note) against an invoice is what advances its status: no payments → Open; partial → Partially Paid; paid in full → Paid. This happens automatically every time a payment is added or removed.
 
 **Actions available once an invoice is saved:**
 - **Download PDF Invoice** — streams a PDF (company logo/accent color/footer, line items, totals, payment options).
-- **Email Invoice** — a modal composer pre-filled from the company's email template (merge tags resolved), with the same PDF attached automatically. Shows "Last emailed to X on Y" once sent at least once.
+- **Email Invoice** — a modal composer pre-filled from the company's email template (merge tags resolved), with the same PDF attached automatically. To/CC default from the customer's contact info (a customer's "Send Invoices To" Name/Email, if set, takes priority over the primary Contact Person/Email — see [Customers & Jobs](#customers--jobs)); the CC field itself starts blank, with one-click suggestions for any other email addresses on file for that customer. Shows "Last emailed to X (cc: ...) on Y" once sent at least once.
 - **Delete Invoice** — with a confirmation prompt.
 
 ## Invoice Types
@@ -88,7 +92,7 @@ Available on **Customers**, **Services**, and **Invoices** (which offers two: In
 Front-end only (`/crm/reports/`) — a per-company **Reports** tab with three views, each with a **CSV export** button:
 
 - **Revenue** — a date-range filter (This Year/Last Year/All/Custom), a total for the selected range, a trailing-12-month bar chart (always the last 12 calendar months, independent of the filter above), and an itemized payments table (date, customer, invoice #, amount, method).
-- **Customer Report** — pick a customer (rolled up with its Jobs), then the same date-range filter, revenue total, current outstanding balance, and itemized payments table for that customer alone.
+- **Customer Report** — pick a customer (rolled up with its Jobs), then the same date-range filter, revenue total, current outstanding balance, and itemized payments table for that customer alone. Also has its own **Export Open Balance PDF/CSV** buttons (see [Customers & Jobs](#customers--jobs)).
 - **Aging** (accounts receivable) — every open/partially-paid invoice bucketed by how many days past its due date it is: Current, 1-30, 31-60, 61-90, 90+. A snapshot, not date-range filtered.
 
 The Reports overview page also links directly from the Company Overview hub's "Outstanding Balance" and "Revenue" stat cards.

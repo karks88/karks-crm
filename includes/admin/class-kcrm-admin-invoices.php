@@ -221,31 +221,108 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 
 		list( $selected_statuses, $status_filtered ) = $this->resolve_status_filter( 'kcrm_status', $statuses, KCRM_Invoice::default_customer_statuses() );
 
-		if ( 'balance_due' === $orderby ) {
-			// balance_due isn't a DB column, so sorting by it needs every matching invoice in memory first (can't LIMIT before sorting) -- paginate the already-sorted PHP array instead of the query.
+		$top_level_customers = KCRM_Customer::top_level_for_company( $company_id );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
+		$customer_filter = isset( $_GET['kcrm_customer'] ) ? absint( $_GET['kcrm_customer'] ) : 0;
+		if ( $customer_filter && ! in_array( $customer_filter, array_map( 'absint', wp_list_pluck( $top_level_customers, 'id' ) ), true ) ) {
+			$customer_filter = 0;
+		}
+
+		/*
+		 * Fetch every matching invoice up front (scoped to one customer's rollup when
+		 * filtered, company-wide otherwise), then split it into "grouped" (top-level
+		 * customers that have Jobs -- their own invoices plus every Job's, kept
+		 * together instead of being scattered across the sorted list by date) and
+		 * "flat" (everyone else, listed/sorted/paginated same as before). Company-wide
+		 * invoice counts are modest enough that fetching everything and doing the
+		 * split/sort/paginate in PHP is simpler than juggling separate SQL paths --
+		 * the same tradeoff the balance_due sort already made.
+		 */
+		if ( $customer_filter ) {
+			$rollup_ids   = array_merge( array( $customer_filter ), wp_list_pluck( KCRM_Customer::jobs_for( $customer_filter ), 'id' ) );
+			$all_invoices = KCRM_Invoice::for_customers_with_statuses( $rollup_ids, $selected_statuses, $order_by_sql );
+		} else {
 			$all_invoices = KCRM_Invoice::for_company_with_statuses( $company_id, $selected_statuses, $order_by_sql );
-			$all_balances = KCRM_Invoice::balances_for( $all_invoices );
-			usort(
-				$all_invoices,
-				function ( $a, $b ) use ( $all_balances, $order ) {
-					$diff = $all_balances[ $a->id ] <=> $all_balances[ $b->id ];
-					return 'DESC' === $order ? -$diff : $diff;
+		}
+		$balances = KCRM_Invoice::balances_for( $all_invoices );
+
+		$groups = array();
+		if ( $customer_filter ) {
+			// Already scoped to one customer (+ its Jobs) -- nothing left to group, it's all one flat list.
+			$flat_invoices = $all_invoices;
+		} else {
+			$jobs_by_parent    = KCRM_Customer::jobs_for_many( wp_list_pluck( $top_level_customers, 'id' ) );
+			$job_parent_lookup = array(); // job customer id => its top-level parent's id.
+			foreach ( $top_level_customers as $customer ) {
+				$jobs = $jobs_by_parent[ (int) $customer->id ] ?? array();
+				if ( count( $jobs ) < 2 ) {
+					continue;
+				}
+				$groups[ (int) $customer->id ] = array(
+					'customer' => $customer,
+					'invoices' => array(),
+				);
+				foreach ( $jobs as $job ) {
+					$job_parent_lookup[ (int) $job->id ] = (int) $customer->id;
+				}
+			}
+
+			$flat_invoices = array();
+			foreach ( $all_invoices as $invoice ) {
+				$cid = (int) $invoice->customer_id;
+				if ( isset( $groups[ $cid ] ) ) {
+					$groups[ $cid ]['invoices'][] = $invoice;
+				} elseif ( isset( $job_parent_lookup[ $cid ] ) ) {
+					$groups[ $job_parent_lookup[ $cid ] ]['invoices'][] = $invoice;
+				} else {
+					$flat_invoices[] = $invoice;
+				}
+			}
+
+			// Only surface a group once it actually has a matching invoice -- a Jobs customer with nothing Open/Draft/Partial right now shouldn't clutter the section.
+			$groups = array_filter(
+				$groups,
+				function ( $group ) {
+					return ! empty( $group['invoices'] );
 				}
 			);
 
-			$total        = count( $all_invoices );
-			$total_pages  = (int) ceil( $total / $per_page );
-			$current_page = $this->current_page_number( 'kcrm_pg', $total_pages );
-			$invoices     = array_slice( $all_invoices, ( $current_page - 1 ) * $per_page, $per_page );
-			$balances     = $all_balances;
-		} else {
-			$total        = KCRM_Invoice::count_for_company_with_statuses( $company_id, $selected_statuses );
-			$total_pages  = (int) ceil( $total / $per_page );
-			$current_page = $this->current_page_number( 'kcrm_pg', $total_pages );
-			$offset       = ( $current_page - 1 ) * $per_page;
-			$invoices     = KCRM_Invoice::for_company_with_statuses( $company_id, $selected_statuses, $order_by_sql, $per_page, $offset );
-			$balances     = KCRM_Invoice::balances_for( $invoices );
+			// Sort each group's own invoices by issue date (newest first) regardless of the flat table's active sort -- it's a chronological history of that customer's work, not a sortable list.
+			foreach ( $groups as &$group ) {
+				usort(
+					$group['invoices'],
+					function ( $a, $b ) {
+						$cmp = strcmp( $b->issue_date, $a->issue_date );
+						return 0 !== $cmp ? $cmp : ( (int) $b->id - (int) $a->id );
+					}
+				);
+			}
+			unset( $group );
+
+			uasort(
+				$groups,
+				function ( $a, $b ) {
+					return strcasecmp( $a['customer']->company_name, $b['customer']->company_name );
+				}
+			);
 		}
+
+		if ( 'balance_due' === $orderby ) {
+			// balance_due isn't a DB column, so sorting by it needs every matching invoice in memory first.
+			usort(
+				$flat_invoices,
+				function ( $a, $b ) use ( $balances, $order ) {
+					$diff = $balances[ $a->id ] <=> $balances[ $b->id ];
+					return 'DESC' === $order ? -$diff : $diff;
+				}
+			);
+		}
+		// For every other column, $flat_invoices is already in the right order: it was filtered out of $all_invoices, which the query already sorted by $order_by_sql.
+
+		$total        = count( $flat_invoices );
+		$total_pages  = (int) ceil( $total / $per_page );
+		$current_page = $this->current_page_number( 'kcrm_pg', $total_pages );
+		$invoices     = array_slice( $flat_invoices, ( $current_page - 1 ) * $per_page, $per_page );
 
 		$sort_url = function ( $column ) use ( $orderby, $order ) {
 			return add_query_arg(
@@ -258,6 +335,66 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 		?>
 		<p class="description"><?php esc_html_e( 'Draft, Open, and Partially Paid invoices are shown by default.', 'karks-crm' ); ?></p>
 		<?php $this->render_status_filter( 'kcrm_status', $statuses, $selected_statuses ); ?>
+		<?php if ( ! empty( $top_level_customers ) ) : ?>
+			<?php $this->render_customer_filter( $top_level_customers, $customer_filter ); ?>
+		<?php endif; ?>
+		<?php $list_customers = KCRM_Customer::find_many( wp_list_pluck( $all_invoices, 'customer_id' ) ); ?>
+
+		<?php if ( ! empty( $groups ) ) : ?>
+			<h2><?php esc_html_e( 'Customers with Multiple Jobs', 'karks-crm' ); ?></h2>
+			<table class="wp-list-table widefat fixed striped" id="kcrm-invoice-groups-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'Invoice #', 'karks-crm' ); ?></th>
+						<th><?php esc_html_e( 'Customer', 'karks-crm' ); ?></th>
+						<th><?php esc_html_e( 'Issue Date', 'karks-crm' ); ?></th>
+						<th><?php esc_html_e( 'Due Date', 'karks-crm' ); ?></th>
+						<th><?php esc_html_e( 'Total', 'karks-crm' ); ?></th>
+						<th><?php esc_html_e( 'Balance Due', 'karks-crm' ); ?></th>
+						<th><?php esc_html_e( 'Status', 'karks-crm' ); ?></th>
+						<th><?php esc_html_e( 'Actions', 'karks-crm' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $groups as $group_id => $group ) : ?>
+						<?php
+						$group_balance = 0.0;
+						foreach ( $group['invoices'] as $invoice ) {
+							$group_balance += $balances[ $invoice->id ];
+						}
+						?>
+						<tr class="kcrm-invoice-group-header">
+							<td colspan="8">
+								<a href="#" class="kcrm-invoice-group-toggle" data-kcrm-invoice-group="<?php echo esc_attr( $group_id ); ?>">
+									<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
+									<strong><?php echo esc_html( $group['customer']->company_name ); ?></strong>
+								</a>
+								&nbsp;&mdash;&nbsp;
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: 1: number of invoices in this customer's group, 2: total balance due across them. */
+										_n( '%1$d invoice, %2$s due', '%1$d invoices, %2$s due', count( $group['invoices'] ), 'karks-crm' ),
+										count( $group['invoices'] ),
+										number_format_i18n( $group_balance, 2 )
+									)
+								);
+								?>
+							</td>
+						</tr>
+						<?php foreach ( $group['invoices'] as $invoice ) : ?>
+							<?php
+							$customer = $list_customers[ (int) $invoice->customer_id ] ?? null;
+							$is_job   = (int) $invoice->customer_id !== (int) $group_id;
+							?>
+							<?php $this->render_invoice_row( $invoice, $customer, $balances[ $invoice->id ], $statuses, $is_job, $group_id ); ?>
+						<?php endforeach; ?>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+			<h2><?php esc_html_e( 'All Other Invoices', 'karks-crm' ); ?></h2>
+		<?php endif; ?>
+
 		<?php if ( ! empty( $invoices ) ) : ?>
 			<p class="kcrm-list-search">
 				<label for="kcrm-invoice-search" class="screen-reader-text"><?php esc_html_e( 'Search invoices', 'karks-crm' ); ?></label>
@@ -309,41 +446,84 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 				<?php if ( empty( $invoices ) ) : ?>
 					<tr><td colspan="8"><?php echo esc_html( $status_filtered ? __( 'No invoices match the selected statuses.', 'karks-crm' ) : __( 'No invoices match the default statuses (Draft, Open, Partially Paid).', 'karks-crm' ) ); ?></td></tr>
 				<?php endif; ?>
-				<?php $list_customers = KCRM_Customer::find_many( wp_list_pluck( $invoices, 'customer_id' ) ); ?>
 				<?php foreach ( $invoices as $invoice ) : ?>
 					<?php
 					$customer = $list_customers[ (int) $invoice->customer_id ] ?? null;
-					$balance  = $balances[ $invoice->id ];
+					$is_job   = $customer_filter && $customer && ! empty( $customer->parent_customer_id );
 					?>
-					<tr>
-						<td>
-							<strong>
-								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $invoice->id ) ) ); ?>">
-									<?php echo esc_html( $invoice->invoice_number ); ?>
-								</a>
-							</strong>
-						</td>
-						<td><?php echo esc_html( $customer ? KCRM_Customer::display_name( $customer ) : '' ); ?></td>
-						<td><?php echo esc_html( $invoice->issue_date ); ?></td>
-						<td><?php echo esc_html( $invoice->due_date ); ?></td>
-						<td><?php echo esc_html( number_format_i18n( (float) $invoice->total, 2 ) ); ?></td>
-						<td><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
-						<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $invoice->status ); ?>"><?php echo esc_html( $statuses[ $invoice->status ] ?? $invoice->status ); ?></span></td>
-						<td>
-							<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $invoice->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
-							|
-							<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_download_invoice_pdf&id=' . $invoice->id ), 'kcrm_download_invoice_pdf_' . $invoice->id ) ); ?>"><?php esc_html_e( 'PDF', 'karks-crm' ); ?></a>
-							|
-							<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $invoice->id ) ), 'kcrm_delete_invoice_' . $invoice->id ) ); ?>"
-								onclick="return confirm('<?php echo esc_js( __( 'Delete this invoice?', 'karks-crm' ) ); ?>');">
-								<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
-							</a>
-						</td>
-					</tr>
+					<?php $this->render_invoice_row( $invoice, $customer, $balances[ $invoice->id ], $statuses, $is_job ); ?>
 				<?php endforeach; ?>
 			</tbody>
 		</table>
 		<?php $this->render_pagination( $current_page, $total_pages, 'kcrm_pg', 'kcrm-invoices-table' ); ?>
+		<?php
+	}
+
+	/** One <tr> for the invoices list table -- shared by the flat table and the "Customers with Multiple Jobs" grouped section in render_list(). */
+	private function render_invoice_row( $invoice, $customer, $balance, array $statuses, $is_job = false, $group_id = null ) {
+		$attrs = array();
+		if ( $is_job ) {
+			$attrs[] = 'class="kcrm-job-row"';
+		}
+		if ( null !== $group_id ) {
+			$attrs[] = 'data-kcrm-invoice-group="' . esc_attr( $group_id ) . '"';
+		}
+		?>
+		<tr<?php echo $attrs ? ' ' . implode( ' ', $attrs ) : ''; ?>>
+			<td>
+				<?php if ( $is_job ) : ?>&#8627; <?php endif; ?>
+				<strong>
+					<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $invoice->id ) ) ); ?>">
+						<?php echo esc_html( $invoice->invoice_number ); ?>
+					</a>
+				</strong>
+			</td>
+			<td><?php echo esc_html( $customer ? KCRM_Customer::display_name( $customer ) : '' ); ?></td>
+			<td><?php echo esc_html( $invoice->issue_date ); ?></td>
+			<td><?php echo esc_html( $invoice->due_date ); ?></td>
+			<td><?php echo esc_html( number_format_i18n( (float) $invoice->total, 2 ) ); ?></td>
+			<td><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
+			<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $invoice->status ); ?>"><?php echo esc_html( $statuses[ $invoice->status ] ?? $invoice->status ); ?></span></td>
+			<td>
+				<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $invoice->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
+				|
+				<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_download_invoice_pdf&id=' . $invoice->id ), 'kcrm_download_invoice_pdf_' . $invoice->id ) ); ?>"><?php esc_html_e( 'PDF', 'karks-crm' ); ?></a>
+				|
+				<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $invoice->id ) ), 'kcrm_delete_invoice_' . $invoice->id ) ); ?>"
+					onclick="return confirm('<?php echo esc_js( __( 'Delete this invoice?', 'karks-crm' ) ); ?>');">
+					<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
+				</a>
+			</td>
+		</tr>
+		<?php
+	}
+
+	/** GET filter (bookmarkable) narrowing the list to one top-level customer, rolled up with its Jobs -- companion to render_status_filter()/render_date_range_filter() in the base controller. */
+	private function render_customer_filter( array $top_level_customers, $selected ) {
+		$preserve = array();
+		foreach ( $_GET as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only, used only to rebuild hidden fields for this same filter form.
+			$key = sanitize_key( $key );
+			if ( 'kcrm_customer' === $key || is_array( $value ) ) {
+				continue;
+			}
+			$preserve[ $key ] = sanitize_text_field( wp_unslash( $value ) );
+		}
+		?>
+		<form method="get" action="<?php echo esc_url( $this->screen_url() ); ?>" class="kcrm-customer-filter">
+			<?php foreach ( $preserve as $key => $value ) : ?>
+				<input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>">
+			<?php endforeach; ?>
+			<label for="kcrm-customer-filter-select"><?php esc_html_e( 'Customer:', 'karks-crm' ); ?></label>
+			<select name="kcrm_customer" id="kcrm-customer-filter-select">
+				<option value="0"><?php esc_html_e( 'All Customers', 'karks-crm' ); ?></option>
+				<?php foreach ( $top_level_customers as $customer ) : ?>
+					<option value="<?php echo esc_attr( $customer->id ); ?>" <?php selected( $selected, (int) $customer->id ); ?>>
+						<?php echo esc_html( $customer->company_name ); ?>
+					</option>
+				<?php endforeach; ?>
+			</select>
+			<button type="submit" class="kcrm-button"><?php esc_html_e( 'Apply', 'karks-crm' ); ?></button>
+		</form>
 		<?php
 	}
 

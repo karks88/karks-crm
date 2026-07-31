@@ -77,6 +77,8 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 			'phone'                    => $this->field_or_existing( 'phone', $text, $existing ),
 			'email'                    => $this->field_or_existing( 'email', function ( $v ) { return sanitize_email( wp_unslash( $v ) ); }, $existing ),
 			'secondary_email'          => $this->field_or_existing( 'secondary_email', function ( $v ) { return sanitize_email( wp_unslash( $v ) ); }, $existing ),
+			'invoice_recipient_name'   => $this->field_or_existing( 'invoice_recipient_name', $text, $existing ),
+			'invoice_recipient_email'  => $this->field_or_existing( 'invoice_recipient_email', function ( $v ) { return sanitize_email( wp_unslash( $v ) ); }, $existing ),
 			'notes'                    => $this->field_or_existing( 'notes', function ( $v ) { return sanitize_textarea_field( wp_unslash( $v ) ); }, $existing ),
 			'status'                   => $status,
 		);
@@ -177,6 +179,101 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 		}
 
 		$this->redirect( array( 'view' => 'edit', 'id' => $customer_id, 'kcrm_notice' => 'saved' ) );
+	}
+
+	/** Nonce-protected admin-post URL for the Open Balance PDF/CSV export links -- shared by the admin and front-end Customers screens (KCRM_Front_Reports' Customer Report builds its own copy, since it isn't part of this class hierarchy). */
+	protected function open_balance_export_url( $customer_id, $format ) {
+		$url = add_query_arg(
+			array(
+				'action'      => 'kcrm_export_customer_open_balance_' . $format,
+				'customer_id' => $customer_id,
+			),
+			admin_url( 'admin-post.php' )
+		);
+		return wp_nonce_url( $url, 'kcrm_export_open_balance_' . $customer_id );
+	}
+
+	/**
+	 * admin-post handler: streams a customer's (plus its Jobs') Open Balance
+	 * PDF (see KCRM_PDF::stream_customer_open_balance()). Registered once,
+	 * in KCRM_Plugin::run(), and reachable from both wp-admin and the front
+	 * end since admin-post.php isn't wp-admin-only.
+	 */
+	public function handle_open_balance_pdf() {
+		list( $customer, $rollup_ids ) = $this->resolve_open_balance_export_request();
+		KCRM_PDF::stream_customer_open_balance( $customer, $rollup_ids );
+	}
+
+	/** admin-post handler: streams a customer's (plus its Jobs') Open Balance CSV. See handle_open_balance_pdf() docblock. */
+	public function handle_open_balance_csv() {
+		list( $customer, $rollup_ids ) = $this->resolve_open_balance_export_request();
+
+		$invoices  = KCRM_Invoice::open_for_customers( $rollup_ids );
+		$balances  = KCRM_Invoice::balances_for( $invoices );
+		$customers = KCRM_Customer::find_many( $rollup_ids );
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( KCRM_Customer::display_name( $customer ) . '-open-balance-' . gmdate( 'Y-m-d' ) ) . '.csv"' );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
+		$out = fopen( 'php://output', 'w' );
+		fputcsv( $out, array( __( 'Customer', 'karks-crm' ), __( 'Type', 'karks-crm' ), __( 'Date', 'karks-crm' ), __( 'Num', 'karks-crm' ), __( 'Due Date', 'karks-crm' ), __( 'Open Balance', 'karks-crm' ), __( 'Amount', 'karks-crm' ) ) );
+
+		$total_balance = 0.0;
+		$total_amount  = 0.0;
+		foreach ( $rollup_ids as $id ) {
+			$id             = (int) $id;
+			$group_customer = $customers[ $id ] ?? null;
+			if ( ! $group_customer ) {
+				continue;
+			}
+			foreach ( $invoices as $invoice ) {
+				if ( (int) $invoice->customer_id !== $id ) {
+					continue;
+				}
+				$balance        = $balances[ $invoice->id ];
+				$total_balance += $balance;
+				$total_amount  += (float) $invoice->total;
+				fputcsv(
+					$out,
+					array(
+						$group_customer->company_name,
+						__( 'Invoice', 'karks-crm' ),
+						$invoice->issue_date,
+						$invoice->invoice_number,
+						$invoice->due_date,
+						number_format( $balance, 2, '.', '' ),
+						number_format( (float) $invoice->total, 2, '.', '' ),
+					)
+				);
+			}
+		}
+		fputcsv( $out, array( '', '', '', '', __( 'Total', 'karks-crm' ), number_format( $total_balance, 2, '.', '' ), number_format( $total_amount, 2, '.', '' ) ) );
+
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output stream handle opened above, not a real file.
+		exit;
+	}
+
+	/** Shared GET-parsing + auth/nonce/lookup step for both open-balance export handlers. @return array{0:object,1:int[]} [ $customer, $rollup_ids ] */
+	private function resolve_open_balance_export_request() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read only to build the nonce action name; check_admin_referer() verifies it on the next line.
+		$customer_id = isset( $_GET['customer_id'] ) ? absint( $_GET['customer_id'] ) : 0;
+		check_admin_referer( 'kcrm_export_open_balance_' . $customer_id );
+
+		if ( ! current_user_can( KCRM_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to do this.', 'karks-crm' ) );
+		}
+
+		$customer = $customer_id ? KCRM_Customer::find( $customer_id ) : null;
+		if ( ! $customer ) {
+			wp_die( esc_html__( 'Customer not found.', 'karks-crm' ) );
+		}
+
+		$job_ids    = wp_list_pluck( KCRM_Customer::jobs_for( $customer_id ), 'id' );
+		$rollup_ids = array_map( 'absint', array_merge( array( $customer_id ), $job_ids ) );
+
+		return array( $customer, $rollup_ids );
 	}
 
 	private function delete( $id ) {

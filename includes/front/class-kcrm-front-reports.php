@@ -256,6 +256,12 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 			<a class="kcrm-button kcrm-button-primary" href="<?php echo esc_url( $this->export_url( 'customer', array( 'customer_id' => $customer_id, 'kcrm_cust_range' => $range, 'kcrm_cust_from' => $date_from, 'kcrm_cust_to' => $date_to ) ) ); ?>">
 				<span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export CSV', 'karks-crm' ); ?>
 			</a>
+			<a class="kcrm-button" href="<?php echo esc_url( $this->open_balance_export_url( $customer_id, 'pdf' ) ); ?>">
+				<span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export Open Balance PDF', 'karks-crm' ); ?>
+			</a>
+			<a class="kcrm-button" href="<?php echo esc_url( $this->open_balance_export_url( $customer_id, 'csv' ) ); ?>">
+				<span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export Open Balance CSV', 'karks-crm' ); ?>
+			</a>
 		</div>
 
 		<table class="kcrm-front-table">
@@ -428,6 +434,23 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 			admin_url( 'admin-post.php' )
 		);
 		return wp_nonce_url( $url, 'kcrm_export_report_csv' );
+	}
+
+	/**
+	 * Nonce-protected admin-post URL for the Open Balance PDF/CSV export
+	 * buttons -- same target (KCRM_Customers_Controller::handle_open_balance_pdf()/
+	 * _csv()) as the Customers screen's own export links, since this screen
+	 * isn't part of that class hierarchy and can't call the protected copy there.
+	 */
+	private function open_balance_export_url( $customer_id, $format ) {
+		$url = add_query_arg(
+			array(
+				'action'      => 'kcrm_export_customer_open_balance_' . $format,
+				'customer_id' => $customer_id,
+			),
+			admin_url( 'admin-post.php' )
+		);
+		return wp_nonce_url( $url, 'kcrm_export_open_balance_' . $customer_id );
 	}
 
 	/**

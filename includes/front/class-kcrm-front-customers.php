@@ -229,6 +229,12 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		};
 		$this->render_active_customers_toggle( $show_all );
 		?>
+		<div class="kcrm-dashboard-cards">
+			<div class="kcrm-card">
+				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( KCRM_Customer::balance_for_company( $company_id ), 2 ) ); ?></span>
+				<span class="kcrm-card-label"><?php esc_html_e( 'Open Balance', 'karks-crm' ); ?></span>
+			</div>
+		</div>
 		<?php if ( ! empty( $customers ) ) : ?>
 			<p class="kcrm-list-search">
 				<label for="kcrm-customer-search" class="screen-reader-text"><?php esc_html_e( 'Search customers', 'karks-crm' ); ?></label>
@@ -430,6 +436,18 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 				<label for="secondary_email"><?php esc_html_e( 'Secondary Email Address', 'karks-crm' ); ?></label>
 				<input type="email" name="secondary_email" id="secondary_email" value="<?php echo esc_attr( $v( 'secondary_email' ) ); ?>">
 			</p>
+
+			<h3><?php esc_html_e( 'Send Invoices To', 'karks-crm' ); ?></h3>
+			<p>
+				<label for="invoice_recipient_name"><?php esc_html_e( 'Name', 'karks-crm' ); ?></label>
+				<input type="text" name="invoice_recipient_name" id="invoice_recipient_name" value="<?php echo esc_attr( $v( 'invoice_recipient_name' ) ); ?>">
+			</p>
+			<p>
+				<label for="invoice_recipient_email"><?php esc_html_e( 'Email', 'karks-crm' ); ?></label>
+				<input type="email" name="invoice_recipient_email" id="invoice_recipient_email" value="<?php echo esc_attr( $v( 'invoice_recipient_email' ) ); ?>">
+				<br><small><?php esc_html_e( 'Optional. If set, the Email Invoice form defaults to this name and address instead of the primary contact.', 'karks-crm' ); ?></small>
+			</p>
+
 			<p>
 				<label for="notes"><?php esc_html_e( 'Notes', 'karks-crm' ); ?></label>
 				<textarea rows="4" name="notes" id="notes"><?php echo esc_textarea( $notes ); ?></textarea>
@@ -446,7 +464,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 			<?php if ( ! $customer->parent_customer_id ) : ?>
 				<?php $this->render_jobs_section( $customer ); ?>
 			<?php endif; ?>
-			<?php $this->render_revenue_section( $rollup_ids, ! empty( $job_ids ) ); ?>
+			<?php $this->render_revenue_section( $rollup_ids, $customer->id, ! empty( $job_ids ) ); ?>
 			<?php $this->render_invoices_section( $rollup_ids, $customer->id, ! empty( $job_ids ) ); ?>
 			<?php $this->render_payments_section( $rollup_ids, ! empty( $job_ids ) ); ?>
 			<?php $this->render_receive_payment_section( $rollup_ids, $customer->id ); ?>
@@ -486,8 +504,11 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		<?php
 	}
 
-	/** @param array $customer_ids The customer plus its Jobs (rolled up), when it has any. */
-	private function render_revenue_section( array $customer_ids, $is_rollup ) {
+	/**
+	 * @param array $customer_ids The customer plus its Jobs (rolled up), when it has any.
+	 * @param int   $primary_customer_id Used for the Open Balance export links.
+	 */
+	private function render_revenue_section( array $customer_ids, $primary_customer_id, $is_rollup ) {
 		$this_year       = (int) current_time( 'Y' );
 		$last_year       = $this_year - 1;
 		$this_year_total = KCRM_Payment::total_for_customers_in_year( $customer_ids, $this_year );
@@ -526,6 +547,10 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( $lifetime_total, 2 ) ); ?></span>
 				<span class="kcrm-card-label"><?php esc_html_e( 'Lifetime Revenue', 'karks-crm' ); ?></span>
 			</div>
+		</div>
+		<div class="kcrm-button-group">
+			<a class="kcrm-button" href="<?php echo esc_url( $this->open_balance_export_url( $primary_customer_id, 'pdf' ) ); ?>"><span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export Open Balance PDF', 'karks-crm' ); ?></a>
+			<a class="kcrm-button" href="<?php echo esc_url( $this->open_balance_export_url( $primary_customer_id, 'csv' ) ); ?>"><span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export Open Balance CSV', 'karks-crm' ); ?></a>
 		</div>
 		<?php
 	}

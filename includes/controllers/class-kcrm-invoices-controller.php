@@ -237,6 +237,16 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		$subject  = isset( $_POST['email_subject'] ) ? sanitize_text_field( wp_unslash( $_POST['email_subject'] ) ) : '';
 		$body     = isset( $_POST['email_body'] ) ? wp_kses_post( wp_unslash( $_POST['email_body'] ) ) : '';
 
+		// Comma-separated CC list -- silently drops anything that isn't a valid address rather than blocking the send over a typo, and never duplicates the To address.
+		$cc_raw = isset( $_POST['email_cc'] ) ? sanitize_text_field( wp_unslash( $_POST['email_cc'] ) ) : '';
+		$cc     = array();
+		foreach ( explode( ',', $cc_raw ) as $address ) {
+			$address = sanitize_email( trim( $address ) );
+			if ( is_email( $address ) && $address !== $to_email && ! in_array( $address, $cc, true ) ) {
+				$cc[] = $address;
+			}
+		}
+
 		if ( ! is_email( $to_email ) || '' === $subject || '' === $body ) {
 			$this->redirect( array( 'view' => 'edit', 'id' => $invoice_id, 'kcrm_notice' => 'email_error' ) );
 		}
@@ -248,10 +258,14 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			$phpmailer->addStringAttachment( $pdf_bytes, $filename, 'base64', 'application/pdf' );
 		};
 
-		$to = $to_name ? "$to_name <$to_email>" : $to_email;
+		$to      = $to_name ? "$to_name <$to_email>" : $to_email;
+		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
+		foreach ( $cc as $address ) {
+			$headers[] = "Cc: $address";
+		}
 
 		add_action( 'phpmailer_init', $attach_pdf );
-		$sent = wp_mail( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+		$sent = wp_mail( $to, $subject, $body, $headers );
 		remove_action( 'phpmailer_init', $attach_pdf );
 
 		if ( $sent ) {
@@ -260,6 +274,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 					'invoice_id'    => $invoice_id,
 					'sent_to_name'  => $to_name,
 					'sent_to_email' => $to_email,
+					'sent_cc'       => implode( ', ', $cc ),
 					'sent_by'       => get_current_user_id(),
 				)
 			);

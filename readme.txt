@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.0
+Stable tag: 0.9.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -24,7 +24,8 @@ Features:
 * Receive Payment: split one payment across several open invoices for a customer and its Jobs in a single entry, from the customer profile
 * User-managed invoice types
 * CSV import for customers, services, invoices, and payments (e.g. from QuickBooks exports), including automatic service creation from imported invoices
-* PDF invoice generation, download, and emailing
+* PDF invoice generation, download, and emailing, with CC support and one-click suggestions from the customer's other email addresses on file
+* Customer Open Balance PDF/CSV export (a customer + its Jobs, oldest open invoice first), plus a company-wide Open Balance total on the Customers list
 * Reports (front-end): Revenue with a 12-month chart, per-customer revenue, and an Aging (accounts receivable) report, each with CSV export
 * Export/import a full company as a JSON file, for migrating between sites or duplicating a company as a template
 * Customizable front-end colors with automatic WCAG 2.1 contrast correction
@@ -36,6 +37,12 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.1 =
+* Invoices screen: a "Customers with Multiple Jobs" section groups a customer's own invoices together with all of its Jobs' invoices (sorted by issue date), instead of scattering them through the regular sorted list; wp-admin also gets a Customer filter to narrow the list down to one customer (+ its Jobs).
+* New "Send Invoices To" fields on the customer profile (Name + Email, optional) -- when set, the Email Invoice form defaults to this contact instead of the primary one.
+* Email Invoice now has a CC field. It starts blank, with one-click suggestions for any other email addresses on file for that customer; "Last emailed to X on Y" now also shows who was CC'd.
+* New "Open Balance" PDF/CSV export for a customer (+ its Jobs), available from the customer profile and the per-customer Report; the Customers list also shows a company-wide Open Balance total.
 
 = 0.9.0 =
 * New "Receive Payment" section on the customer profile (front end): split one payment across several open invoices for a customer and its Jobs in a single entry, with an oldest-invoice-first auto-fill you can still adjust per invoice before saving.
