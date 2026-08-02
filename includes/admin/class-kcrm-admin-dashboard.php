@@ -89,7 +89,7 @@ class KCRM_Admin_Dashboard extends KCRM_Controller_Base {
 					<tr>
 						<td><a href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices&view=edit&id=' . $invoice->id ) ); ?>"><?php echo esc_html( $invoice->invoice_number ); ?></a></td>
 						<td><?php echo esc_html( $customer ? $customer->company_name : '' ); ?></td>
-						<td><?php echo esc_html( number_format_i18n( (float) $invoice->total, 2 ) ); ?></td>
+						<td><?php echo esc_html( KCRM_Invoice::format_money( (float) $invoice->total ) ); ?></td>
 						<td><?php echo esc_html( KCRM_Invoice::statuses()[ $invoice->status ] ?? $invoice->status ); ?></td>
 					</tr>
 				<?php endforeach; ?>

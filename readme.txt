@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.1
+Stable tag: 0.9.2
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -24,7 +24,7 @@ Features:
 * Receive Payment: split one payment across several open invoices for a customer and its Jobs in a single entry, from the customer profile
 * User-managed invoice types
 * CSV import for customers, services, invoices, and payments (e.g. from QuickBooks exports), including automatic service creation from imported invoices
-* PDF invoice generation, download, and emailing, with CC support and one-click suggestions from the customer's other email addresses on file
+* PDF invoice generation, download, an HTML preview, and emailing, with CC/BCC support and one-click CC suggestions from the customer's other email addresses on file
 * Customer Open Balance PDF/CSV export (a customer + its Jobs, oldest open invoice first), plus a company-wide Open Balance total on the Customers list
 * Reports (front-end): Revenue with a 12-month chart, per-customer revenue, and an Aging (accounts receivable) report, each with CSV export
 * Export/import a full company as a JSON file, for migrating between sites or duplicating a company as a template
@@ -37,6 +37,14 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.2 =
+* Negative line-item amounts (e.g. a discount) now display in parentheses -- e.g. "(50.00)" -- instead of a plain minus sign, everywhere an invoice's line items, totals, or balance due are shown: the edit screen, the Invoices list, the customer profile, and both PDFs.
+* New "Preview" button next to "Download PDF" opens the invoice as a plain HTML page in a new tab -- same layout as the PDF, for a quick look without downloading anything. Internal use only for now, not yet a link meant for sharing with customers.
+* The Invoices screen (list and edit screen) now links every customer name directly to that customer's profile.
+* Fixed: typing raw HTML (e.g. a hand-typed link) directly into the "Email Invoice Template" or "Invoice Footer" field's Visual tab could silently corrupt straight quotes into curly quotes, breaking the HTML. Both fields are now a plain HTML/Quicktags editor instead of a rich-text (TinyMCE) one, which avoids this entirely.
+* New "BCC Invoice Emails" company setting (off by default) -- BCCs a configured address on every "Email Invoice" send, e.g. to keep your own copy.
+* Fixed: the PDF wasn't actually attached to invoice emails on sites where a mail-sending integration (e.g. Mailgun) replaces WordPress's own mail-sending internals. Also fixed hand-typed line breaks in the Email Invoice Template/Invoice Footer not showing up in the sent email/PDF (a side effect of the Visual-tab fix above).
 
 = 0.9.1 =
 * Invoices screen: a "Customers with Multiple Jobs" section groups a customer's own invoices together with all of its Jobs' invoices (sorted by issue date), instead of scattering them through the regular sorted list; wp-admin also gets a Customer filter to narrow the list down to one customer (+ its Jobs).

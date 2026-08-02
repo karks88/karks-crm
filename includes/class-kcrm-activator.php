@@ -258,6 +258,8 @@ class KCRM_Activator {
 			check_payable_to VARCHAR(255) NULL,
 			pdf_accent_color VARCHAR(7) NULL,
 			email_template TEXT NULL,
+			invoice_bcc_enabled TINYINT(1) NOT NULL DEFAULT 0,
+			invoice_bcc_email VARCHAR(255) NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id)
@@ -371,6 +373,7 @@ class KCRM_Activator {
 			sent_to_name VARCHAR(255) NULL,
 			sent_to_email VARCHAR(255) NOT NULL,
 			sent_cc VARCHAR(500) NULL,
+			sent_bcc VARCHAR(255) NULL,
 			sent_by BIGINT UNSIGNED NULL,
 			sent_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),

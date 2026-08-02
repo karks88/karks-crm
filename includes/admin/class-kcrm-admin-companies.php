@@ -264,6 +264,8 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 								'media_buttons' => false,
 								'teeny'         => true,
 								'quicktags'     => true,
+								// TinyMCE's Visual tab silently "smart-quotes" straight " typed into it (e.g. inside a hand-typed <a href="...">), corrupting raw HTML/merge tags with no way to fix it from that tab -- Text/quicktags-only avoids this entirely.
+								'tinymce'       => false,
 							)
 						);
 						?>
@@ -340,6 +342,8 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 								'media_buttons' => false,
 								'teeny'         => true,
 								'quicktags'     => true,
+								// TinyMCE's Visual tab silently "smart-quotes" straight " typed into it (e.g. inside a hand-typed <a href="...">), corrupting raw HTML/merge tags with no way to fix it from that tab -- Text/quicktags-only avoids this entirely.
+								'tinymce'       => false,
 							)
 						);
 						?>
@@ -349,6 +353,20 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 								<code>{{<?php echo esc_html( $kcrm_tag ); ?>}}</code>
 							<?php endforeach; ?>
 						</p>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'BCC Invoice Emails', 'karks-crm' ); ?></th>
+					<td>
+						<label>
+							<input type="checkbox" name="invoice_bcc_enabled" id="invoice_bcc_enabled" value="1" <?php checked( $company && $company->invoice_bcc_enabled ); ?>>
+							<?php esc_html_e( 'Send a BCC copy of every "Email Invoice" send to an address below', 'karks-crm' ); ?>
+						</label>
+						<p id="kcrm-invoice-bcc-email-row">
+							<label for="invoice_bcc_email"><?php esc_html_e( 'BCC Email', 'karks-crm' ); ?></label><br>
+							<input type="email" class="regular-text" name="invoice_bcc_email" id="invoice_bcc_email" value="<?php echo esc_attr( $company ? $company->invoice_bcc_email : '' ); ?>" placeholder="you@example.com">
+						</p>
+						<p class="description"><?php esc_html_e( 'Off by default. Useful for keeping a copy of every invoice you send, e.g. to yourself.', 'karks-crm' ); ?></p>
 					</td>
 				</tr>
 			</table>

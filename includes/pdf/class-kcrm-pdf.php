@@ -29,6 +29,20 @@ class KCRM_PDF {
 	}
 
 	/**
+	 * Streams the invoice as a plain HTML page -- the exact same markup
+	 * used for the PDF (see render_invoice_html()), just rendered directly
+	 * by the browser instead of converted with Dompdf. An internal preview
+	 * for now (same auth/nonce as the PDF download in
+	 * KCRM_Invoices_Controller::handle_html_preview()), not yet a
+	 * customer-facing shareable link. Ends the request.
+	 */
+	public static function stream_invoice_preview( $invoice ) {
+		header( 'Content-Type: text/html; charset=UTF-8' );
+		echo self::render_invoice_html( $invoice ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built entirely from the same template as the PDF, which already escapes every dynamic value.
+		exit;
+	}
+
+	/**
 	 * Render a customer's (plus its Jobs') open invoices to HTML, convert
 	 * with Dompdf, and stream it as a PDF download. Ends the request.
 	 *
@@ -76,8 +90,11 @@ class KCRM_PDF {
 		}
 	}
 
-	/** Shared HTML-build + Dompdf-render step for stream_invoice()/invoice_pdf_bytes(). */
-	private static function render_invoice( $invoice ) {
+	/**
+	 * Builds the invoice HTML -- the same markup used for the PDF and the
+	 * HTML preview (stream_invoice_preview()) -- without touching Dompdf.
+	 */
+	public static function render_invoice_html( $invoice ) {
 		$company     = KCRM_Company::find( $invoice->company_id );
 		$customer    = KCRM_Customer::find( $invoice->customer_id );
 		$items       = KCRM_Invoice_Item::for_invoice( $invoice->id );
@@ -87,7 +104,12 @@ class KCRM_PDF {
 
 		ob_start();
 		include KCRM_PLUGIN_DIR . 'templates/invoice-pdf.php';
-		$html = ob_get_clean();
+		return ob_get_clean();
+	}
+
+	/** Shared HTML-build + Dompdf-render step for stream_invoice()/invoice_pdf_bytes(). */
+	private static function render_invoice( $invoice ) {
+		$html = self::render_invoice_html( $invoice );
 
 		$options = new \Dompdf\Options();
 		$options->set( 'isRemoteEnabled', false );

@@ -12,7 +12,9 @@ $kcrm_currency = $company && $company->currency ? $company->currency : 'USD';
 $kcrm_statuses = KCRM_Invoice::statuses();
 
 $kcrm_format_money = function ( $amount ) use ( $kcrm_currency ) {
-	return $kcrm_currency . ' ' . number_format( (float) $amount, 2 );
+	$amount    = round( (float) $amount, 2 );
+	$formatted = $kcrm_currency . ' ' . number_format( abs( $amount ), 2 );
+	return $amount < 0 ? "($formatted)" : $formatted;
 };
 
 // The global Appearance colors, plus this company's PDF accent override
@@ -245,7 +247,10 @@ $kcrm_show_check_payable_to = in_array( 'check', $kcrm_payment_type_keys, true )
 
 <?php if ( $company && ! empty( $company->invoice_footer ) ) : ?>
 <div class="invoice-footer">
-	<?php echo $company->invoice_footer; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- already sanitized with wp_kses_post() when saved. ?>
+	<?php
+	// wpautop() -- same reasoning as the emailed invoice body: the Invoice Footer field is a plain Quicktags editor (no more TinyMCE auto-<p>-wrapping), so hand-typed blank-line-separated paragraphs need converting to <p>/<br> markup here, not just a raw newline Dompdf will ignore.
+	echo wpautop( $company->invoice_footer ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- already sanitized with wp_kses_post() when saved; wpautop() only adds <p>/<br> markup.
+	?>
 </div>
 <?php endif; ?>
 

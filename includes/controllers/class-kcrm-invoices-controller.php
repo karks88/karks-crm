@@ -236,6 +236,16 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		$to_name  = isset( $_POST['email_to_name'] ) ? sanitize_text_field( wp_unslash( $_POST['email_to_name'] ) ) : '';
 		$subject  = isset( $_POST['email_subject'] ) ? sanitize_text_field( wp_unslash( $_POST['email_subject'] ) ) : '';
 		$body     = isset( $_POST['email_body'] ) ? wp_kses_post( wp_unslash( $_POST['email_body'] ) ) : '';
+		/*
+		 * The "Email Invoice Template" field is now a plain Quicktags editor
+		 * (TinyMCE, which used to auto-wrap typed paragraphs in <p> tags, was
+		 * disabled to fix a smart-quote corruption bug), so a hand-typed
+		 * template with blank lines between paragraphs is just plain text with
+		 * \n in it -- wpautop() turns that into <p>/<br> markup for the actual
+		 * text/html email. Safe to run on a template that already has its own
+		 * <p>/<div>/etc. tags too; wpautop() won't double-wrap those.
+		 */
+		$body     = wpautop( $body );
 
 		// Comma-separated CC list -- silently drops anything that isn't a valid address rather than blocking the send over a typo, and never duplicates the To address.
 		$cc_raw = isset( $_POST['email_cc'] ) ? sanitize_text_field( wp_unslash( $_POST['email_cc'] ) ) : '';
@@ -251,22 +261,44 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 			$this->redirect( array( 'view' => 'edit', 'id' => $invoice_id, 'kcrm_notice' => 'email_error' ) );
 		}
 
+		// The company's own BCC setting (off by default) -- skipped if it'd just duplicate the To or a Cc address.
+		$company    = KCRM_Company::find( $invoice->company_id );
+		$bcc_email  = KCRM_Company::invoice_bcc_email( $company );
+		$bcc        = ( $bcc_email && $bcc_email !== $to_email && ! in_array( $bcc_email, $cc, true ) ) ? $bcc_email : '';
+
 		$pdf_bytes = KCRM_PDF::invoice_pdf_bytes( $invoice );
 		$filename  = sanitize_file_name( KCRM_Invoice::display_title( $invoice ) ) . '.pdf';
 
-		$attach_pdf = function ( $phpmailer ) use ( $pdf_bytes, $filename ) {
-			$phpmailer->addStringAttachment( $pdf_bytes, $filename, 'base64', 'application/pdf' );
-		};
+		/*
+		 * Attached via wp_mail()'s native $attachments param (a real file path)
+		 * rather than a phpmailer_init hook adding a string attachment -- some
+		 * wp_mail() replacements (e.g. the Mailgun plugin active on this site)
+		 * send through their own HTTP API entirely, bypassing PHPMailer, so an
+		 * attachment added via $phpmailer->addStringAttachment() was silently
+		 * dropped for every recipient. The temp file lives in its own
+		 * throwaway directory (not just get_temp_dir() directly) so its
+		 * basename -- which Mailgun and PHPMailer both use as the display
+		 * filename -- can be the exact invoice filename without risking a
+		 * collision with another concurrent send.
+		 */
+		$tmp_dir = trailingslashit( get_temp_dir() ) . uniqid( 'kcrm-invoice-', true ) . '/';
+		wp_mkdir_p( $tmp_dir );
+		$attachment_path = $tmp_dir . $filename;
+		file_put_contents( $attachment_path, $pdf_bytes ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- a throwaway temp file for this one email send, not a WP filesystem-API-managed file.
 
 		$to      = $to_name ? "$to_name <$to_email>" : $to_email;
 		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
 		foreach ( $cc as $address ) {
 			$headers[] = "Cc: $address";
 		}
+		if ( $bcc ) {
+			$headers[] = "Bcc: $bcc";
+		}
 
-		add_action( 'phpmailer_init', $attach_pdf );
-		$sent = wp_mail( $to, $subject, $body, $headers );
-		remove_action( 'phpmailer_init', $attach_pdf );
+		$sent = wp_mail( $to, $subject, $body, $headers, array( $attachment_path ) );
+
+		wp_delete_file( $attachment_path );
+		rmdir( $tmp_dir );
 
 		if ( $sent ) {
 			KCRM_Invoice_Email::create(
@@ -275,6 +307,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 					'sent_to_name'  => $to_name,
 					'sent_to_email' => $to_email,
 					'sent_cc'       => implode( ', ', $cc ),
+					'sent_bcc'      => $bcc,
 					'sent_by'       => get_current_user_id(),
 				)
 			);
@@ -981,5 +1014,26 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		}
 
 		KCRM_PDF::stream_invoice( $invoice );
+	}
+
+	/**
+	 * admin-post handler: streams the invoice as a plain HTML page (same
+	 * layout as the PDF) for an internal preview. Same auth model as
+	 * handle_pdf_download() -- not yet a customer-facing shareable link.
+	 */
+	public function handle_html_preview() {
+		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		check_admin_referer( 'kcrm_preview_invoice_html_' . $id );
+
+		if ( ! current_user_can( KCRM_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to do this.', 'karks-crm' ) );
+		}
+
+		$invoice = $id ? KCRM_Invoice::find( $id ) : null;
+		if ( ! $invoice ) {
+			wp_die( esc_html__( 'Invoice not found.', 'karks-crm' ) );
+		}
+
+		KCRM_PDF::stream_invoice_preview( $invoice );
 	}
 }

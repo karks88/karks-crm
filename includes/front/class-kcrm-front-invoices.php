@@ -365,8 +365,8 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 							<td colspan="8">
 								<a href="#" class="kcrm-invoice-group-toggle" data-kcrm-invoice-group="<?php echo esc_attr( $group_id ); ?>">
 									<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
-									<strong><?php echo esc_html( $group['customer']->company_name ); ?></strong>
 								</a>
+								<strong><a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $group['customer']->id ) ) ); ?>"><?php echo esc_html( $group['customer']->company_name ); ?></a></strong>
 								&nbsp;&mdash;&nbsp;
 								<?php
 								echo esc_html(
@@ -374,7 +374,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 										/* translators: 1: number of invoices in this customer's group, 2: total balance due across them. */
 										_n( '%1$d invoice, %2$s due', '%1$d invoices, %2$s due', count( $group['invoices'] ), 'karks-crm' ),
 										count( $group['invoices'] ),
-										number_format_i18n( $group_balance, 2 )
+										KCRM_Invoice::format_money( $group_balance )
 									)
 								);
 								?>
@@ -473,11 +473,15 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 					</a>
 				</strong>
 			</td>
-			<td><?php echo esc_html( $customer ? KCRM_Customer::display_name( $customer ) : '' ); ?></td>
+			<td>
+				<?php if ( $customer ) : ?>
+					<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $customer->id ) ) ); ?>"><?php echo esc_html( KCRM_Customer::display_name( $customer ) ); ?></a>
+				<?php endif; ?>
+			</td>
 			<td><?php echo esc_html( $invoice->issue_date ); ?></td>
 			<td><?php echo esc_html( $invoice->due_date ); ?></td>
-			<td><?php echo esc_html( number_format_i18n( (float) $invoice->total, 2 ) ); ?></td>
-			<td><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
+			<td><?php echo esc_html( KCRM_Invoice::format_money( (float) $invoice->total ) ); ?></td>
+			<td><?php echo esc_html( KCRM_Invoice::format_money( $balance ) ); ?></td>
 			<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $invoice->status ); ?>"><?php echo esc_html( $statuses[ $invoice->status ] ?? $invoice->status ); ?></span></td>
 			<td>
 				<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $invoice->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
@@ -577,6 +581,9 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 						</option>
 					<?php endforeach; ?>
 				</select>
+				<?php if ( $invoice ) : ?>
+					<a class="kcrm-button" href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $invoice->customer_id ) ) ); ?>"><?php esc_html_e( 'View Customer Profile', 'karks-crm' ); ?></a>
+				<?php endif; ?>
 			</p>
 			<p>
 				<label for="status"><?php esc_html_e( 'Status', 'karks-crm' ); ?></label>
@@ -647,6 +654,9 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 				<a class="kcrm-button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_download_invoice_pdf&id=' . $invoice->id ), 'kcrm_download_invoice_pdf_' . $invoice->id ) ); ?>">
 					<span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Download PDF Invoice', 'karks-crm' ); ?>
 				</a>
+				<a class="kcrm-button" target="_blank" rel="noopener noreferrer" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_preview_invoice_html&id=' . $invoice->id ), 'kcrm_preview_invoice_html_' . $invoice->id ) ); ?>">
+					<span class="dashicons dashicons-visibility"></span> <?php esc_html_e( 'Preview', 'karks-crm' ); ?>
+				</a>
 				<button type="button" class="kcrm-button" id="kcrm-open-email-modal"><span class="dashicons dashicons-email"></span> <?php esc_html_e( 'Email Invoice', 'karks-crm' ); ?></button>
 				<a class="kcrm-button" href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $invoice->id ) ), 'kcrm_delete_invoice_' . $invoice->id ) ); ?>"
 					onclick="return confirm('<?php echo esc_js( __( 'Delete this invoice?', 'karks-crm' ) ); ?>');">
@@ -704,12 +714,22 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 		?>
 		<p class="description">
 			<?php
+			$extra = array();
 			if ( ! empty( $last->sent_cc ) ) {
+				/* translators: %s: cc'd addresses. */
+				$extra[] = sprintf( __( 'cc: %s', 'karks-crm' ), $last->sent_cc );
+			}
+			if ( ! empty( $last->sent_bcc ) ) {
+				/* translators: %s: bcc'd address. */
+				$extra[] = sprintf( __( 'bcc: %s', 'karks-crm' ), $last->sent_bcc );
+			}
+
+			if ( $extra ) {
 				printf(
-					/* translators: 1: recipient name/email, 2: cc'd addresses, 3: date and time. */
-					esc_html__( 'Last emailed to %1$s (cc: %2$s) on %3$s.', 'karks-crm' ),
+					/* translators: 1: recipient name/email, 2: cc/bcc details, 3: date and time. */
+					esc_html__( 'Last emailed to %1$s (%2$s) on %3$s.', 'karks-crm' ),
 					esc_html( $recipient ),
-					esc_html( $last->sent_cc ),
+					esc_html( implode( '; ', $extra ) ),
 					esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $last->sent_at ) ) )
 				);
 			} else {
@@ -840,7 +860,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 		$balance  = KCRM_Invoice::balance_due( $invoice->id );
 		?>
 		<h3><?php esc_html_e( 'Payments', 'karks-crm' ); ?></h3>
-		<p><strong><?php esc_html_e( 'Balance Due:', 'karks-crm' ); ?></strong> <?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></p>
+		<p><strong><?php esc_html_e( 'Balance Due:', 'karks-crm' ); ?></strong> <?php echo esc_html( KCRM_Invoice::format_money( $balance ) ); ?></p>
 
 		<table class="kcrm-front-table">
 			<thead>

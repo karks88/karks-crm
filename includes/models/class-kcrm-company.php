@@ -29,6 +29,8 @@ class KCRM_Company extends KCRM_Model_Base {
 			'check_payable_to'     => '%s',
 			'pdf_accent_color'     => '%s',
 			'email_template'       => '%s',
+			'invoice_bcc_enabled'  => '%d',
+			'invoice_bcc_email'    => '%s',
 			'created_at'           => '%s',
 			'updated_at'           => '%s',
 		);
@@ -89,6 +91,14 @@ class KCRM_Company extends KCRM_Model_Base {
 			return $company->email_template;
 		}
 		return self::default_email_template();
+	}
+
+	/** @return string The address to BCC on every "Email Invoice" send, or '' if the company hasn't enabled/set one. */
+	public static function invoice_bcc_email( $company ) {
+		if ( $company && ! empty( $company->invoice_bcc_enabled ) && ! empty( $company->invoice_bcc_email ) ) {
+			return $company->invoice_bcc_email;
+		}
+		return '';
 	}
 
 	public static function create( $data ) {

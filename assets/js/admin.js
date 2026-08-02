@@ -15,11 +15,25 @@
 		return null;
 	}
 
+	/**
+	 * Wraps a negative amount in parentheses instead of a plain minus sign
+	 * (e.g. a discount line, or a heavily-discounted total) -- the standard
+	 * accounting convention, matching KCRM_Invoice::format_money() on the
+	 * PHP side.
+	 */
+	function formatMoney(amount) {
+		// Round first so a sub-cent negative (float drift) that rounds to zero
+		// doesn't get parenthesized as a misleading "(0.00)".
+		var value = Math.round((parseFloat(amount) || 0) * 100) / 100;
+		var formatted = Math.abs(value).toFixed(2);
+		return value < 0 ? '(' + formatted + ')' : formatted;
+	}
+
 	function recalcRow($row) {
 		var qty = parseFloat($row.find('.kcrm-item-quantity').val()) || 0;
 		var rate = parseFloat($row.find('.kcrm-item-rate').val()) || 0;
 		var amount = qty * rate;
-		$row.find('.kcrm-item-amount').text(amount.toFixed(2));
+		$row.find('.kcrm-item-amount').text(formatMoney(amount));
 		return amount;
 	}
 
@@ -39,8 +53,8 @@
 		var taxAmount = taxableSubtotal * (taxRate / 100);
 		var total = subtotal + taxAmount;
 
-		$('#kcrm-subtotal').text(subtotal.toFixed(2));
-		$('#kcrm-total').html('<strong>' + total.toFixed(2) + '</strong>');
+		$('#kcrm-subtotal').text(formatMoney(subtotal));
+		$('#kcrm-total').html('<strong>' + formatMoney(total) + '</strong>');
 	}
 
 	function bindRow($row) {
@@ -94,12 +108,23 @@
 		$('#kcrm-method-other-row').toggle($select.val() === '__other__');
 	}
 
+	function toggleInvoiceBccEmailField() {
+		var $checkbox = $('#invoice_bcc_enabled');
+		if (!$checkbox.length) {
+			return;
+		}
+		$('#kcrm-invoice-bcc-email-row').toggle($checkbox.is(':checked'));
+	}
+
 	$(function () {
 		$('#invoice_type').on('change', toggleInvoiceTypeFields);
 		toggleInvoiceTypeFields();
 
 		$('#method').on('change', toggleMethodOtherField);
 		toggleMethodOtherField();
+
+		$('#invoice_bcc_enabled').on('change', toggleInvoiceBccEmailField);
+		toggleInvoiceBccEmailField();
 
 		var $body = $('#kcrm-line-items-body');
 		if (!$body.length) {

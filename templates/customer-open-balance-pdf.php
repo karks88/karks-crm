@@ -13,7 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $kcrm_currency      = $company && $company->currency ? $company->currency : 'USD';
 $kcrm_format_money  = function ( $amount ) use ( $kcrm_currency ) {
-	return $kcrm_currency . ' ' . number_format( (float) $amount, 2 );
+	$amount    = round( (float) $amount, 2 );
+	$formatted = $kcrm_currency . ' ' . number_format( abs( $amount ), 2 );
+	return $amount < 0 ? "($formatted)" : $formatted;
 };
 
 $kcrm_colors    = KCRM_Colors::get();

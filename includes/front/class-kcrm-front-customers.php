@@ -688,15 +688,15 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 						<?php endif; ?>
 						<td><?php echo esc_html( $invoice->issue_date ); ?></td>
 						<td><?php echo esc_html( $invoice->due_date ); ?></td>
-						<td><?php echo esc_html( number_format_i18n( (float) $invoice->total, 2 ) ); ?></td>
-						<td><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
+						<td><?php echo esc_html( KCRM_Invoice::format_money( (float) $invoice->total ) ); ?></td>
+						<td><?php echo esc_html( KCRM_Invoice::format_money( $balance ) ); ?></td>
 						<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $invoice->status ); ?>"><?php echo esc_html( $all_statuses[ $invoice->status ] ?? $invoice->status ); ?></span></td>
 					</tr>
 				<?php endforeach; ?>
 			</tbody>
 		</table>
 		<?php if ( ! empty( $invoices ) ) : ?>
-			<p><strong><?php esc_html_e( 'Balance Owed (invoices shown above):', 'karks-crm' ); ?></strong> <?php echo esc_html( number_format_i18n( $total_balance, 2 ) ); ?></p>
+			<p><strong><?php esc_html_e( 'Balance Owed (invoices shown above):', 'karks-crm' ); ?></strong> <?php echo esc_html( KCRM_Invoice::format_money( $total_balance ) ); ?></p>
 		<?php endif; ?>
 		<?php
 	}
@@ -829,7 +829,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 									?>
 								</td>
 							<?php endif; ?>
-							<td class="kcrm-receive-payment-balance" data-balance="<?php echo esc_attr( $balance ); ?>"><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
+							<td class="kcrm-receive-payment-balance" data-balance="<?php echo esc_attr( $balance ); ?>"><?php echo esc_html( KCRM_Invoice::format_money( $balance ) ); ?></td>
 							<td><input type="number" step="0.01" min="0" max="<?php echo esc_attr( $balance ); ?>" name="allocation_amount[]" class="kcrm-receive-payment-amount"></td>
 						</tr>
 					<?php endforeach; ?>

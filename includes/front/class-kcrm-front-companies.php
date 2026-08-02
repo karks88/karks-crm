@@ -373,8 +373,8 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 						</td>
 						<td><?php echo esc_html( $customer ? $customer->company_name : '' ); ?></td>
 						<td><?php echo esc_html( $invoice->issue_date ); ?></td>
-						<td><?php echo esc_html( number_format_i18n( (float) $invoice->total, 2 ) ); ?></td>
-						<td><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
+						<td><?php echo esc_html( KCRM_Invoice::format_money( (float) $invoice->total ) ); ?></td>
+						<td><?php echo esc_html( KCRM_Invoice::format_money( $balance ) ); ?></td>
 						<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $invoice->status ); ?>"><?php echo esc_html( $all_statuses[ $invoice->status ] ?? $invoice->status ); ?></span></td>
 					</tr>
 				<?php endforeach; ?>
@@ -516,6 +516,8 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 						'media_buttons' => false,
 						'teeny'         => true,
 						'quicktags'     => true,
+						// TinyMCE's Visual tab silently "smart-quotes" straight " typed into it (e.g. inside a hand-typed <a href="...">), corrupting raw HTML/merge tags with no way to fix it from that tab -- Text/quicktags-only avoids this entirely.
+						'tinymce'       => false,
 					)
 				);
 				?>
@@ -582,6 +584,8 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 						'media_buttons' => false,
 						'teeny'         => true,
 						'quicktags'     => true,
+						// TinyMCE's Visual tab silently "smart-quotes" straight " typed into it (e.g. inside a hand-typed <a href="...">), corrupting raw HTML/merge tags with no way to fix it from that tab -- Text/quicktags-only avoids this entirely.
+						'tinymce'       => false,
 					)
 				);
 				?>
@@ -591,6 +595,17 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 						<code>{{<?php echo esc_html( $kcrm_tag ); ?>}}</code>
 					<?php endforeach; ?>
 				</small>
+			</p>
+			<p>
+				<label>
+					<input type="checkbox" name="invoice_bcc_enabled" id="invoice_bcc_enabled" value="1" <?php checked( $company && $company->invoice_bcc_enabled ); ?>>
+					<?php esc_html_e( 'Send a BCC copy of every "Email Invoice" send to an address below', 'karks-crm' ); ?>
+				</label>
+				<br><small><?php esc_html_e( 'Off by default. Useful for keeping a copy of every invoice you send, e.g. to yourself.', 'karks-crm' ); ?></small>
+			</p>
+			<p id="kcrm-invoice-bcc-email-row">
+				<label for="invoice_bcc_email"><?php esc_html_e( 'BCC Email', 'karks-crm' ); ?></label>
+				<input type="email" name="invoice_bcc_email" id="invoice_bcc_email" value="<?php echo esc_attr( $company ? $company->invoice_bcc_email : '' ); ?>" placeholder="you@example.com">
 			</p>
 
 			<p><button type="submit" class="kcrm-button kcrm-button-primary"><?php echo esc_html( $id ? __( 'Update Company', 'karks-crm' ) : __( 'Add Company', 'karks-crm' ) ); ?></button></p>

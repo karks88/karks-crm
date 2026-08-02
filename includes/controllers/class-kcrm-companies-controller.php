@@ -62,6 +62,10 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 			'check_payable_to'       => $this->field_or_existing( 'check_payable_to', $text, $existing ),
 			'pdf_accent_color'       => $this->field_or_existing( 'pdf_accent_color', function ( $v ) { $hex = sanitize_hex_color( wp_unslash( $v ) ); return $hex ? $hex : ''; }, $existing ),
 			'email_template'         => $this->field_or_existing( 'email_template', $html, $existing ),
+			// A real checkbox: unchecked means entirely absent from $_POST, not "field not submitted" -- field_or_existing() can't tell those apart, so check presence directly instead of falling back to the existing value.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above via check_admin_referer().
+			'invoice_bcc_enabled'    => isset( $_POST['invoice_bcc_enabled'] ) ? 1 : 0,
+			'invoice_bcc_email'      => $this->field_or_existing( 'invoice_bcc_email', function ( $v ) { return sanitize_email( wp_unslash( $v ) ); }, $existing ),
 		);
 
 		if ( '' === $data['name'] ) {

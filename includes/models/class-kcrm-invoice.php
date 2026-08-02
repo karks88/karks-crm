@@ -376,4 +376,19 @@ class KCRM_Invoice extends KCRM_Model_Base {
 		}
 		return $result;
 	}
+
+	/**
+	 * Formats an invoice total/balance for display, wrapping negatives in
+	 * parentheses (e.g. a heavily-discounted invoice, or an overpaid
+	 * balance) instead of a plain minus sign -- the standard accounting
+	 * convention, and the one used consistently everywhere an invoice's own
+	 * total or balance due is shown (list views, PDF, customer profile).
+	 */
+	public static function format_money( $amount, $decimals = 2 ) {
+		// Round first so a sub-cent negative (e.g. -0.001, from float drift) that
+		// rounds to zero doesn't get parenthesized as a misleading "(0.00)".
+		$amount    = round( (float) $amount, $decimals );
+		$formatted = number_format_i18n( abs( $amount ), $decimals );
+		return $amount < 0 ? "($formatted)" : $formatted;
+	}
 }

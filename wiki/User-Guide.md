@@ -13,10 +13,11 @@ Every screen in this guide exists twice — once in wp-admin (**Karks CRM** menu
 | Invoice Number Prefix / Next Invoice Number | e.g. `INV-` + `1` → next invoice is `INV-0001`. The counter advances on its own after each invoice is created. |
 | Default Tax Rate | Applied to invoices for this company, but only to line items individually marked **Taxable** (see [Services](#services)). |
 | Currency Symbol | Display only — the plugin doesn't do currency conversion. |
-| Invoice Footer | Rich text, shown at the bottom of every PDF invoice for this company (payment terms, bank details, etc.). |
+| Invoice Footer | HTML editor (Text/Quicktags only — no Visual/WYSIWYG tab, to avoid it silently corrupting hand-typed HTML), shown at the bottom of every PDF invoice for this company (payment terms, bank details, etc.). Blank lines between paragraphs are turned into separate paragraphs automatically. |
 | Accepted Payment Types / Payment Links | Checkboxes (Credit Card, ACH, PayPal, Venmo, Zelle, Check, Cash, Other) plus a repeatable label/URL list (e.g. a PayPal.me link) — both shown on invoices as ways to pay. Checking "Check" reveals a "Make Checks Payable To" field. |
 | PDF Accent Color | Used for the invoice title/totals on this company's PDFs. Falls back to the global [Appearance](#appearance) Primary color if left blank. |
-| Email Invoice Template | Rich text, pre-fills the body when using "Email Invoice" on an invoice. Supports merge tags (shown on the edit screen) resolved against the invoice/customer/company at send time. |
+| Email Invoice Template | Same HTML/Quicktags editor as Invoice Footer, pre-fills the body when using "Email Invoice" on an invoice. Supports merge tags (shown on the edit screen) resolved against the invoice/customer/company at send time. |
+| BCC Invoice Emails | Off by default. When on, BCCs a configured address on every "Email Invoice" send (e.g. to keep your own copy) — skipped automatically if that address already matches the To or a CC address, so you never get a duplicate copy. |
 
 Deleting a company hides it and switches you to another; its customers/services/invoices remain in the database (not permanently destroyed) but are no longer reachable through the UI.
 
@@ -53,17 +54,18 @@ A **company switcher** dropdown appears on every screen once more than one compa
 - **Line Items** — each references a Service (or "Custom" for a one-off line with its own description/type/rate), plus Quantity, Rate, and a per-line **Taxable** checkbox (defaults from the selected service; blank/Custom lines default to non-taxable).
 - **Notes**.
 
-The Invoices list (wp-admin and front end) can be sorted by Invoice #, Issue Date, Due Date, or Balance Due (click the column header), and filtered down to specific statuses via the checkboxes above the table -- leave all boxes checked (the default) to see everything.
+The Invoices list (wp-admin and front end) can be sorted by Invoice #, Issue Date, Due Date, or Balance Due (click the column header), and filtered down to specific statuses via the checkboxes above the table -- leave all boxes checked (the default) to see everything. Every customer name shown on the list (and on an invoice's own edit screen) links directly to that customer's profile.
 
 **Customers with Multiple Jobs** get their own section at the top of the list: a customer with two or more Jobs shows its own invoices together with every Job's invoices in one collapsible block (sorted by issue date, newest first), instead of those invoices being scattered through the regular sorted list below by whatever column you're sorting on. wp-admin also has a **Customer** filter dropdown to narrow the whole list down to one customer (+ its Jobs).
 
-**Totals** are always computed, never hand-entered: Subtotal = sum of every line's amount; Tax Amount = the invoice's tax rate applied only to the sum of lines marked Taxable; Total = Subtotal + Tax Amount.
+**Totals** are always computed, never hand-entered: Subtotal = sum of every line's amount; Tax Amount = the invoice's tax rate applied only to the sum of lines marked Taxable; Total = Subtotal + Tax Amount. A negative line (e.g. a discount — just give it a negative Rate) displays in parentheses, e.g. "(50.00)", rather than a plain minus sign, everywhere the amount is shown -- the edit screen, the Invoices list, the customer profile, and PDFs.
 
 **Recording a Payment** (date, amount, method, note) against an invoice is what advances its status: no payments → Open; partial → Partially Paid; paid in full → Paid. This happens automatically every time a payment is added or removed.
 
 **Actions available once an invoice is saved:**
 - **Download PDF Invoice** — streams a PDF (company logo/accent color/footer, line items, totals, payment options).
-- **Email Invoice** — a modal composer pre-filled from the company's email template (merge tags resolved), with the same PDF attached automatically. To/CC default from the customer's contact info (a customer's "Send Invoices To" Name/Email, if set, takes priority over the primary Contact Person/Email — see [Customers & Jobs](#customers--jobs)); the CC field itself starts blank, with one-click suggestions for any other email addresses on file for that customer. Shows "Last emailed to X (cc: ...) on Y" once sent at least once.
+- **Preview** — opens the invoice as a plain HTML page in a new tab, using the exact same layout as the PDF. A quick look without downloading anything; internal use only for now, not a link meant for sharing with customers.
+- **Email Invoice** — a modal composer pre-filled from the company's email template (merge tags resolved), with the same PDF attached automatically. To/CC default from the customer's contact info (a customer's "Send Invoices To" Name/Email, if set, takes priority over the primary Contact Person/Email — see [Customers & Jobs](#customers--jobs)); the CC field itself starts blank, with one-click suggestions for any other email addresses on file for that customer. A company's [BCC Invoice Emails](#companies) setting, if enabled, is applied automatically. Shows "Last emailed to X (cc: ...; bcc: ...) on Y" once sent at least once.
 - **Delete Invoice** — with a confirmation prompt.
 
 ## Invoice Types
