@@ -80,8 +80,10 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 
 		$customer_count = count( KCRM_Customer::top_level_for_company( $company_id ) );
 		?>
+		<p class="description"><?php esc_html_e( 'Choose a report below:', 'karks-crm' ); ?></p>
 		<div class="kcrm-dashboard-cards">
 			<a class="kcrm-card" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'revenue' ) ) ); ?>">
+				<h3><?php esc_html_e( 'Revenue', 'karks-crm' ); ?></h3>
 				<span class="dashicons dashicons-chart-line kcrm-card-icon"></span>
 				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( $revenue_this_year, 2 ) ); ?></span>
 				<span class="kcrm-card-label">
@@ -93,11 +95,13 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 				</span>
 			</a>
 			<a class="kcrm-card" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'aging' ) ) ); ?>">
+				<h3><?php esc_html_e( 'Aging', 'karks-crm' ); ?></h3>
 				<span class="dashicons dashicons-warning kcrm-card-icon"></span>
 				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( $outstanding, 2 ) ); ?></span>
 				<span class="kcrm-card-label"><?php esc_html_e( 'Outstanding Balance', 'karks-crm' ); ?> <span class="dashicons dashicons-arrow-right-alt2 kcrm-card-arrow"></span></span>
 			</a>
 			<a class="kcrm-card" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'customer' ) ) ); ?>">
+				<h3><?php esc_html_e( 'Customer Report', 'karks-crm' ); ?></h3>
 				<span class="dashicons dashicons-groups kcrm-card-icon"></span>
 				<span class="kcrm-card-number"><?php echo esc_html( $customer_count ); ?></span>
 				<span class="kcrm-card-label"><?php esc_html_e( 'Run a Customer Report', 'karks-crm' ); ?> <span class="dashicons dashicons-arrow-right-alt2 kcrm-card-arrow"></span></span>

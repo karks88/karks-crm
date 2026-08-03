@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.2
+Stable tag: 0.9.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,11 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.3 =
+* The front-end login form (shown to logged-out visitors on the CRM page) is now styled to match the rest of the front end instead of appearing as a bare, unstyled form.
+* The Reports overview now has a short "Choose a report below:" description under the heading, and each report card has its own title (Revenue/Aging/Customer Report).
+* Karks CRM's wp-admin menu order: "Companies" now sits right under "Getting Started" instead of near the bottom of the list.
 
 = 0.9.2 =
 * Negative line-item amounts (e.g. a discount) now display in parentheses -- e.g. "(50.00)" -- instead of a plain minus sign, everywhere an invoice's line items, totals, or balance due are shown: the edit screen, the Invoices list, the customer profile, and both PDFs.

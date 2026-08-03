@@ -71,11 +71,11 @@ class KCRM_Plugin {
 
 		add_submenu_page( 'karks-crm', __( 'Dashboard', 'karks-crm' ), __( 'Dashboard', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm', array( $this->screens['dashboard'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Getting Started', 'karks-crm' ), __( 'Getting Started', 'karks-crm' ), KCRM_CAPABILITY, KCRM_Admin_Welcome::PAGE, array( $this->welcome, 'render' ) );
+		add_submenu_page( 'karks-crm', __( 'Companies', 'karks-crm' ), __( 'Companies', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-companies', array( $this->screens['companies'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Customers', 'karks-crm' ), __( 'Customers', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-customers', array( $this->screens['customers'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Services', 'karks-crm' ), __( 'Services', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-services', array( $this->screens['services'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Invoices', 'karks-crm' ), __( 'Invoices', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-invoices', array( $this->screens['invoices'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Invoice Types', 'karks-crm' ), __( 'Invoice Types', 'karks-crm' ), KCRM_CAPABILITY, KCRM_Admin_Invoice_Types::PAGE, array( $this->invoice_types, 'render' ) );
-		add_submenu_page( 'karks-crm', __( 'Companies', 'karks-crm' ), __( 'Companies', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-companies', array( $this->screens['companies'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Appearance', 'karks-crm' ), __( 'Appearance', 'karks-crm' ), KCRM_CAPABILITY, KCRM_Admin_Appearance::PAGE, array( $this->appearance, 'render' ) );
 	}
 

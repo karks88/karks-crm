@@ -304,6 +304,75 @@ a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover {
 	border-radius: 3px;
 }
 
+/*
+ * wp_login_form()'s own markup (#loginform, .login-username/-password/
+ * -remember/-submit, input.input) -- not something this plugin renders
+ * itself, so these rules are scoped under the .kcrm-front-login wrapper
+ * around it rather than reusing .kcrm-front-form's selectors directly.
+ */
+.kcrm-front-login {
+	max-width: 380px;
+	margin: 48px auto;
+	padding: 32px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+.kcrm-front-login form p {
+	margin: 0 0 16px;
+}
+
+.kcrm-front-login label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.kcrm-front-login input.input {
+	width: 100%;
+	padding: 8px;
+	border: 1px solid #8c8f94;
+	border-radius: 3px;
+	font-size: 15px;
+	box-sizing: border-box;
+}
+
+.kcrm-front-login .login-remember label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: normal;
+	margin-bottom: 0;
+}
+
+.kcrm-front-login .login-remember input[type="checkbox"] {
+	width: auto;
+	margin: 0;
+}
+
+.kcrm-front-login .login-submit {
+	margin: 24px 0 0;
+}
+
+.kcrm-front-login .button.button-primary {
+	display: inline-block;
+	padding: 8px 2.5em;
+	border: 1px solid var(--kcrm-color-primary);
+	border-radius: 3px;
+	background: var(--kcrm-color-primary);
+	color: var(--kcrm-color-primary-text);
+	font: inherit;
+	font-size: 15px;
+	line-height: 1.5;
+	cursor: pointer;
+}
+
+.kcrm-front-login .button.button-primary:hover,
+.kcrm-front-login .button.button-primary:focus {
+	opacity: 0.9;
+}
+
 .kcrm-button-group {
 	margin: 2.5em 0;
 }
@@ -359,7 +428,7 @@ a.kcrm-button-primary:hover, a.kcrm-button-primary:focus {
 .kcrm-dashboard-cards {
 	display: flex;
 	gap: 2.5em;
-	margin: 0;
+	margin: 2.5em 0;
 	flex-wrap: wrap;
 }
 
@@ -378,6 +447,18 @@ a.kcrm-card:hover,
 a.kcrm-card:focus {
 	border-color: var(--kcrm-color-primary);
 	text-decoration: none;
+}
+
+/* Overrides the generic .kcrm-front h3 (a full-width section-heading divider) -- a card's own h3 is just a small title above its icon/number, not a page section. */
+.kcrm-card h3 {
+	border-top: none;
+	margin: 0 0 8px;
+	padding-top: 0;
+	font-size: 13px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: .02em;
+	color: #50575e;
 }
 
 .kcrm-card-icon {
@@ -478,6 +559,8 @@ a.kcrm-card:focus .kcrm-card-arrow {
 .kcrm-recent-actions li {
 	display: flex;
 	align-items: center;
+	font-size: 14px;
+	line-height: 1.6;
 	gap: 8px;
 	padding: 8px 0;
 	border-bottom: 1px solid #f0f0f1;
@@ -550,6 +633,11 @@ a.kcrm-card:focus .kcrm-card-arrow {
 }
 
 @media (max-width: 600px) {
+	.kcrm-front-login {
+		margin: 24px auto;
+		padding: 20px;
+	}
+
 	.kcrm-company-header {
 		flex-direction: column;
 		align-items: flex-start;
