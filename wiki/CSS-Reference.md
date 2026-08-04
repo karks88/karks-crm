@@ -45,7 +45,7 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 | `.kcrm-button-primary` | Filled/primary variant. |
 | `.kcrm-button-group` | Spacing wrapper around one or more buttons. |
 | `.kcrm-dashboard-cards` | Flex row wrapping a set of `.kcrm-card` stat tiles. |
-| `.kcrm-card` | A single stat tile (Company Overview, Reports overview, customer revenue summary). |
+| `.kcrm-card` | A single stat tile (Company Overview, Reports overview, customer revenue summary). An `<h3>` as its first child is optional -- styled as a small uppercase title instead of inheriting the page's full-width `h3` section-divider look (see the Reports overview's Revenue/Aging/Customer Report cards). |
 | `.kcrm-card-icon` | Dashicon inside a card. |
 | `.kcrm-card-number` | The large number/value in a card. |
 | `.kcrm-card-label` | The small caption under a card's number. |
@@ -80,6 +80,13 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 | `.kcrm-bar-chart-col` | One month's column (bar + label). |
 | `.kcrm-bar-chart-bar` | The bar itself, height set inline per month's value. |
 | `.kcrm-bar-chart-label` | The month label under a bar. |
+| `.kcrm-bar-chart-value` | The month's total (with currency symbol), under its label. |
+
+### Login form
+
+| Class | Purpose |
+|---|---|
+| `.kcrm-front-login` | Card wrapper around WordPress's own `wp_login_form()` output, shown to logged-out visitors on the CRM page. Styles the form's own markup (`#loginform`, `.login-username`/`-password`/`-remember`/`-submit`, `input.input`) rather than reusing `.kcrm-front-form`, since that markup isn't rendered by this plugin. |
 
 ### Modal
 

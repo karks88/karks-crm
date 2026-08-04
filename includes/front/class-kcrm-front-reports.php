@@ -111,6 +111,9 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 	}
 
 	private function render_revenue_report( $company_id ) {
+		$company  = KCRM_Company::find( $company_id );
+		$currency = $company && $company->currency ? $company->currency : 'USD';
+
 		list( $range, $date_from, $date_to ) = $this->resolve_date_range( 'kcrm_rev', 'this_year' );
 		$payments = KCRM_Payment::for_company( $company_id, $date_from, $date_to );
 		$total    = array_sum(
@@ -132,7 +135,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 		</div>
 
 		<h3><?php esc_html_e( 'Last 12 Months', 'karks-crm' ); ?></h3>
-		<?php $this->render_monthly_bar_chart( KCRM_Payment::monthly_totals_for_company( $company_id, 12 ) ); ?>
+		<?php $this->render_monthly_bar_chart( KCRM_Payment::monthly_totals_for_company( $company_id, 12 ), $currency ); ?>
 
 		<div class="kcrm-button-group">
 			<a class="kcrm-button kcrm-button-primary" href="<?php echo esc_url( $this->export_url( 'revenue', array( 'kcrm_rev_range' => $range, 'kcrm_rev_from' => $date_from, 'kcrm_rev_to' => $date_to ) ) ); ?>">
@@ -178,8 +181,11 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 		<?php
 	}
 
-	/** @param array $months List of [ 'label' => 'Jan 2026', 'total' => 1234.56 ], oldest first (see KCRM_Payment::monthly_totals_for_company()). */
-	private function render_monthly_bar_chart( array $months ) {
+	/**
+	 * @param array  $months   List of [ 'label' => 'Jan 2026', 'total' => 1234.56 ], oldest first (see KCRM_Payment::monthly_totals_for_company()).
+	 * @param string $currency The company's Currency Symbol setting, prefixed onto each month's value.
+	 */
+	private function render_monthly_bar_chart( array $months, $currency ) {
 		$max = 0.0;
 		foreach ( $months as $month ) {
 			$max = max( $max, $month['total'] );
@@ -189,8 +195,9 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 			<?php foreach ( $months as $month ) : ?>
 				<?php $pct = $max > 0 ? round( ( $month['total'] / $max ) * 100 ) : 0; ?>
 				<div class="kcrm-bar-chart-col">
-					<div class="kcrm-bar-chart-bar" style="height: <?php echo esc_attr( $pct ); ?>%;" title="<?php echo esc_attr( $month['label'] . ': ' . number_format_i18n( $month['total'], 2 ) ); ?>"></div>
+					<div class="kcrm-bar-chart-bar" style="height: <?php echo esc_attr( $pct ); ?>%;" title="<?php echo esc_attr( $month['label'] . ': ' . $currency . ' ' . number_format_i18n( $month['total'], 2 ) ); ?>"></div>
 					<span class="kcrm-bar-chart-label"><?php echo esc_html( $month['label'] ); ?></span>
+					<span class="kcrm-bar-chart-value"><?php echo esc_html( $currency . ' ' . number_format_i18n( $month['total'], 0 ) ); ?></span>
 				</div>
 			<?php endforeach; ?>
 		</div>

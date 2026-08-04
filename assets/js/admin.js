@@ -63,7 +63,7 @@
 			if (service) {
 				var $desc = $row.find('.kcrm-item-description');
 				if (!$desc.val()) {
-					$desc.val(service.name);
+					$desc.val(service.description || service.name);
 				}
 				$row.find('.kcrm-item-type').val(service.type);
 				$row.find('.kcrm-item-rate').val(parseFloat(service.rate).toFixed(2));
@@ -316,6 +316,13 @@
 				});
 
 				$noResults.toggle(visibleCount === 0);
+			}
+
+			// A search term can arrive pre-filled (e.g. the Company Profile's
+			// "Search Customers" box submits here with ?s=...) -- apply it
+			// immediately instead of waiting for the user to type something.
+			if ($input.val()) {
+				applyFilter();
 			}
 		});
 	});

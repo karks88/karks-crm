@@ -23,9 +23,11 @@ Deleting a company hides it and switches you to another; its customers/services/
 
 A **company switcher** dropdown appears on every screen once more than one company exists, so you always know (and can change) which company you're working in — this selection is remembered per-user between visits.
 
+**Company Profile** (front end only, `/crm/companies/?view=overview`) is a summary hub for one company: quick-add buttons, stat cards (Active Customers, Open Invoices, Outstanding Balance, Revenue — each linking to the relevant screen or report), a Recent Actions feed, and a **Search Customers** box that jumps straight to the Customers list already filtered to what you typed.
+
 ## Customers & Jobs
 
-**Karks CRM → Customers.** Fields: Company Name, Contact Person (+ a Secondary Contact), Address, Phone, Email (+ Secondary Email), a **Send Invoices To** Name/Email (optional — when set, this is who the Email Invoice form defaults to for this customer, instead of the primary Contact Person/Email), Notes, and Status (Active/Inactive — the Customers list and Company Overview default to showing Active only, with a toggle to show all). The Company Name and Status columns are sortable (click the column header). The Customers list also shows a company-wide **Open Balance** total.
+**Karks CRM → Customers.** Fields: Company Name, Contact Person (+ a Secondary Contact), Address, Phone, Email (+ Secondary Email), a **Send Invoices To** Name/Email (optional — when set, this is who the Email Invoice form defaults to for this customer, instead of the primary Contact Person/Email), Notes, and Status (Active/Inactive — the Customers list defaults to showing Active only, with a toggle to show all). The Company Name and Status columns are sortable (click the column header). The Customers list also shows a company-wide **Open Balance** total.
 
 **Jobs** are customers nested under a parent customer (e.g. separate properties or ongoing projects for the same client). A Job:
 - Is added from the parent customer's own page ("Add Job").
@@ -39,6 +41,7 @@ A **company switcher** dropdown appears on every screen once more than one compa
 **Karks CRM → Services.** The billable line items available on invoices. Fields:
 
 - **Pricing Type** — Hourly or Project-based. Purely a label on the invoice line (e.g. "hrs" vs. a flat quantity); both compute the line amount the same way (quantity × rate).
+- **Description** — optional. Selecting this service on an invoice line pre-fills the line's Description from here (still editable per line); if left blank, the line falls back to the service's Name instead.
 - **Rate**.
 - **Taxable** — off by default. When on, this service's amount is included in the taxable base an invoice's tax rate is applied to; when off, its amount is never taxed regardless of the invoice's tax rate. Selecting a service on an invoice line pre-fills this checkbox from the service (still editable per line — see [Invoices](#invoices-line-items--payments)).
 - **Active** — inactive services stop appearing in the "Service" dropdown on new invoice lines (existing invoice lines that already reference an inactive service are unaffected).
@@ -93,7 +96,7 @@ Available on **Customers**, **Services**, and **Invoices** (which offers two: In
 
 Front-end only (`/crm/reports/`) — a per-company **Reports** tab with three views, each with a **CSV export** button:
 
-- **Revenue** — a date-range filter (This Year/Last Year/All/Custom), a total for the selected range, a trailing-12-month bar chart (always the last 12 calendar months, independent of the filter above), and an itemized payments table (date, customer, invoice #, amount, method).
+- **Revenue** — a date-range filter (This Year/Last Year/All/Custom), a total for the selected range, a trailing-12-month bar chart (always the last 12 calendar months, independent of the filter above, each bar showing its month's total underneath it), and an itemized payments table (date, customer, invoice #, amount, method).
 - **Customer Report** — pick a customer (rolled up with its Jobs), then the same date-range filter, revenue total, current outstanding balance, and itemized payments table for that customer alone. Also has its own **Export Open Balance PDF/CSV** buttons (see [Customers & Jobs](#customers--jobs)).
 - **Aging** (accounts receivable) — every open/partially-paid invoice bucketed by how many days past its due date it is: Current, 1-30, 31-60, 61-90, 90+. A snapshot, not date-range filtered.
 

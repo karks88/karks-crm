@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.3
+Stable tag: 0.9.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,12 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.4 =
+* Revenue report: each month on the 12-month chart now shows its total (with the company's currency symbol) under the month label, in the theme's primary color -- not just on hover.
+* The front-end Company Profile is simpler: the full Customers and Invoices tables are gone, replaced by a "Search Customers" box that jumps straight to the Customers list already filtered to your search. The stat cards now link to the real Customers/Invoices screens instead of on-page sections that no longer exist.
+* Fixed: an invoice line item's description always copied the selected Service's Name, even though Services have their own separate Description field -- it's now used instead (falling back to the Name only if a service has no description set).
+* Fixed: the Company Profile's Recent Actions could show a slightly wrong "last 2 days" window depending on the server's PHP timezone setting.
 
 = 0.9.3 =
 * The front-end login form (shown to logged-out visitors on the CRM page) is now styled to match the rest of the front end instead of appearing as a bare, unstyled form.

@@ -464,7 +464,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			$attrs[] = 'data-kcrm-invoice-group="' . esc_attr( $group_id ) . '"';
 		}
 		?>
-		<tr<?php echo $attrs ? ' ' . implode( ' ', $attrs ) : ''; ?>>
+		<tr<?php echo $attrs ? ' ' . implode( ' ', $attrs ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each piece of $attrs is already esc_attr()'d (or a hardcoded literal) when it's built above. ?>>
 			<td>
 				<?php if ( $is_job ) : ?>&#8627; <?php endif; ?>
 				<strong>
@@ -523,11 +523,12 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 		$services_js = array();
 		foreach ( $services as $service ) {
 			$services_js[] = array(
-				'id'         => (int) $service->id,
-				'name'       => $service->name,
-				'type'       => $service->type,
-				'rate'       => (float) $service->rate,
-				'is_taxable' => (int) $service->is_taxable,
+				'id'          => (int) $service->id,
+				'name'        => $service->name,
+				'description' => $service->description,
+				'type'        => $service->type,
+				'rate'        => (float) $service->rate,
+				'is_taxable'  => (int) $service->is_taxable,
 			);
 		}
 		?>

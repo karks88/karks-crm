@@ -238,7 +238,8 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		<?php if ( ! empty( $customers ) ) : ?>
 			<p class="kcrm-list-search">
 				<label for="kcrm-customer-search" class="screen-reader-text"><?php esc_html_e( 'Search customers', 'karks-crm' ); ?></label>
-				<input type="search" id="kcrm-customer-search" class="kcrm-instant-search" data-kcrm-search-table="kcrm-front-customers-table" data-kcrm-search-empty="<?php esc_attr_e( 'No customers match your search.', 'karks-crm' ); ?>" placeholder="<?php esc_attr_e( 'Search by company, contact, or email…', 'karks-crm' ); ?>">
+				<?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only search term, no state change; only ever used as an initial value for the client-side instant-search filter below, never in a query. ?>
+				<input type="search" id="kcrm-customer-search" class="kcrm-instant-search" data-kcrm-search-table="kcrm-front-customers-table" data-kcrm-search-empty="<?php esc_attr_e( 'No customers match your search.', 'karks-crm' ); ?>" placeholder="<?php esc_attr_e( 'Search by company, contact, or email…', 'karks-crm' ); ?>" value="<?php echo isset( $_GET['s'] ) ? esc_attr( sanitize_text_field( wp_unslash( $_GET['s'] ) ) ) : ''; ?>">
 			</p>
 		<?php endif; ?>
 		<table class="kcrm-front-table" id="kcrm-front-customers-table">

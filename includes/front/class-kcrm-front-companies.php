@@ -76,8 +76,7 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 			return;
 		}
 
-		$customers = KCRM_Customer::top_level_for_company( $id );
-		list( $customers, $show_all_customers ) = $this->filter_active_customers( $customers );
+		$customer_count = KCRM_Customer::count_top_level_for_company( $id, KCRM_Customer::STATUS_ACTIVE );
 
 		$all_invoices  = KCRM_Invoice::for_company( $id );
 		$balances      = KCRM_Invoice::balances_for( $all_invoices );
@@ -97,10 +96,6 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 
 		$current_year      = (int) current_time( 'Y' );
 		$revenue_this_year = KCRM_Payment::total_for_company_in_year( $id, $current_year );
-
-		$customers_card_label = $show_all_customers
-			? __( 'Active + Inactive Customers', 'karks-crm' )
-			: __( 'Active Customers', 'karks-crm' );
 		?>
 		<div class="kcrm-overview-columns">
 			<div class="kcrm-overview-cards-col">
@@ -112,12 +107,12 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 				</div>
 
 				<div class="kcrm-dashboard-cards">
-					<a class="kcrm-card" href="#kcrm-customers">
+					<a class="kcrm-card" href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'customers' ) ) ); ?>">
 						<span class="dashicons dashicons-groups kcrm-card-icon"></span>
-						<span class="kcrm-card-number"><?php echo esc_html( count( $customers ) ); ?></span>
-						<span class="kcrm-card-label"><?php echo esc_html( $customers_card_label ); ?> <span class="dashicons dashicons-arrow-right-alt2 kcrm-card-arrow"></span></span>
+						<span class="kcrm-card-number"><?php echo esc_html( $customer_count ); ?></span>
+						<span class="kcrm-card-label"><?php esc_html_e( 'Active Customers', 'karks-crm' ); ?> <span class="dashicons dashicons-arrow-right-alt2 kcrm-card-arrow"></span></span>
 					</a>
-					<a class="kcrm-card" href="#kcrm-invoices">
+					<a class="kcrm-card" href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'invoices' ) ) ); ?>">
 						<span class="dashicons dashicons-portfolio kcrm-card-icon"></span>
 						<span class="kcrm-card-number"><?php echo esc_html( $open_invoices ); ?></span>
 						<span class="kcrm-card-label"><?php esc_html_e( 'Open Invoices', 'karks-crm' ); ?> <span class="dashicons dashicons-arrow-right-alt2 kcrm-card-arrow"></span></span>
@@ -139,6 +134,17 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 						</span>
 					</a>
 				</div>
+
+				<h3 id="kcrm-customers"><?php esc_html_e( 'Customer Search', 'karks-crm' ); ?></h3>
+				<form method="get" action="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers' ) ); ?>" class="kcrm-list-search">
+					<input type="hidden" name="kcrm_company" value="<?php echo esc_attr( $id ); ?>">
+					<?php wp_nonce_field( 'kcrm_switch_company', '_wpnonce', false ); ?>
+					<label for="kcrm-overview-customer-search" class="screen-reader-text"><?php esc_html_e( 'Search customers', 'karks-crm' ); ?></label>
+					<input type="search" name="s" id="kcrm-overview-customer-search" placeholder="<?php esc_attr_e( 'Search by company, contact, or email…', 'karks-crm' ); ?>">
+					<button type="submit" class="kcrm-button"><?php esc_html_e( 'Search', 'karks-crm' ); ?></button>
+				</form>
+
+
 			</div>
 
 			<div class="kcrm-overview-actions-col">
@@ -146,67 +152,7 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 			</div>
 		</div>
 
-		<h3 id="kcrm-customers"><?php esc_html_e( 'Customers', 'karks-crm' ); ?></h3>
-		<?php $this->render_active_customers_toggle( $show_all_customers ); ?>
-		<?php $customer_statuses = KCRM_Customer::statuses(); ?>
-		<?php if ( ! empty( $customers ) ) : ?>
-			<p class="kcrm-list-search">
-				<label for="kcrm-overview-customer-search" class="screen-reader-text"><?php esc_html_e( 'Search customers', 'karks-crm' ); ?></label>
-				<input type="search" id="kcrm-overview-customer-search" class="kcrm-instant-search" data-kcrm-search-table="kcrm-overview-customers-table" data-kcrm-search-empty="<?php esc_attr_e( 'No customers match your search.', 'karks-crm' ); ?>" placeholder="<?php esc_attr_e( 'Search by company, contact, or email…', 'karks-crm' ); ?>">
-			</p>
-		<?php endif; ?>
-		<table class="kcrm-front-table" id="kcrm-overview-customers-table">
-			<thead>
-				<tr>
-					<th><?php esc_html_e( 'Company Name', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Contact Person', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Email', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Status', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Balance', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Actions', 'karks-crm' ); ?></th>
-				</tr>
-			</thead>
-			<tbody>
-				<?php if ( empty( $customers ) ) : ?>
-					<tr>
-						<td colspan="6"><?php echo esc_html( $this->no_customers_message( $show_all_customers ) ); ?></td>
-					</tr>
-				<?php endif; ?>
-				<?php $balances = KCRM_Customer::balances_for_top_level( $customers ); ?>
-				<?php $jobs_by_parent = KCRM_Customer::jobs_for_many( wp_list_pluck( $customers, 'id' ) ); ?>
-				<?php foreach ( $customers as $customer ) : ?>
-					<?php
-					$job_ids = wp_list_pluck( $jobs_by_parent[ $customer->id ] ?? array(), 'id' );
-					$balance = $balances[ (int) $customer->id ];
-					?>
-					<tr>
-						<td>
-							<strong>
-								<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $customer->id ) ) ); ?>">
-									<?php echo esc_html( $customer->company_name ); ?>
-								</a>
-							</strong>
-						</td>
-						<td><?php echo esc_html( $customer->contact_person ); ?></td>
-						<td><?php echo esc_html( $customer->email ); ?></td>
-						<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $customer->status ); ?>"><?php echo esc_html( $customer_statuses[ $customer->status ] ?? $customer->status ); ?></span></td>
-						<td><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
-						<td>
-							<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $customer->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
-							|
-							<a href="<?php echo esc_url( KCRM_Context::switch_company_url( $id, KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $customer->id ) ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
-							|
-							<a href="<?php echo esc_url( wp_nonce_url( KCRM_Front::endpoint_url( 'customers', array( 'action' => 'delete', 'id' => $customer->id ) ), 'kcrm_delete_customer_' . $customer->id ) ); ?>"
-								onclick="return confirm('<?php echo esc_js( $job_ids ? __( 'Delete this customer and all of its Jobs?', 'karks-crm' ) : __( 'Delete this customer?', 'karks-crm' ) ); ?>');">
-								<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
-							</a>
-						</td>
-					</tr>
-				<?php endforeach; ?>
-			</tbody>
-		</table>
-
-		<?php $this->render_overview_invoices( $id ); ?>
+		
 		<?php
 	}
 
@@ -216,7 +162,7 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 	 * merged into one reverse-chronological list.
 	 */
 	private function render_recent_actions( $company_id ) {
-		$since   = date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 2 * DAY_IN_SECONDS );
+		$since   = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 2 * DAY_IN_SECONDS );
 		$actions = array();
 
 		foreach ( KCRM_Invoice::created_since( $company_id, $since ) as $invoice ) {
@@ -315,73 +261,6 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 		<?php endif;
 	}
 
-	private function render_overview_invoices( $company_id ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
-		$show_all     = ! empty( $_GET['kcrm_invoice_filter'] ) && 'all' === sanitize_key( wp_unslash( $_GET['kcrm_invoice_filter'] ) );
-		$statuses     = $show_all ? null : KCRM_Invoice::default_customer_statuses();
-		$invoices     = KCRM_Invoice::for_company_with_statuses( $company_id, $statuses );
-		$all_statuses = KCRM_Invoice::statuses();
-
-		$toggle_url = $show_all ? remove_query_arg( 'kcrm_invoice_filter' ) : add_query_arg( 'kcrm_invoice_filter', 'all' );
-		?>
-		<h3 id="kcrm-invoices"><?php esc_html_e( 'Invoices', 'karks-crm' ); ?></h3>
-		<p class="description"><?php esc_html_e( 'Invoices with a status of Draft, Open, and Partially Paid are displayed by default.', 'karks-crm' ); ?></p>
-		<p>
-			<a href="<?php echo esc_url( $toggle_url ); ?>">
-				<?php
-				echo $show_all
-					? esc_html__( 'Show default statuses only (Draft, Open, Partially Paid)', 'karks-crm' )
-					: esc_html__( 'Show invoices with all statuses', 'karks-crm' );
-				?>
-			</a>
-		</p>
-		<?php if ( ! empty( $invoices ) ) : ?>
-			<p class="kcrm-list-search">
-				<label for="kcrm-overview-invoice-search" class="screen-reader-text"><?php esc_html_e( 'Search invoices', 'karks-crm' ); ?></label>
-				<input type="search" id="kcrm-overview-invoice-search" class="kcrm-instant-search" data-kcrm-search-table="kcrm-overview-invoices-table" data-kcrm-search-empty="<?php esc_attr_e( 'No invoices match your search.', 'karks-crm' ); ?>" placeholder="<?php esc_attr_e( 'Search by invoice # or customer…', 'karks-crm' ); ?>">
-			</p>
-		<?php endif; ?>
-		<table class="kcrm-front-table" id="kcrm-overview-invoices-table">
-			<thead>
-				<tr>
-					<th><?php esc_html_e( 'Invoice #', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Customer', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Issue Date', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Total', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Balance Due', 'karks-crm' ); ?></th>
-					<th><?php esc_html_e( 'Status', 'karks-crm' ); ?></th>
-				</tr>
-			</thead>
-			<tbody>
-				<?php if ( empty( $invoices ) ) : ?>
-					<tr><td colspan="6"><?php esc_html_e( 'No invoices found.', 'karks-crm' ); ?></td></tr>
-				<?php endif; ?>
-				<?php $invoice_customers = KCRM_Customer::find_many( wp_list_pluck( $invoices, 'customer_id' ) ); ?>
-				<?php $invoice_balances  = KCRM_Invoice::balances_for( $invoices ); ?>
-				<?php foreach ( $invoices as $invoice ) : ?>
-					<?php
-					$customer = $invoice_customers[ (int) $invoice->customer_id ] ?? null;
-					$balance  = $invoice_balances[ (int) $invoice->id ];
-					?>
-					<tr>
-						<td>
-							<strong>
-								<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'edit', 'id' => $invoice->id ) ) ); ?>">
-									<?php echo esc_html( $invoice->invoice_number ); ?>
-								</a>
-							</strong>
-						</td>
-						<td><?php echo esc_html( $customer ? $customer->company_name : '' ); ?></td>
-						<td><?php echo esc_html( $invoice->issue_date ); ?></td>
-						<td><?php echo esc_html( KCRM_Invoice::format_money( (float) $invoice->total ) ); ?></td>
-						<td><?php echo esc_html( KCRM_Invoice::format_money( $balance ) ); ?></td>
-						<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $invoice->status ); ?>"><?php echo esc_html( $all_statuses[ $invoice->status ] ?? $invoice->status ); ?></span></td>
-					</tr>
-				<?php endforeach; ?>
-			</tbody>
-		</table>
-		<?php
-	}
 
 	private function render_list() {
 		$companies = KCRM_Company::all_ordered();

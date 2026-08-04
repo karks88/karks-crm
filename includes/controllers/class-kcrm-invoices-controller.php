@@ -298,7 +298,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		$sent = wp_mail( $to, $subject, $body, $headers, array( $attachment_path ) );
 
 		wp_delete_file( $attachment_path );
-		rmdir( $tmp_dir );
+		rmdir( $tmp_dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- cleaning up the same throwaway per-send temp directory created above with wp_mkdir_p(), not a WP filesystem-API-managed location.
 
 		if ( $sent ) {
 			KCRM_Invoice_Email::create(

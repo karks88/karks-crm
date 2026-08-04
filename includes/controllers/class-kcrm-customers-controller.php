@@ -121,6 +121,7 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 			$method = sanitize_text_field( wp_unslash( $_POST['method_other'] ?? '' ) );
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce already verified above via check_admin_referer(); sanitize_date_or_null() sanitizes internally.
 		$payment_date = isset( $_POST['payment_date'] ) ? $this->sanitize_date_or_null( wp_unslash( $_POST['payment_date'] ) ) : null;
 		if ( ! $payment_date ) {
 			$payment_date = current_time( 'Y-m-d' );
