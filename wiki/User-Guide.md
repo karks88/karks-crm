@@ -1,6 +1,6 @@
 # User Guide
 
-Every screen in this guide exists twice — once in wp-admin (**Karks CRM** menu) and once on the front end (`/crm/`) — with identical behavior in both places. Screenshots aren't included here since both interfaces re-theme (front end via [Appearance](#appearance)) and this guide would go stale; menu paths given are for wp-admin, with the front-end equivalent noted where it differs.
+Every screen in this guide exists twice — once in wp-admin (**Karks CRM** menu) and once on the front end (`/crm/`) — with identical behavior in both places, with one exception: wp-admin's **Dashboard** and the front end's **Company Profile** (see [Companies](#companies)) show the same kind of at-a-glance summary but aren't the same screen — different stat cards, and only the front end has the Recent Actions feed, quick-add buttons, and Search Customers box. Screenshots aren't included here since both interfaces re-theme (front end via [Appearance](#appearance)) and this guide would go stale; menu paths given are for wp-admin, with the front-end equivalent noted where it differs.
 
 ## Companies
 
