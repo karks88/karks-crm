@@ -79,6 +79,54 @@ abstract class KCRM_Services_Controller extends KCRM_Controller_Base {
 		$this->redirect( array( 'view' => 'edit', 'id' => $id, 'kcrm_notice' => 'saved' ) );
 	}
 
+	/** Nonce-protected admin-post URL for the Services list CSV export. */
+	public function export_services_csv_url() {
+		$url = add_query_arg( array( 'action' => 'kcrm_export_services_csv' ), admin_url( 'admin-post.php' ) );
+		return wp_nonce_url( $url, 'kcrm_export_services_csv' );
+	}
+
+	/** admin-post handler: streams a CSV of every service in the current company. No filters exist on the Services list yet, so there's nothing to respect here. */
+	public function handle_export_services_csv() {
+		if ( ! current_user_can( KCRM_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to do this.', 'karks-crm' ) );
+		}
+		check_admin_referer( 'kcrm_export_services_csv' );
+
+		$company_id = $this->current_company_id();
+		$company    = $company_id ? KCRM_Company::find( $company_id ) : null;
+		if ( ! $company ) {
+			wp_die( esc_html__( 'Please create a company first.', 'karks-crm' ) );
+		}
+
+		$services = KCRM_Service::for_company( $company_id );
+		$types    = KCRM_Service::types();
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $company->name . '-services-' . gmdate( 'Y-m-d' ) ) . '.csv"' );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
+		$out = fopen( 'php://output', 'w' );
+		fputcsv( $out, array( __( 'Name', 'karks-crm' ), __( 'Description', 'karks-crm' ), __( 'Type', 'karks-crm' ), __( 'Rate', 'karks-crm' ), __( 'Taxable', 'karks-crm' ), __( 'Active', 'karks-crm' ) ) );
+
+		foreach ( $services as $service ) {
+			fputcsv(
+				$out,
+				array(
+					$service->name,
+					$service->description,
+					$types[ $service->type ] ?? $service->type,
+					number_format( (float) $service->rate, 2, '.', '' ),
+					$service->is_taxable ? __( 'Yes', 'karks-crm' ) : __( 'No', 'karks-crm' ),
+					$service->is_active ? __( 'Yes', 'karks-crm' ) : __( 'No', 'karks-crm' ),
+				)
+			);
+		}
+
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output stream handle opened above, not a real file.
+		exit;
+	}
+
 	private function delete( $id ) {
 		check_admin_referer( 'kcrm_delete_service_' . $id );
 		KCRM_Service::delete( $id );

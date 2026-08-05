@@ -331,6 +331,65 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		$this->redirect( array( 'view' => 'edit', 'id' => $payment ? $payment->invoice_id : 0, 'kcrm_notice' => 'deleted' ) );
 	}
 
+	/** Nonce-protected admin-post URL for the Invoices list CSV export, carrying over the status filter so the export matches what's currently on screen. */
+	public function export_invoices_csv_url( $selected_statuses, $status_filtered ) {
+		$args = array( 'action' => 'kcrm_export_invoices_csv' );
+		if ( $status_filtered ) {
+			$args['kcrm_status_filtered'] = 1;
+			$args['kcrm_status']          = $selected_statuses;
+		}
+		$url = add_query_arg( $args, admin_url( 'admin-post.php' ) );
+		return wp_nonce_url( $url, 'kcrm_export_invoices_csv' );
+	}
+
+	/** admin-post handler: streams a CSV of the current company's invoices, respecting the status filter from the Invoices list (defaulting to Draft/Open/Partially Paid, same as the list, when no filter is active). */
+	public function handle_export_invoices_csv() {
+		if ( ! current_user_can( KCRM_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to do this.', 'karks-crm' ) );
+		}
+		check_admin_referer( 'kcrm_export_invoices_csv' );
+
+		$company_id = $this->current_company_id();
+		$company    = $company_id ? KCRM_Company::find( $company_id ) : null;
+		if ( ! $company ) {
+			wp_die( esc_html__( 'Please create a company first.', 'karks-crm' ) );
+		}
+
+		$statuses = KCRM_Invoice::statuses();
+		list( $selected_statuses, ) = $this->resolve_status_filter( 'kcrm_status', $statuses, KCRM_Invoice::default_customer_statuses() );
+
+		$invoices  = KCRM_Invoice::for_company_with_statuses( $company_id, $selected_statuses );
+		$balances  = KCRM_Invoice::balances_for( $invoices );
+		$customers = KCRM_Customer::find_many( wp_list_pluck( $invoices, 'customer_id' ) );
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $company->name . '-invoices-' . gmdate( 'Y-m-d' ) ) . '.csv"' );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
+		$out = fopen( 'php://output', 'w' );
+		fputcsv( $out, array( __( 'Invoice #', 'karks-crm' ), __( 'Customer', 'karks-crm' ), __( 'Issue Date', 'karks-crm' ), __( 'Due Date', 'karks-crm' ), __( 'Total', 'karks-crm' ), __( 'Balance Due', 'karks-crm' ), __( 'Status', 'karks-crm' ) ) );
+
+		foreach ( $invoices as $invoice ) {
+			$customer = $customers[ (int) $invoice->customer_id ] ?? null;
+			fputcsv(
+				$out,
+				array(
+					$invoice->invoice_number,
+					$customer ? KCRM_Customer::display_name( $customer ) : '',
+					$invoice->issue_date,
+					$invoice->due_date,
+					number_format( (float) $invoice->total, 2, '.', '' ),
+					number_format( $balances[ $invoice->id ], 2, '.', '' ),
+					$statuses[ $invoice->status ] ?? $invoice->status,
+				)
+			);
+		}
+
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output stream handle opened above, not a real file.
+		exit;
+	}
+
 	private function delete( $invoice_id ) {
 		check_admin_referer( 'kcrm_delete_invoice_' . $invoice_id );
 		KCRM_Invoice_Item::delete_for_invoice( $invoice_id );

@@ -63,7 +63,7 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 						<td>
 							<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $company->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
 							|
-							<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_export_company&id=' . $company->id ), 'kcrm_export_company_' . $company->id ) ); ?>"><?php esc_html_e( 'Export', 'karks-crm' ); ?></a>
+							<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_export_company&id=' . $company->id ), 'kcrm_export_company_' . $company->id ) ); ?>" title="<?php echo esc_attr( KCRM_Company_Transfer::export_tooltip() ); ?>"><?php esc_html_e( 'Export', 'karks-crm' ); ?></a>
 							|
 							<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $company->id ) ), 'kcrm_delete_company_' . $company->id ) ); ?>"
 								onclick="return confirm('<?php echo esc_js( __( 'Delete this company and switch to another? Customers, services, and invoices under it will remain in the database but hidden.', 'karks-crm' ) ); ?>');">

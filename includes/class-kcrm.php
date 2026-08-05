@@ -56,6 +56,9 @@ class KCRM_Plugin {
 		add_action( 'admin_post_kcrm_export_company', array( $this->screens['companies'], 'handle_export_download' ) );
 		add_action( 'admin_post_kcrm_export_customer_open_balance_pdf', array( $this->screens['customers'], 'handle_open_balance_pdf' ) );
 		add_action( 'admin_post_kcrm_export_customer_open_balance_csv', array( $this->screens['customers'], 'handle_open_balance_csv' ) );
+		add_action( 'admin_post_kcrm_export_customers_csv', array( $this->screens['customers'], 'handle_export_customers_csv' ) );
+		add_action( 'admin_post_kcrm_export_services_csv', array( $this->screens['services'], 'handle_export_services_csv' ) );
+		add_action( 'admin_post_kcrm_export_invoices_csv', array( $this->screens['invoices'], 'handle_export_invoices_csv' ) );
 	}
 
 	public function register_menu() {

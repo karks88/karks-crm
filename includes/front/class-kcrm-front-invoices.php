@@ -20,7 +20,9 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'import_invoices' ) ) ), esc_html__( 'Import Invoices', 'karks-crm' ) );
 			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'import_payments' ) ) ), esc_html__( 'Import Payments', 'karks-crm' ) );
 			// Invoice Types is a global (not company-scoped) wp-admin-only settings screen -- see KCRM_Admin_Invoice_Types -- so this crosses over to wp-admin rather than a front-end view. Every user who can reach this screen already has the wp-admin capabilities needed to load it.
-			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-category"></span> %s</a></div>', esc_url( admin_url( 'admin.php?page=' . KCRM_Admin_Invoice_Types::PAGE ) ), esc_html__( 'Invoice Types', 'karks-crm' ) );
+			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-category"></span> %s</a> ', esc_url( admin_url( 'admin.php?page=' . KCRM_Admin_Invoice_Types::PAGE ) ), esc_html__( 'Invoice Types', 'karks-crm' ) );
+			list( $kcrm_export_statuses, $kcrm_export_status_filtered ) = $this->resolve_status_filter( 'kcrm_status', KCRM_Invoice::statuses(), KCRM_Invoice::default_customer_statuses() );
+			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-download"></span> %s</a></div>', esc_url( $this->export_invoices_csv_url( $kcrm_export_statuses, $kcrm_export_status_filtered ) ), esc_html__( 'Export CSV', 'karks-crm' ) );
 		}
 
 		$this->render_notice_from_query();
@@ -366,7 +368,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 								<a href="#" class="kcrm-invoice-group-toggle" data-kcrm-invoice-group="<?php echo esc_attr( $group_id ); ?>">
 									<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
 								</a>
-								<strong><a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $group['customer']->id ) ) ); ?>"><?php echo esc_html( $group['customer']->company_name ); ?></a></strong>
+								<strong><a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $group['customer']->id, 'tab' => 'billing' ) ) ); ?>"><?php echo esc_html( $group['customer']->company_name ); ?></a></strong>
 								&nbsp;&mdash;&nbsp;
 								<?php
 								echo esc_html(
@@ -475,7 +477,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			</td>
 			<td>
 				<?php if ( $customer ) : ?>
-					<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $customer->id ) ) ); ?>"><?php echo esc_html( KCRM_Customer::display_name( $customer ) ); ?></a>
+					<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $customer->id, 'tab' => 'billing' ) ) ); ?>"><?php echo esc_html( KCRM_Customer::display_name( $customer ) ); ?></a>
 				<?php endif; ?>
 			</td>
 			<td><?php echo esc_html( $invoice->issue_date ); ?></td>
@@ -583,7 +585,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 					<?php endforeach; ?>
 				</select>
 				<?php if ( $invoice ) : ?>
-					<a class="kcrm-button" href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $invoice->customer_id ) ) ); ?>"><?php esc_html_e( 'View Customer Profile', 'karks-crm' ); ?></a>
+					<a class="kcrm-button" href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $invoice->customer_id, 'tab' => 'billing' ) ) ); ?>"><?php esc_html_e( 'View Customer Profile', 'karks-crm' ); ?></a>
 				<?php endif; ?>
 			</p>
 			<p>

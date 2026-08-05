@@ -37,6 +37,7 @@ class KCRM_Front_Tools extends KCRM_Controller_Base {
 						<th><?php esc_html_e( 'Customers', 'karks-crm' ); ?></th>
 						<th><?php esc_html_e( 'Open Invoices', 'karks-crm' ); ?></th>
 						<th><?php esc_html_e( 'Outstanding Balance', 'karks-crm' ); ?></th>
+						<th><?php esc_html_e( 'Actions', 'karks-crm' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -66,6 +67,11 @@ class KCRM_Front_Tools extends KCRM_Controller_Base {
 							<td><?php echo esc_html( $customer_count ); ?></td>
 							<td><?php echo esc_html( $open_invoices ); ?></td>
 							<td><?php echo esc_html( number_format_i18n( $outstanding, 2 ) ); ?></td>
+							<td>
+								<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_export_company&id=' . $company->id ), 'kcrm_export_company_' . $company->id ) ); ?>" title="<?php echo esc_attr( KCRM_Company_Transfer::export_tooltip() ); ?>">
+									<span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export', 'karks-crm' ); ?>
+								</a>
+							</td>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>

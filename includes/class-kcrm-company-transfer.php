@@ -7,8 +7,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Exports a single company (profile, customers, services, invoices, line
  * items, payments) to a plain JSON-serializable array, and imports that
  * same shape back in as a brand-new company -- e.g. for migrating a
- * company between sites or duplicating one as a template. wp-admin only;
- * see KCRM_Admin_Companies for the Export/Import UI.
+ * company between sites or duplicating one as a template. Export is
+ * reachable from both wp-admin (Companies list) and the front end (Tools
+ * screen); import remains wp-admin only -- see KCRM_Admin_Companies and
+ * KCRM_Front_Tools for the Export/Import UI.
  *
  * Deliberately excluded from the export: the company logo (a media
  * attachment, not row data -- re-upload it manually on the new site) and
@@ -22,6 +24,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * whatever's already attached to that company.
  */
 class KCRM_Company_Transfer {
+
+	/** Shared tooltip text for the Export link, so wp-admin and the front end can't drift into different wording. */
+	public static function export_tooltip() {
+		return __( 'Export this company as a JSON file. Use it as a backup or import it into another Karks CRM installation.', 'karks-crm' );
+	}
 
 	/** @return array A plain array, ready for wp_json_encode(). */
 	public static function export( $company_id ) {

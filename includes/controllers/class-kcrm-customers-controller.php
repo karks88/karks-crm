@@ -277,6 +277,102 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 		return array( $customer, $rollup_ids );
 	}
 
+	/** Nonce-protected admin-post URL for the Customers list CSV export, carrying over the active/inactive filter so the export matches what's currently on screen. */
+	public function export_customers_csv_url() {
+		$args = array( 'action' => 'kcrm_export_customers_csv' );
+		if ( $this->show_all_customers_requested() ) {
+			$args['kcrm_status_filter'] = 'all';
+		}
+		$url = add_query_arg( $args, admin_url( 'admin-post.php' ) );
+		return wp_nonce_url( $url, 'kcrm_export_customers_csv' );
+	}
+
+	/**
+	 * admin-post handler: streams a CSV of the current company's top-level
+	 * customers (plus their Jobs, always included alongside their parent
+	 * regardless of the filter -- same as how the list table displays them)
+	 * respecting the active/inactive filter from the Customers list.
+	 */
+	public function handle_export_customers_csv() {
+		if ( ! current_user_can( KCRM_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to do this.', 'karks-crm' ) );
+		}
+		check_admin_referer( 'kcrm_export_customers_csv' );
+
+		$company_id = $this->current_company_id();
+		$company    = $company_id ? KCRM_Company::find( $company_id ) : null;
+		if ( ! $company ) {
+			wp_die( esc_html__( 'Please create a company first.', 'karks-crm' ) );
+		}
+
+		$status_filter = $this->show_all_customers_requested() ? null : KCRM_Customer::STATUS_ACTIVE;
+		$statuses      = KCRM_Customer::statuses();
+
+		$top_level          = KCRM_Customer::top_level_for_company( $company_id, 'company_name ASC', $status_filter );
+		$jobs_by_parent     = KCRM_Customer::jobs_for_many( wp_list_pluck( $top_level, 'id' ) );
+		$all_jobs           = empty( $jobs_by_parent ) ? array() : array_merge( ...array_values( $jobs_by_parent ) );
+		$top_level_balances = KCRM_Customer::balances_for_top_level( $top_level );
+		$job_balances       = KCRM_Customer::balances_for( wp_list_pluck( $all_jobs, 'id' ) );
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $company->name . '-customers-' . gmdate( 'Y-m-d' ) ) . '.csv"' );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
+		$out = fopen( 'php://output', 'w' );
+		fputcsv(
+			$out,
+			array(
+				__( 'Company Name', 'karks-crm' ),
+				__( 'Job Of', 'karks-crm' ),
+				__( 'Contact Person', 'karks-crm' ),
+				__( 'Secondary Contact Person', 'karks-crm' ),
+				__( 'Email', 'karks-crm' ),
+				__( 'Secondary Email', 'karks-crm' ),
+				__( 'Phone', 'karks-crm' ),
+				__( 'Street Address', 'karks-crm' ),
+				__( 'City', 'karks-crm' ),
+				__( 'State', 'karks-crm' ),
+				__( 'Postal Code', 'karks-crm' ),
+				__( 'Invoice Recipient Name', 'karks-crm' ),
+				__( 'Invoice Recipient Email', 'karks-crm' ),
+				__( 'Status', 'karks-crm' ),
+				__( 'Balance', 'karks-crm' ),
+			)
+		);
+
+		$customer_row = function ( $customer, $job_of, $balance ) use ( $statuses ) {
+			return array(
+				$customer->company_name,
+				$job_of,
+				$customer->contact_person,
+				$customer->secondary_contact_person,
+				$customer->email,
+				$customer->secondary_email,
+				$customer->phone,
+				$customer->address_street,
+				$customer->address_city,
+				$customer->address_state,
+				$customer->address_postal_code,
+				$customer->invoice_recipient_name,
+				$customer->invoice_recipient_email,
+				$statuses[ $customer->status ] ?? $customer->status,
+				number_format( $balance, 2, '.', '' ),
+			);
+		};
+
+		foreach ( $top_level as $customer ) {
+			fputcsv( $out, $customer_row( $customer, '', $top_level_balances[ (int) $customer->id ] ) );
+
+			foreach ( $jobs_by_parent[ $customer->id ] ?? array() as $job ) {
+				fputcsv( $out, $customer_row( $job, $customer->company_name, $job_balances[ (int) $job->id ] ) );
+			}
+		}
+
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output stream handle opened above, not a real file.
+		exit;
+	}
+
 	private function delete( $id ) {
 		check_admin_referer( 'kcrm_delete_customer_' . $id );
 

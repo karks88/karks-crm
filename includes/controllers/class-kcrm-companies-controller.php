@@ -144,8 +144,9 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 	/**
 	 * admin-post handler: streams this company's full data (profile,
 	 * customers, services, invoices, line items, payments) as a JSON file
-	 * download, for migrating to (or duplicating on) another site. wp-admin
-	 * only -- see KCRM_Company_Transfer.
+	 * download, for migrating to (or duplicating on) another site. Reachable
+	 * from both wp-admin (Companies list) and the front end (Tools screen)
+	 * since admin-post.php isn't wp-admin-only -- see KCRM_Company_Transfer.
 	 */
 	public function handle_export_download() {
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;

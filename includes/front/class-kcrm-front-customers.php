@@ -17,7 +17,8 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 
 		if ( 'list' === $view ) {
 			printf( '<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s"><span class="dashicons dashicons-plus-alt2"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
-			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a></div>', esc_url( $this->screen_url( array( 'view' => 'import' ) ) ), esc_html__( 'Import from CSV', 'karks-crm' ) );
+			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'import' ) ) ), esc_html__( 'Import from CSV', 'karks-crm' ) );
+			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-download"></span> %s</a></div>', esc_url( $this->export_customers_csv_url() ), esc_html__( 'Export CSV', 'karks-crm' ) );
 		}
 
 		$this->render_notice_from_query();
@@ -229,12 +230,6 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		};
 		$this->render_active_customers_toggle( $show_all );
 		?>
-		<div class="kcrm-dashboard-cards">
-			<div class="kcrm-card">
-				<span class="kcrm-card-number"><?php echo esc_html( number_format_i18n( KCRM_Customer::balance_for_company( $company_id ), 2 ) ); ?></span>
-				<span class="kcrm-card-label"><?php esc_html_e( 'Open Balance', 'karks-crm' ); ?></span>
-			</div>
-		</div>
 		<?php if ( ! empty( $customers ) ) : ?>
 			<p class="kcrm-list-search">
 				<label for="kcrm-customer-search" class="screen-reader-text"><?php esc_html_e( 'Search customers', 'karks-crm' ); ?></label>
@@ -359,6 +354,106 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 			return;
 		}
 
+		if ( ! $customer ) {
+			// Adding a brand-new customer: nothing else to show yet, so skip the tab chrome entirely.
+			$this->render_home_tab( $id, $customer );
+			return;
+		}
+
+		$job_ids    = wp_list_pluck( KCRM_Customer::jobs_for( $customer->id ), 'id' );
+		$rollup_ids = array_merge( array( $customer->id ), $job_ids );
+
+		$tabs = array(
+			'home' => array(
+				'label'  => __( 'Home', 'karks-crm' ),
+				'render' => function () use ( $id, $customer ) {
+					$this->render_home_tab( $id, $customer );
+				},
+			),
+		);
+
+		if ( ! $customer->parent_customer_id ) {
+			$tabs['jobs'] = array(
+				'label'  => __( 'Jobs', 'karks-crm' ),
+				'badge'  => count( $job_ids ) ?: null,
+				'render' => function () use ( $customer ) {
+					$this->render_jobs_section( $customer );
+				},
+			);
+		}
+
+		$tabs['billing'] = array(
+			'label'  => __( 'Invoices & Payments', 'karks-crm' ),
+			'render' => function () use ( $rollup_ids, $customer, $job_ids ) {
+				$this->render_revenue_section( $rollup_ids, $customer->id, ! empty( $job_ids ) );
+				$this->render_invoices_section( $rollup_ids, $customer->id, ! empty( $job_ids ) );
+				$this->render_payments_section( $rollup_ids, ! empty( $job_ids ) );
+				$this->render_receive_payment_section( $rollup_ids, $customer->id );
+			},
+		);
+
+		/**
+		 * Filters the tabs shown on the front-end customer profile screen --
+		 * lets an add-on (e.g. Karks CRM Packages) contribute its own tab
+		 * instead of only being able to append content at the very end via
+		 * kcrm_customer_edit_after_sections. See wiki/Hooks-and-Filters.md.
+		 *
+		 * @param array  $tabs       tab_slug => array( 'label' => string, 'badge' => int|string|null, 'render' => callable(): void ).
+		 * @param object $customer   The KCRM_Customer row being viewed.
+		 * @param int[]  $rollup_ids The customer's own ID plus any Job IDs rolled up under it.
+		 */
+		$tabs = apply_filters( 'kcrm_customer_profile_tabs', $tabs, $customer, $rollup_ids );
+		$tabs = array_filter(
+			$tabs,
+			static function ( $tab ) {
+				return is_array( $tab ) && ! empty( $tab['label'] ) && is_callable( $tab['render'] ?? null );
+			}
+		);
+
+		$this->render_profile_tabs( $tabs, $id );
+
+		do_action( 'kcrm_customer_edit_after_sections', $customer, $rollup_ids );
+	}
+
+	/**
+	 * Renders the tab nav plus the active tab's panel content. Tabs are
+	 * plain links carrying a `tab` query arg rather than JS-driven show/hide,
+	 * matching every other filter/sort control in this plugin -- the active
+	 * tab survives a reload/bookmark for free since it lives in the URL.
+	 *
+	 * @param array $tabs tab_slug => array( 'label' => string, 'badge' => int|string|null, 'render' => callable(): void ).
+	 */
+	private function render_profile_tabs( array $tabs, $id ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab-routing param, no state change.
+		$active = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		if ( ! isset( $tabs[ $active ] ) ) {
+			$active = array_key_first( $tabs );
+		}
+		?>
+		<div class="kcrm-profile-tabs">
+			<nav class="kcrm-profile-tablist">
+				<?php foreach ( $tabs as $key => $tab ) : ?>
+					<a class="kcrm-profile-tab<?php echo $key === $active ? ' is-active' : ''; ?>" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $id, 'tab' => $key ) ) ); ?>">
+						<?php echo esc_html( $tab['label'] ); ?>
+						<?php if ( ! empty( $tab['badge'] ) ) : ?>
+							<span class="kcrm-profile-tab-badge"><?php echo esc_html( $tab['badge'] ); ?></span>
+						<?php endif; ?>
+					</a>
+				<?php endforeach; ?>
+			</nav>
+			<div class="kcrm-profile-tab-panel">
+				<?php call_user_func( $tabs[ $active ]['render'] ); ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * The customer's own contact fields and "Send Invoices To" settings --
+	 * the Home tab on the profile screen (or the whole page, unwrapped, when
+	 * adding a brand-new customer that doesn't have tabs yet).
+	 */
+	private function render_home_tab( $id, $customer ) {
 		$v = function ( $field, $default = '' ) use ( $customer ) {
 			return $customer ? $customer->$field : $default;
 		};
@@ -456,21 +551,6 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 
 			<p><button type="submit" class="kcrm-button kcrm-button-primary"><?php echo esc_html( $id ? __( 'Update Customer', 'karks-crm' ) : __( 'Add Customer', 'karks-crm' ) ); ?></button></p>
 		</form>
-
-		<?php if ( $customer ) : ?>
-			<?php
-			$job_ids    = wp_list_pluck( KCRM_Customer::jobs_for( $customer->id ), 'id' );
-			$rollup_ids = array_merge( array( $customer->id ), $job_ids );
-			?>
-			<?php if ( ! $customer->parent_customer_id ) : ?>
-				<?php $this->render_jobs_section( $customer ); ?>
-			<?php endif; ?>
-			<?php $this->render_revenue_section( $rollup_ids, $customer->id, ! empty( $job_ids ) ); ?>
-			<?php $this->render_invoices_section( $rollup_ids, $customer->id, ! empty( $job_ids ) ); ?>
-			<?php $this->render_payments_section( $rollup_ids, ! empty( $job_ids ) ); ?>
-			<?php $this->render_receive_payment_section( $rollup_ids, $customer->id ); ?>
-			<?php do_action( 'kcrm_customer_edit_after_sections', $customer, $rollup_ids ); ?>
-		<?php endif; ?>
 		<?php
 	}
 

@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.4
+Stable tag: 0.9.5
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,13 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.5 =
+* The front-end customer profile is now tabbed (Home, Jobs, Invoices & Payments) instead of one long stacked page. The active tab lives in the URL, so a link or bookmark to a customer's invoices lands on the right tab; the Invoices screen's links into a customer's profile now point straight at Invoices & Payments.
+* New `kcrm_customer_profile_tabs` filter so an add-on can contribute its own tab on the customer profile (see the Hooks and Filters wiki page).
+* New CSV exports for the Customers, Services, and Invoices screens (front end), respecting whatever filter is currently applied (e.g. active-only customers, the selected invoice statuses).
+* The front-end Tools screen can now export a company as a JSON file (previously wp-admin only), with a tooltip explaining what it's for.
+* Removed the redundant "Open Balance" card from the front-end Customers list.
 
 = 0.9.4 =
 * Revenue report: each month on the 12-month chart now shows its total (with the company's currency symbol) under the month label, in the theme's primary color -- not just on hover.

@@ -118,11 +118,11 @@
 	text-decoration: underline;
 }
 
-a.kcrm-button .dashicons:link, a .dashicons:link, .kcrm-card a:link, a.kcrm-button .dashicons:visited, a .dashicons:visited, .kcrm-card a:visited, .kcrm-front-screen button:hover .dashicons, .kcrm-front-screen button:focus .dashicons, a .dashicons {
+a.kcrm-button .dashicons:link, a .dashicons:link, .kcrm-card a:link, a.kcrm-button .dashicons:visited, a .dashicons:visited, .kcrm-card a:visited, .kcrm-front-screen button:hover .dashicons, .kcrm-front-screen button:focus .dashicons, a .dashicons, .kcrm-profile-tablist a {
 	text-decoration: none;
 }
 
-a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover {
+a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover, .kcrm-profile-tablist a:hover, .kcrm-profile-tablist a:focus {
 	text-decoration: none;
 }
 
@@ -134,6 +134,67 @@ a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover {
 	border-top: 1px solid var(--kcrm-color-accent);
 	margin-top: 3.5em;
 	padding-top: 1.5em;
+}
+
+.kcrm-profile-tabs {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	margin: 0 0 3.5em;
+}
+
+.kcrm-profile-tablist {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+	padding: 0 8px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #dcdcde;
+	border-radius: 4px 4px 0 0;
+}
+
+.kcrm-profile-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 14px 18px 12px;
+	font-weight: 600;
+	font-size: 14px;
+	color: #646970;
+	text-decoration: none;
+	border-bottom: 3px solid transparent;
+}
+
+.kcrm-profile-tab:hover,
+.kcrm-profile-tab:focus {
+	color: var(--kcrm-color-primary-readable);
+	border-color: var(--kcrm-color-primary);
+	text-decoration: none;
+}
+
+.kcrm-profile-tab.is-active {
+	color: var(--kcrm-color-primary-readable);
+	border-bottom-color: var(--kcrm-color-primary);
+}
+
+.kcrm-profile-tab-badge {
+	display: inline-block;
+	padding: 1px 7px;
+	border-radius: 10px;
+	background: var(--kcrm-color-highlight);
+	color: var(--kcrm-color-highlight-text);
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.kcrm-profile-tab-panel {
+	padding: 1.75em 1.75em 2em;
+}
+
+/* A tab panel's own first heading shouldn't repeat the section-divider styling meant for stacked sections -- it's already inside the tab's own bordered box. */
+.kcrm-profile-tab-panel > h3:first-child {
+	border-top: none;
+	margin-top: 0;
+	padding-top: 0;
 }
 
 .kcrm-front-table {
@@ -666,6 +727,21 @@ a.kcrm-card:focus .kcrm-card-arrow {
 	.kcrm-front-nav a {
 		padding: 8px 1em;
 		font-size: 14px;
+	}
+
+	.kcrm-profile-tablist {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.kcrm-profile-tab {
+		white-space: nowrap;
+		padding: 12px 14px 10px;
+	}
+
+	.kcrm-profile-tab-panel {
+		padding: 1.25em 1em 1.5em;
 	}
 
 	.kcrm-front-table {

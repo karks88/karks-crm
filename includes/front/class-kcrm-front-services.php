@@ -17,7 +17,8 @@ class KCRM_Front_Services extends KCRM_Services_Controller {
 
 		if ( 'list' === $view ) {
 			printf( '<div class="kcrm-button-group"><a class="kcrm-button kcrm-button-primary" href="%s"><span class="dashicons dashicons-plus-alt2"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'add' ) ) ), esc_html__( 'Add New', 'karks-crm' ) );
-			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a></div>', esc_url( $this->screen_url( array( 'view' => 'import' ) ) ), esc_html__( 'Import from CSV', 'karks-crm' ) );
+			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-upload"></span> %s</a> ', esc_url( $this->screen_url( array( 'view' => 'import' ) ) ), esc_html__( 'Import from CSV', 'karks-crm' ) );
+			printf( '<a class="kcrm-button" href="%s"><span class="dashicons dashicons-download"></span> %s</a></div>', esc_url( $this->export_services_csv_url() ), esc_html__( 'Export CSV', 'karks-crm' ) );
 		}
 
 		$this->render_notice_from_query();
