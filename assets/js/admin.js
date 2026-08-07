@@ -381,4 +381,17 @@
 			}
 		});
 	});
+
+	$(function () {
+		var $toggle = $('.kcrm-front-nav-toggle');
+		var $nav = $('#kcrm-front-nav');
+		if (!$toggle.length || !$nav.length) {
+			return;
+		}
+
+		$toggle.on('click', function () {
+			var isOpen = $nav.toggleClass('is-open').hasClass('is-open');
+			$toggle.attr('aria-expanded', isOpen ? 'true' : 'false');
+		});
+	});
 })(jQuery);

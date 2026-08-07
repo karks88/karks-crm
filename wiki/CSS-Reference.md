@@ -31,8 +31,10 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 |---|---|
 | `.kcrm-front` | Outer wrapper for the whole `/crm/` page — max-width, base font size/line-height. |
 | `.kcrm-front-screen` | Wrapper for a single screen's content within `.kcrm-front`. |
-| `.kcrm-front-nav` | The tab bar (Company Profile/Customers/Services/Invoices/Reports/Tools). |
+| `.kcrm-front-nav` | The tab bar (Company Profile/Customers/Services/Invoices/Reports/Tools/Log Out). Collapses to a dropdown (`.is-open` toggles visibility) on screens 768px and below. |
 | `.kcrm-front-nav a.is-active` | The current tab. |
+| `.kcrm-front-nav-logout` | The "Log Out" link, right-aligned in the tab bar. |
+| `.kcrm-front-nav-toggle` | The hamburger button shown on screens 768px and below to open/close the collapsed nav. |
 | `.kcrm-company-header` | Two-column header (logo left, company switcher right) shown above the heading on every screen except Tools. |
 | `.kcrm-current-company-logo` | Wraps the company logo image inside `.kcrm-company-header`. |
 | `.kcrm-company-switcher` | Wraps the company `<select>` dropdown. |

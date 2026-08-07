@@ -62,6 +62,28 @@
 	border-color: var(--kcrm-color-primary);
 }
 
+.kcrm-front-nav-logout {
+	margin-left: auto;
+	color: #a94442;
+}
+
+.kcrm-front-nav-toggle {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	background: none;
+	border: none;
+	padding: 10px 1em;
+	cursor: pointer;
+	color: #50575e;
+}
+
+.kcrm-front-nav-toggle .dashicons {
+	font-size: 24px;
+	width: 24px;
+	height: 24px;
+}
+
 .kcrm-front .notice {
 	padding: 10px 14px;
 	margin: 0 0 2.5em;
@@ -701,7 +723,7 @@ a.kcrm-card:focus .kcrm-card-arrow {
 	font-size: 13px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
 	.kcrm-front-login {
 		margin: 24px auto;
 		padding: 20px;
@@ -722,6 +744,24 @@ a.kcrm-card:focus .kcrm-card-arrow {
 		width: 100%;
 		max-height: 95vh;
 		border-radius: 12px 12px 0 0;
+	}
+
+	.kcrm-front-nav-toggle {
+		display: flex;
+	}
+
+	.kcrm-front-nav {
+		display: none;
+		flex-direction: column;
+		gap: 0;
+	}
+
+	.kcrm-front-nav.is-open {
+		display: flex;
+	}
+
+	.kcrm-front-nav-logout {
+		margin-left: 0;
 	}
 
 	.kcrm-front-nav a {
@@ -786,6 +826,17 @@ a.kcrm-card:focus .kcrm-card-arrow {
 
 	.kcrm-bar-chart-value {
 		font-size: 9px;
+	}
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+	.kcrm-front-nav {
+		gap: 2px;
+	}
+
+	.kcrm-front-nav a {
+		font-size: 0.95rem;
+		padding: 8px 0.85em;
 	}
 }
 

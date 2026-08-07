@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.5
+Stable tag: 0.9.6
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,10 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.6 =
+* New "Log Out" link in the front-end nav, for CRM Manager users who don't have the wp-admin toolbar available to log out from.
+* The front-end nav now collapses to a hamburger menu on narrow screens (768px and below), and uses smaller, tighter-spaced tabs on tablet-width screens (769px-1100px).
 
 = 0.9.5 =
 * The front-end customer profile is now tabbed (Home, Jobs, Invoices & Payments) instead of one long stacked page. The active tab lives in the URL, so a link or bookmark to a customer's invoices lands on the right tab; the Invoices screen's links into a customer's profile now point straight at Invoices & Payments.

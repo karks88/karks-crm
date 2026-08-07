@@ -239,13 +239,17 @@ class KCRM_Front {
 		);
 		$current_company_id = KCRM_Context::get_current_company_id();
 		?>
-		<nav class="kcrm-front-nav">
+		<button type="button" class="kcrm-front-nav-toggle" aria-expanded="false" aria-controls="kcrm-front-nav" aria-label="<?php esc_attr_e( 'Menu', 'karks-crm' ); ?>">
+			<span class="dashicons dashicons-menu"></span>
+		</button>
+		<nav class="kcrm-front-nav" id="kcrm-front-nav">
 			<?php if ( $current_company_id ) : ?>
 				<a href="<?php echo esc_url( self::endpoint_url( 'companies', array( 'view' => 'overview', 'id' => $current_company_id ) ) ); ?>" class="<?php echo 'companies' === $current ? 'is-active' : ''; ?>"><span class="dashicons dashicons-building"></span> <?php esc_html_e( 'Company Profile', 'karks-crm' ); ?></a>
 			<?php endif; ?>
 			<?php foreach ( $labels as $endpoint => $label ) : ?>
 				<a href="<?php echo esc_url( self::endpoint_url( $endpoint ) ); ?>" class="<?php echo $current === $endpoint ? 'is-active' : ''; ?>"><span class="dashicons dashicons-<?php echo esc_attr( $icons[ $endpoint ] ); ?>"></span> <?php echo esc_html( $label ); ?></a>
 			<?php endforeach; ?>
+			<a href="<?php echo esc_url( wp_logout_url( self::endpoint_url( '' ) ) ); ?>" class="kcrm-front-nav-logout"><span class="dashicons dashicons-exit"></span> <?php esc_html_e( 'Log Out', 'karks-crm' ); ?></a>
 		</nav>
 		<?php
 	}
