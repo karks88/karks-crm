@@ -492,6 +492,21 @@ a.kcrm-button-primary:hover, a.kcrm-button-primary:focus {
 	text-decoration-thickness: 2px !important;
 }
 
+/* Extra emphasis for a screen's single payoff action (e.g. the invoice Update/Create submit), layered on top of .kcrm-button-primary rather than changing it everywhere. */
+.kcrm-button-emphasized {
+	margin-top: 1.5em;
+	padding: 13px 2.6em;
+	font-size: 1.05rem;
+	font-weight: 600;
+	border-radius: 5px;
+	box-shadow: 0 2px 0 rgba(0, 0, 0, .12), 0 6px 16px rgba(0, 0, 0, .18);
+}
+
+.kcrm-button-emphasized .dashicons {
+	vertical-align: middle;
+	margin-top: -2px;
+}
+
 .kcrm-overview-columns {
 	display: flex;
 	flex-direction: column;

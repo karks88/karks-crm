@@ -158,8 +158,8 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 
 	/**
 	 * "What happened lately" feed for the company profile -- invoices
-	 * created, invoices emailed, and customers added in the last 2 days,
-	 * merged into one reverse-chronological list.
+	 * created, invoices emailed, payments received, and customers added in
+	 * the last 2 days, merged into one reverse-chronological list.
 	 */
 	private function render_recent_actions( $company_id ) {
 		$since   = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 2 * DAY_IN_SECONDS );
@@ -198,6 +198,29 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 					$recipient
 				),
 				'url'   => KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'edit', 'id' => $email->invoice_id ) ),
+			);
+		}
+
+		foreach ( KCRM_Payment::created_since( $company_id, $since ) as $payment ) {
+			$customer  = KCRM_Customer::find( $payment->customer_id );
+			$actions[] = array(
+				'time'  => $payment->created_at,
+				'icon'  => 'dashicons-money-alt',
+				'label' => $customer
+					? sprintf(
+						/* translators: 1: payment amount, 2: invoice number, 3: customer name. */
+						__( 'Payment of %1$s received for Invoice %2$s from %3$s', 'karks-crm' ),
+						number_format_i18n( (float) $payment->amount, 2 ),
+						$payment->invoice_number,
+						KCRM_Customer::display_name( $customer )
+					)
+					: sprintf(
+						/* translators: 1: payment amount, 2: invoice number. */
+						__( 'Payment of %1$s received for Invoice %2$s', 'karks-crm' ),
+						number_format_i18n( (float) $payment->amount, 2 ),
+						$payment->invoice_number
+					),
+				'url'   => KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'edit', 'id' => $payment->invoice_id ) ),
 			);
 		}
 

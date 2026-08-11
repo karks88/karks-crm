@@ -642,7 +642,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			<h3><?php esc_html_e( 'Notes', 'karks-crm' ); ?></h3>
 			<textarea rows="3" name="notes"><?php echo $invoice ? esc_textarea( $invoice->notes ) : ''; ?></textarea>
 
-			<p><button type="submit" class="kcrm-button kcrm-button-primary"><?php echo esc_html( $id ? __( 'Update Invoice', 'karks-crm' ) : __( 'Create Invoice', 'karks-crm' ) ); ?></button></p>
+			<p><button type="submit" class="kcrm-button kcrm-button-primary kcrm-button-emphasized"><span class="dashicons dashicons-saved"></span> <?php echo esc_html( $id ? __( 'Update Invoice', 'karks-crm' ) : __( 'Create Invoice', 'karks-crm' ) ); ?></button></p>
 		</form>
 
 		<script>

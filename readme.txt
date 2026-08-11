@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.6
+Stable tag: 0.9.7
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,11 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.7 =
+* The front-end invoice edit screen's "Update Invoice"/"Create Invoice" button now stands out more -- larger, bolder, with a drop shadow and extra spacing above it -- instead of blending in with the page's other buttons.
+* The Company Switcher is now hidden if you only have one company, since there's nothing to switch to.
+* The Company Profile's Recent Actions feed now includes payments received, alongside invoices created/emailed and customers added.
 
 = 0.9.6 =
 * New "Log Out" link in the front-end nav, for CRM Manager users who don't have the wp-admin toolbar available to log out from.

@@ -343,7 +343,7 @@ abstract class KCRM_Controller_Base {
 	 */
 	protected function company_switcher( $destination_for_company = null ) {
 		$companies = KCRM_Company::all_ordered();
-		if ( empty( $companies ) ) {
+		if ( count( $companies ) < 2 ) {
 			return;
 		}
 		$current = $this->current_company_id();

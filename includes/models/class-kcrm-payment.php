@@ -265,6 +265,19 @@ class KCRM_Payment extends KCRM_Model_Base {
 	}
 
 	/**
+	 * Payments recorded on/after a cutoff (a 'Y-m-d H:i:s' string) for a
+	 * company -- for the company profile's Recent Actions feed. Joins to
+	 * the invoices table to pull invoice_number along for the link/label
+	 * (payments already carry their own customer_id/company_id).
+	 */
+	public static function created_since( $company_id, $since ) {
+		global $wpdb;
+		$sql = 'SELECT p.*, i.invoice_number FROM %i p INNER JOIN %i i ON i.id = p.invoice_id WHERE p.company_id = %d AND p.created_at >= %s ORDER BY p.created_at DESC, p.id DESC';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is a %i/%d/%s placeholder template filled in via $wpdb->prepare() on the same line.
+		return $wpdb->get_results( $wpdb->prepare( $sql, self::table(), KCRM_DB::invoices(), $company_id, $since ) );
+	}
+
+	/**
 	 * Monthly payment totals for a company across the trailing $months
 	 * months (including the current month), oldest first -- for the
 	 * Reports revenue bar chart. Months with no payments are included
