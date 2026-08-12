@@ -43,14 +43,21 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 		$text = function ( $v ) { return sanitize_text_field( wp_unslash( $v ) ); };
 		$html = function ( $v ) { return wp_kses_post( wp_unslash( $v ) ); };
 
+		$address_country = $this->field_or_existing( 'address_country', function ( $v ) { return sanitize_text_field( wp_unslash( $v ) ); }, $existing, KCRM_Countries::DEFAULT_CODE );
+		if ( ! array_key_exists( $address_country, KCRM_Countries::list() ) ) {
+			$address_country = KCRM_Countries::DEFAULT_CODE;
+		}
+
 		$data = array(
 			'name'                   => $this->field_or_existing( 'name', $text, $existing ),
 			'email'                  => $this->field_or_existing( 'email', function ( $v ) { return sanitize_email( wp_unslash( $v ) ); }, $existing ),
 			'phone'                  => $this->field_or_existing( 'phone', $text, $existing ),
 			'address_street'         => $this->field_or_existing( 'address_street', $text, $existing ),
+			'address_street_2'       => $this->field_or_existing( 'address_street_2', $text, $existing ),
 			'address_city'           => $this->field_or_existing( 'address_city', $text, $existing ),
 			'address_state'          => $this->field_or_existing( 'address_state', $text, $existing ),
 			'address_postal_code'    => $this->field_or_existing( 'address_postal_code', $text, $existing ),
+			'address_country'        => $address_country,
 			'logo_attachment_id'     => $this->field_or_existing( 'logo_attachment_id', 'absint', $existing, 0 ),
 			'invoice_prefix'         => $this->field_or_existing( 'invoice_prefix', $text, $existing, 'INV-' ),
 			'next_invoice_number'    => $this->field_or_existing( 'next_invoice_number', function ( $v ) { return max( 1, absint( $v ) ); }, $existing, 1 ),

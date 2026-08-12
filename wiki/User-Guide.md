@@ -8,7 +8,7 @@ Every screen in this guide exists twice — once in wp-admin (**Karks CRM** menu
 
 | Field | Notes |
 |---|---|
-| Name, Email, Phone, Address | Shown on invoices/PDFs. |
+| Name, Email, Phone, Address | Shown on invoices/PDFs. Address includes an optional Street Address 2 line and a Country field (defaults to United States) for companies outside the US. |
 | Logo | A media library image; shown on PDF invoices. Not included in [company export](#company-exportimport). |
 | Invoice Number Prefix / Next Invoice Number | e.g. `INV-` + `1` → next invoice is `INV-0001`. The counter advances on its own after each invoice is created. |
 | Default Tax Rate | Applied to invoices for this company, but only to line items individually marked **Taxable** (see [Services](#services)). |
@@ -27,7 +27,7 @@ A **company switcher** dropdown appears on every screen once more than one compa
 
 ## Customers & Jobs
 
-**Karks CRM → Customers.** Fields: Company Name, Contact Person (+ a Secondary Contact), Address, Phone, Email (+ Secondary Email), a **Send Invoices To** Name/Email (optional — when set, this is who the Email Invoice form defaults to for this customer, instead of the primary Contact Person/Email), Notes, and Status (Active/Inactive — the Customers list defaults to showing Active only, with a toggle to show all). The Company Name and Status columns are sortable (click the column header). The Customers list also shows a company-wide **Open Balance** total.
+**Karks CRM → Customers.** Fields: Company Name, Contact Person (+ a Secondary Contact), Address (with an optional Street Address 2 line and a Country field, for international customers), Phone, Email (+ Secondary Email), a **Send Invoices To** Name/Email (optional — when set, this is who the Email Invoice form defaults to for this customer, instead of the primary Contact Person/Email), Notes, and Status (Active/Inactive — the Customers list defaults to showing Active only, with a toggle to show all). The Company Name and Status columns are sortable (click the column header). The Customers list also shows a company-wide **Open Balance** total.
 
 **Jobs** are customers nested under a parent customer (e.g. separate properties or ongoing projects for the same client). A Job:
 - Is added from the parent customer's own page ("Add Job").

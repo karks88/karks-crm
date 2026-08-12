@@ -400,6 +400,10 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 					<td><input type="text" class="regular-text" name="address_street" id="address_street" value="<?php echo esc_attr( $v( 'address_street' ) ); ?>"></td>
 				</tr>
 				<tr>
+					<th><label for="address_street_2"><?php esc_html_e( 'Street Address 2', 'karks-crm' ); ?></label></th>
+					<td><input type="text" class="regular-text" name="address_street_2" id="address_street_2" value="<?php echo esc_attr( $v( 'address_street_2' ) ); ?>"></td>
+				</tr>
+				<tr>
 					<th><label for="address_city"><?php esc_html_e( 'City', 'karks-crm' ); ?></label></th>
 					<td><input type="text" class="regular-text" name="address_city" id="address_city" value="<?php echo esc_attr( $v( 'address_city' ) ); ?>"></td>
 				</tr>
@@ -410,6 +414,16 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 				<tr>
 					<th><label for="address_postal_code"><?php esc_html_e( 'Postal Code', 'karks-crm' ); ?></label></th>
 					<td><input type="text" class="regular-text" name="address_postal_code" id="address_postal_code" value="<?php echo esc_attr( $v( 'address_postal_code' ) ); ?>"></td>
+				</tr>
+				<tr>
+					<th><label for="address_country"><?php esc_html_e( 'Country', 'karks-crm' ); ?></label></th>
+					<td>
+						<select name="address_country" id="address_country">
+							<?php foreach ( KCRM_Countries::list() as $code => $label ) : ?>
+								<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $v( 'address_country', KCRM_Countries::DEFAULT_CODE ), $code ); ?>><?php echo esc_html( $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</td>
 				</tr>
 				<tr>
 					<th><label for="phone"><?php esc_html_e( 'Phone Number', 'karks-crm' ); ?></label></th>

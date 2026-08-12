@@ -1,8 +1,9 @@
 <?php
 /**
  * Plugin Name: Karks CRM
+ * Plugin URI: https://karks-crm.com
  * Description: Manage customers, services, and invoices across multiple companies.
- * Version: 0.9.7
+ * Version: 0.9.8
  * Author: Eric Karkovack
  * Author URI: https://karks.com
  * Text Domain: karks-crm
@@ -16,8 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'KCRM_VERSION', '0.9.7' );
-define( 'KCRM_DB_VERSION', '1.14.0' );
+define( 'KCRM_VERSION', '0.9.8' );
+define( 'KCRM_DB_VERSION', '1.16.0' );
 define( 'KCRM_PLUGIN_FILE', __FILE__ );
 define( 'KCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -50,6 +51,7 @@ require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice-email.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-context.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-company-transfer.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-colors.php';
+require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-countries.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-merge-tags.php';
 require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-controller-base.php';
 require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-companies-controller.php';

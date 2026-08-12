@@ -64,6 +64,11 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 
 		$text = function ( $v ) { return sanitize_text_field( wp_unslash( $v ) ); };
 
+		$address_country = $this->field_or_existing( 'address_country', $text, $existing, KCRM_Countries::DEFAULT_CODE );
+		if ( ! array_key_exists( $address_country, KCRM_Countries::list() ) ) {
+			$address_country = KCRM_Countries::DEFAULT_CODE;
+		}
+
 		$data = array(
 			'company_id'               => $company_id,
 			'parent_customer_id'       => $parent_id ?: null,
@@ -71,9 +76,11 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 			'contact_person'           => $this->field_or_existing( 'contact_person', $text, $existing ),
 			'secondary_contact_person' => $this->field_or_existing( 'secondary_contact_person', $text, $existing ),
 			'address_street'           => $this->field_or_existing( 'address_street', $text, $existing ),
+			'address_street_2'         => $this->field_or_existing( 'address_street_2', $text, $existing ),
 			'address_city'             => $this->field_or_existing( 'address_city', $text, $existing ),
 			'address_state'            => $this->field_or_existing( 'address_state', $text, $existing ),
 			'address_postal_code'      => $this->field_or_existing( 'address_postal_code', $text, $existing ),
+			'address_country'          => $address_country,
 			'phone'                    => $this->field_or_existing( 'phone', $text, $existing ),
 			'email'                    => $this->field_or_existing( 'email', function ( $v ) { return sanitize_email( wp_unslash( $v ) ); }, $existing ),
 			'secondary_email'          => $this->field_or_existing( 'secondary_email', function ( $v ) { return sanitize_email( wp_unslash( $v ) ); }, $existing ),
@@ -331,9 +338,11 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 				__( 'Secondary Email', 'karks-crm' ),
 				__( 'Phone', 'karks-crm' ),
 				__( 'Street Address', 'karks-crm' ),
+				__( 'Street Address 2', 'karks-crm' ),
 				__( 'City', 'karks-crm' ),
 				__( 'State', 'karks-crm' ),
 				__( 'Postal Code', 'karks-crm' ),
+				__( 'Country', 'karks-crm' ),
 				__( 'Invoice Recipient Name', 'karks-crm' ),
 				__( 'Invoice Recipient Email', 'karks-crm' ),
 				__( 'Status', 'karks-crm' ),
@@ -351,9 +360,11 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 				$customer->secondary_email,
 				$customer->phone,
 				$customer->address_street,
+				$customer->address_street_2,
 				$customer->address_city,
 				$customer->address_state,
 				$customer->address_postal_code,
+				KCRM_Countries::label( $customer->address_country ),
 				$customer->invoice_recipient_name,
 				$customer->invoice_recipient_email,
 				$statuses[ $customer->status ] ?? $customer->status,

@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.7
+Stable tag: 0.9.8
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,10 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.8 =
+* New Country field on the Company and Customer profiles (wp-admin and front end), for tracking international customers. Defaults to United States for existing records. The invoice PDF's From/Bill To addresses now show the country when it's set to anything other than the United States, and the front-end Customers CSV export includes a Country column.
+* New Street Address 2 field on the Company and Customer profiles, for apartment/suite/unit numbers or a second address line. Shows up wherever Street Address does: both edit screens, the invoice PDF, and the Customers CSV export.
 
 = 0.9.7 =
 * The front-end invoice edit screen's "Update Invoice"/"Create Invoice" button now stands out more -- larger, bolder, with a drop shadow and extra spacing above it -- instead of blending in with the page's other buttons.

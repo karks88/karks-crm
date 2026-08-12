@@ -112,10 +112,12 @@ $kcrm_accent     = $kcrm_hex_or( KCRM_Company::pdf_accent_color( $company ), $kc
 				<h4><?php esc_html_e( 'From', 'karks-crm' ); ?></h4>
 				<div><?php echo esc_html( $company->name ); ?></div>
 				<?php if ( $company->address_street ) : ?><div><?php echo esc_html( $company->address_street ); ?></div><?php endif; ?>
+				<?php if ( $company->address_street_2 ) : ?><div><?php echo esc_html( $company->address_street_2 ); ?></div><?php endif; ?>
 				<div>
 					<?php echo esc_html( trim( implode( ', ', array_filter( array( $company->address_city, $company->address_state ) ) ) ) ); ?>
 					<?php echo esc_html( $company->address_postal_code ); ?>
 				</div>
+				<?php if ( ! empty( $company->address_country ) && KCRM_Countries::DEFAULT_CODE !== $company->address_country ) : ?><div><?php echo esc_html( KCRM_Countries::label( $company->address_country ) ); ?></div><?php endif; ?>
 				<?php if ( $company->phone ) : ?><div><?php echo esc_html( $company->phone ); ?></div><?php endif; ?>
 				<?php if ( $company->email ) : ?><div><?php echo esc_html( $company->email ); ?></div><?php endif; ?>
 			</td>
@@ -124,10 +126,12 @@ $kcrm_accent     = $kcrm_hex_or( KCRM_Company::pdf_accent_color( $company ), $kc
 				<div><?php echo esc_html( $customer->company_name ); ?></div>
 				<?php if ( $customer->contact_person ) : ?><div><?php echo esc_html( $customer->contact_person ); ?></div><?php endif; ?>
 				<?php if ( $customer->address_street ) : ?><div><?php echo esc_html( $customer->address_street ); ?></div><?php endif; ?>
+				<?php if ( $customer->address_street_2 ) : ?><div><?php echo esc_html( $customer->address_street_2 ); ?></div><?php endif; ?>
 				<div>
 					<?php echo esc_html( trim( implode( ', ', array_filter( array( $customer->address_city, $customer->address_state ) ) ) ) ); ?>
 					<?php echo esc_html( $customer->address_postal_code ); ?>
 				</div>
+				<?php if ( ! empty( $customer->address_country ) && KCRM_Countries::DEFAULT_CODE !== $customer->address_country ) : ?><div><?php echo esc_html( KCRM_Countries::label( $customer->address_country ) ); ?></div><?php endif; ?>
 				<?php if ( $customer->email ) : ?><div><?php echo esc_html( $customer->email ); ?></div><?php endif; ?>
 			</td>
 		</tr>
