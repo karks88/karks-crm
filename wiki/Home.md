@@ -11,6 +11,7 @@ Karks CRM is an internal customer relationship and invoicing tool for managing m
 
 ## Quick facts
 
+- **Website:** [karks-crm.com](https://karks-crm.com)
 - **Data model:** Company → Customers (optionally with nested "Jobs") and Services, both feeding Invoices → Line Items and Payments. Everything is scoped to a company; nothing is shared across companies.
 - **Capability:** `kcrm_manage`, granted to Administrators automatically and to a dedicated `kcrm_manager` role (see [User Guide § Front-End Interface & Roles](User-Guide#front-end-interface--roles)).
 - **PDF generation:** via [Dompdf](https://github.com/dompdf/dompdf), bundled in `vendor/` — no separate install step required.
