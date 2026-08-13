@@ -13,8 +13,14 @@ class KCRM_Activator {
 	public static function activate() {
 		$existing_install = (bool) get_option( 'kcrm_db_version' );
 
-		self::create_tables();
-		add_option( 'kcrm_db_version', KCRM_DB_VERSION );
+		$errors = self::create_tables();
+		if ( empty( $errors ) ) {
+			add_option( 'kcrm_db_version', KCRM_DB_VERSION );
+			self::clear_upgrade_failure();
+		} else {
+			self::record_upgrade_failure( $errors );
+		}
+
 		self::seed_invoice_types_if_empty( $existing_install );
 		self::add_role_and_caps();
 		self::create_front_page();
@@ -24,15 +30,67 @@ class KCRM_Activator {
 	public static function maybe_upgrade() {
 		$existing_install = (bool) get_option( 'kcrm_db_version' );
 
-		if ( get_option( 'kcrm_db_version' ) !== KCRM_DB_VERSION ) {
-			self::create_tables();
-			update_option( 'kcrm_db_version', KCRM_DB_VERSION );
+		if ( get_option( 'kcrm_db_version' ) !== KCRM_DB_VERSION && ! self::upgrade_recently_failed() ) {
+			$errors = self::create_tables();
+			if ( empty( $errors ) ) {
+				update_option( 'kcrm_db_version', KCRM_DB_VERSION );
+				self::clear_upgrade_failure();
+			} else {
+				self::record_upgrade_failure( $errors );
+			}
 		}
 
 		self::seed_invoice_types_if_empty( $existing_install );
 		self::add_role_and_caps();
 		self::create_front_page();
 		self::maybe_flush_rewrite_rules();
+	}
+
+	/**
+	 * Whether create_tables() failed recently enough that maybe_upgrade()
+	 * shouldn't retry it again this request. Without this, a persistent
+	 * failure (e.g. the DB user lacking ALTER privileges) would re-run the
+	 * full dbDelta() pass -- several queries -- on every single page load,
+	 * since kcrm_db_version is deliberately left un-bumped on failure so the
+	 * upgrade keeps being attempted rather than silently marked "done".
+	 */
+	private static function upgrade_recently_failed() {
+		$failed_at = get_option( 'kcrm_db_upgrade_failed_at' );
+		return $failed_at && ( time() - (int) $failed_at ) < HOUR_IN_SECONDS;
+	}
+
+	/** Records a failed migration attempt for render_upgrade_failure_notice() and upgrade_recently_failed(). */
+	private static function record_upgrade_failure( array $errors ) {
+		update_option( 'kcrm_db_upgrade_error', implode( "\n", array_unique( $errors ) ) );
+		update_option( 'kcrm_db_upgrade_failed_at', time() );
+	}
+
+	/** Clears any previously recorded failure once a migration succeeds. */
+	private static function clear_upgrade_failure() {
+		delete_option( 'kcrm_db_upgrade_error' );
+		delete_option( 'kcrm_db_upgrade_failed_at' );
+	}
+
+	/**
+	 * Persistent wp-admin notice (all screens, not just Karks CRM's own) so
+	 * a failed database update can't go unnoticed -- shown to anyone who
+	 * can manage_options, since fixing a DB permissions/schema problem is
+	 * outside what the kcrm_manage capability is meant to cover.
+	 */
+	public static function render_upgrade_failure_notice() {
+		$error = get_option( 'kcrm_db_upgrade_error' );
+		if ( ! $error || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		?>
+		<div class="notice notice-error">
+			<p>
+				<strong><?php esc_html_e( 'Karks CRM: database update failed.', 'karks-crm' ); ?></strong>
+				<?php esc_html_e( 'The plugin will keep retrying automatically, but some features may not work correctly until this is resolved. Details for your host/developer:', 'karks-crm' ); ?>
+			</p>
+			<p><code><?php echo esc_html( $error ); ?></code></p>
+		</div>
+		<?php
 	}
 
 	/**
@@ -393,8 +451,22 @@ class KCRM_Activator {
 			UNIQUE KEY type_key (type_key)
 		) $charset_collate;";
 
+		// dbDelta() doesn't return or throw on a failed query -- it just moves on -- so
+		// the only signal available is $wpdb->last_error, which itself only reflects
+		// the most recent query. Resetting it before each statement and checking it
+		// right after at least catches the common failure modes (a CREATE TABLE that
+		// fails outright, or the final ALTER in a batch) instead of assuming success
+		// unconditionally. @return string[] Any $wpdb error messages encountered, keyed
+		// by nothing in particular -- empty means every statement appeared to succeed.
+		$errors = array();
 		foreach ( $sql as $statement ) {
+			$wpdb->last_error = '';
 			dbDelta( $statement );
+			if ( $wpdb->last_error ) {
+				$errors[] = $wpdb->last_error;
+			}
 		}
+
+		return $errors;
 	}
 }

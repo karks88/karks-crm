@@ -1,0 +1,70 @@
+name: PHPUnit
+
+# Runs the data-integrity test suite (tests/phpunit) against a real
+# WordPress + MySQL environment on every push/PR -- see CLAUDE.md's Testing
+# section for how to run this locally. The plugin's own vendor/ (dompdf)
+# is already committed and doesn't need installing; tests/vendor/
+# (PHPUnit + wp-phpunit, dev-only) is not committed and is installed fresh
+# here each run.
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '7.4', '8.3' ]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: karks_crm_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout plugin into a real wp-content/plugins/karks-crm layout
+        uses: actions/checkout@v4
+        with:
+          path: wp-core/wp-content/plugins/karks-crm
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli
+          coverage: none
+
+      # Uses trunk rather than pinning a specific tag (e.g. a "7.0" tag) so
+      # this doesn't need updating/guessing a tag name every WP release;
+      # ubuntu-latest ships svn preinstalled.
+      - name: Check out current WordPress core into wp-core/
+        run: svn export --quiet https://develop.svn.wordpress.org/trunk/src/ wp-core
+
+      - name: Install PHPUnit/wp-phpunit (dev-only, not the plugin's own committed vendor/)
+        working-directory: wp-core/wp-content/plugins/karks-crm/tests
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do mysqladmin ping -h127.0.0.1 -uroot --silent && break; sleep 2; done
+
+      - name: Run test suite
+        working-directory: wp-core/wp-content/plugins/karks-crm
+        env:
+          WP_TESTS_DB_NAME: karks_crm_test
+          WP_TESTS_DB_USER: root
+          WP_TESTS_DB_PASSWORD: ''
+          WP_TESTS_DB_HOST: 127.0.0.1
+        run: php tests/vendor/bin/phpunit -c phpunit.xml.dist

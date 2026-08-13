@@ -33,6 +33,7 @@ class KCRM_Plugin {
 		// wp_insert_post()/flush_rewrite_rules(), neither of which is safe to
 		// call this early (plugins_loaded runs before $wp_rewrite exists).
 		add_action( 'init', array( 'KCRM_Activator', 'maybe_upgrade' ), 20 );
+		add_action( 'admin_notices', array( 'KCRM_Activator', 'render_upgrade_failure_notice' ) );
 
 		$this->screens = array(
 			'dashboard' => new KCRM_Admin_Dashboard(),

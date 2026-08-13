@@ -8,11 +8,19 @@ Karks CRM is a standalone WordPress plugin: an internal customer relationship/in
 
 The `karks-crm-packages` plugin in the sibling directory is a separate, decoupled add-on that depends on this plugin. See its own `CLAUDE.md` for how it integrates — it only touches a small, deliberate surface documented in `wiki/Hooks-and-Filters.md` and this plugin's own `KCRM_CAPABILITY`/`KCRM_Context`/model classes. When changing anything in that surface (the `kcrm_customer_edit_after_sections` hook signature, the `kcrm_customer_profile_tabs` filter, `KCRM_Model_Base`, `KCRM_Context::get_current_company_id()`, `KCRM_Colors::get()`, `KCRM_Company::pdf_accent_color()`, `KCRM_PDF::logo_data_uri()`, `KCRM_Front::is_crm_page()`/`endpoint_url()`), check whether it breaks that add-on too.
 
-There is no test suite, linter config, or JS build step in this repo — plain PHP/CSS/JS loaded directly by WordPress, plus Dompdf vendored in `vendor/` via Composer (`composer.json` declares `dompdf/dompdf`; `vendor/` is committed so no `composer install` step is needed after checkout/activation). To exercise changes, activate the plugin in a WordPress install and use wp-admin (`Karks CRM` menu) or the front-end `/crm/` page.
+There is no linter config or JS build step in this repo — plain PHP/CSS/JS loaded directly by WordPress, plus Dompdf vendored in `vendor/` via Composer (`composer.json` declares `dompdf/dompdf`; `vendor/` is committed so no `composer install` step is needed after checkout/activation). To exercise changes, activate the plugin in a WordPress install and use wp-admin (`Karks CRM` menu) or the front-end `/crm/` page. There is a PHPUnit suite — see Testing below.
 
 ## Release process
 
 Pushing a tag matching `v*` triggers `.github/workflows/release.yml`, which stages the repo (respecting `.distignore`, which also excludes `wiki/`) into a `karks-crm/` folder and zips it, so the release asset's top-level folder name is stable across versions (unlike GitHub's auto-generated source zip). Bump `Version:` in `karks-crm.php` and `KCRM_VERSION` together before tagging, and add a changelog entry to `readme.txt`.
+
+## Testing
+
+`tests/phpunit/` is a PHPUnit suite (`WP_UnitTestCase`, real WP core + a real MySQL DB — not mocked) focused on data integrity: schema/upgrade safety (`SchemaIntegrityTest`), the model layer's column whitelist (`ModelColumnWhitelistTest`), the `field_or_existing()` partial-POST protection and its documented checkbox/repeater exception (`CompanySaveFieldProtectionTest`), and the `maybe_upgrade()` failure-handling added above (`UpgradeFailureHandlingTest`). Runs automatically on push/PR via `.github/workflows/tests.yml`.
+
+Test tooling (PHPUnit, `wp-phpunit/wp-phpunit`, `yoast/phpunit-polyfills`) lives in `tests/composer.json` — a **separate** Composer project with its own `tests/vendor/` (gitignored, install via `composer install` inside `tests/`), deliberately kept out of the plugin's own root `vendor/` (which ships Dompdf in releases) so dev-only tooling never risks leaking into a release zip or the production autoloader.
+
+To run locally: point `tests/wp-tests-config.php` at a real DB via env vars (`WP_TESTS_DB_NAME`/`_USER`/`_PASSWORD`/`_HOST`) and run `php tests/vendor/bin/phpunit -c phpunit.xml.dist` from the plugin root — `ABSPATH` is derived from `tests/`'s own location, so this works against whatever full WordPress install the plugin is actually checked out inside (a LocalWP site, a `wp-core` checkout in CI, etc.) without further config.
 
 ## Documentation
 
@@ -36,7 +44,9 @@ Each dispatcher (`KCRM_Plugin::handle_screen_actions()`, `KCRM_Front::handle_scr
 
 ### Data layer
 
-All custom tables (`karkscrm_*`, names centralized in `KCRM_DB`) and their DDL live in `KCRM_Activator::create_tables()`, gated by the `kcrm_db_version` option vs `KCRM_DB_VERSION` — bump the latter on schema changes. Every model in `includes/models/` extends `KCRM_Model_Base`, which provides generic `find()`/`find_many()`/`where()`/`count_where()`/`insert()`/`update()`/`delete()` built on `%i`/`%s`/`%d` `$wpdb->prepare()` placeholders; add a new model by declaring `table()` and a `columns()` whitelist (column => `%d`/`%s`/`%f` format), not by writing new raw SQL.
+All custom tables (`karkscrm_*`, names centralized in `KCRM_DB`) and their DDL live in `KCRM_Activator::create_tables()`, gated by the `kcrm_db_version` option vs `KCRM_DB_VERSION` — bump the latter on schema changes. Every model in `includes/models/` extends `KCRM_Model_Base`, which provides generic `find()`/`find_many()`/`where()`/`count_where()`/`insert()`/`update()`/`delete()` built on `%i`/`%s`/`%d` `$wpdb->prepare()` placeholders; add a new model by declaring `table()` and a `columns()` whitelist (column => `%d`/`%s`/`%f` format), not by writing new raw SQL. `update()`/`insert()` only ever write columns present in that whitelist, so a partial `$data` array can't accidentally clobber unlisted columns — this is what makes `field_or_existing()` (see Security/validation conventions below) safe.
+
+`create_tables()` runs through `dbDelta()`, which only ever adds/widens columns — it never drops one, even a column the current `CREATE TABLE` string doesn't mention at all — so re-running it on every version bump can't lose existing data by itself. `maybe_upgrade()` additionally checks `$wpdb->last_error` after each statement (best-effort, since `dbDelta()` doesn't return per-statement success/failure) and, on a detected failure, does *not* bump `kcrm_db_version` — it keeps retrying (throttled to once/hour via `kcrm_db_upgrade_failed_at`) and shows a persistent `manage_options`-gated admin notice via `kcrm_db_upgrade_error`, rather than silently marking a failed migration "done".
 
 **Balances/totals are computed live, never cached-and-trusted**: `KCRM_Payment::total_for_invoice()`/`balance_due()` sum payment rows on demand rather than storing a running balance on the invoice (same precedent `karks-crm-packages` follows for package hours-remaining). Batched variants (`find_many()`, and payment/invoice equivalents) exist specifically so list screens can avoid N+1 per-row queries — prefer them over calling `find()`/a per-invoice total method inside a loop.
 

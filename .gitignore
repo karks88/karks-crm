@@ -1,0 +1,7 @@
+# Dev-only PHPUnit tooling (tests/composer.json) -- deliberately never
+# committed, unlike the plugin's own vendor/ (which ships dompdf and IS
+# committed, see CLAUDE.md). tests/composer.lock IS committed (pins exact
+# versions for CI/contributors); run `composer install` inside tests/ to
+# fetch the vendor/ this ignores.
+/tests/vendor/
+/.phpunit.result.cache

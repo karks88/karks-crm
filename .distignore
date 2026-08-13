@@ -5,3 +5,5 @@
 .distignore
 wiki
 CLAUDE.md
+tests
+phpunit.xml.dist
