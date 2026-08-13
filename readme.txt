@@ -2,9 +2,9 @@
 Contributors: karkovack
 Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
-Tested up to: 7.0.4
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.9.1
+Stable tag: 0.9.9.2
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,9 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.9.2 =
+* Corrected "Tested up to" in this file back to a major version only (7.0.4 -> 7.0) -- this field doesn't support minor/patch versions.
 
 = 0.9.9.1 =
 * Confirmed compatible with WordPress 7.0.4.
