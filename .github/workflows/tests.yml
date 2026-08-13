@@ -46,9 +46,12 @@ jobs:
           extensions: mysqli
           coverage: none
 
+      # subversion isn't guaranteed to be preinstalled on ubuntu-latest runners.
+      - name: Install svn
+        run: sudo apt-get update && sudo apt-get install -y subversion
+
       # Uses trunk rather than pinning a specific tag (e.g. a "7.0" tag) so
-      # this doesn't need updating/guessing a tag name every WP release;
-      # ubuntu-latest ships svn preinstalled.
+      # this doesn't need updating/guessing a tag name every WP release.
       - name: Check out current WordPress core into wp-core/
         run: svn export --quiet https://develop.svn.wordpress.org/trunk/src/ wp-core
 
