@@ -2,9 +2,9 @@
 Contributors: karkovack
 Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
-Tested up to: 7.0
+Tested up to: 7.0.4
 Requires PHP: 7.4
-Stable tag: 0.9.8
+Stable tag: 0.9.9.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,10 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.9.1 =
+* Confirmed compatible with WordPress 7.0.4.
+* New "Other Payment Instructions" field on the Company profile (wp-admin and front end) -- checking "Other" as an Accepted Payment Type now reveals a text field for it, the same way "Check" reveals "Make Checks Payable To". Shown on invoices and PDFs whenever "Other" is accepted and this field is filled in.
 
 = 0.9.8 =
 * New Country field on the Company and Customer profiles (wp-admin and front end), for tracking international customers. Defaults to United States for existing records. The invoice PDF's From/Bill To addresses now show the country when it's set to anything other than the United States, and the front-end Customers CSV export includes a Country column.

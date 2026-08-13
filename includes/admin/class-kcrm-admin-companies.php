@@ -305,6 +305,13 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 						<p class="description"><?php esc_html_e( 'Printed in larger type on PDF invoices so checks aren\'t mistakenly made out to the wrong name.', 'karks-crm' ); ?></p>
 					</td>
 				</tr>
+				<tr id="kcrm-other-payment-instructions-row" style="<?php echo in_array( 'other', $kcrm_accepted_types, true ) ? '' : 'display:none;'; ?>">
+					<th><label for="other_payment_instructions"><?php esc_html_e( 'Other Payment Instructions', 'karks-crm' ); ?></label></th>
+					<td>
+						<input type="text" class="regular-text" name="other_payment_instructions" id="other_payment_instructions" value="<?php echo esc_attr( $company ? $company->other_payment_instructions : '' ); ?>">
+						<p class="description"><?php esc_html_e( 'Shown on invoices to explain the "Other" payment method (e.g. wire transfer details, a payment app handle).', 'karks-crm' ); ?></p>
+					</td>
+				</tr>
 				<tr>
 					<th><?php esc_html_e( 'Payment Links', 'karks-crm' ); ?></th>
 					<td>
@@ -408,6 +415,9 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 			});
 			$('.kcrm-payment-type-checkbox[data-type="check"]').on('change', function(){
 				$('#kcrm-check-payable-to-row').toggle(this.checked);
+			});
+			$('.kcrm-payment-type-checkbox[data-type="other"]').on('change', function(){
+				$('#kcrm-other-payment-instructions-row').toggle(this.checked);
 			});
 			$('.kcrm-color-picker').wpColorPicker();
 		});

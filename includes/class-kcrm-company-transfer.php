@@ -58,6 +58,7 @@ class KCRM_Company_Transfer {
 				'accepted_payment_types' => $company->accepted_payment_types,
 				'payment_links'          => $company->payment_links,
 				'check_payable_to'       => $company->check_payable_to,
+				'other_payment_instructions' => $company->other_payment_instructions,
 				'pdf_accent_color'       => $company->pdf_accent_color,
 				'email_template'         => $company->email_template,
 			),

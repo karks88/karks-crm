@@ -67,6 +67,7 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 			'accepted_payment_types' => implode( ',', $this->sanitized_payment_types() ),
 			'payment_links'          => $this->sanitized_payment_links(),
 			'check_payable_to'       => $this->field_or_existing( 'check_payable_to', $text, $existing ),
+			'other_payment_instructions' => $this->field_or_existing( 'other_payment_instructions', $text, $existing ),
 			'pdf_accent_color'       => $this->field_or_existing( 'pdf_accent_color', function ( $v ) { $hex = sanitize_hex_color( wp_unslash( $v ) ); return $hex ? $hex : ''; }, $existing ),
 			'email_template'         => $this->field_or_existing( 'email_template', $html, $existing ),
 			// A real checkbox: unchecked means entirely absent from $_POST, not "field not submitted" -- field_or_existing() can't tell those apart, so check presence directly instead of falling back to the existing value.

@@ -696,6 +696,9 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 		<?php if ( in_array( 'check', $type_keys, true ) && ! empty( $company->check_payable_to ) ) : ?>
 			<p><strong><?php esc_html_e( 'Make checks payable to:', 'karks-crm' ); ?></strong> <?php echo esc_html( $company->check_payable_to ); ?></p>
 		<?php endif; ?>
+		<?php if ( in_array( 'other', $type_keys, true ) && ! empty( $company->other_payment_instructions ) ) : ?>
+			<p><strong><?php esc_html_e( 'Other payment instructions:', 'karks-crm' ); ?></strong> <?php echo esc_html( $company->other_payment_instructions ); ?></p>
+		<?php endif; ?>
 		<?php if ( ! empty( $links ) ) : ?>
 			<div class="kcrm-button-group">
 				<?php foreach ( $links as $link ) : ?>

@@ -258,6 +258,7 @@ class KCRM_Activator {
 			accepted_payment_types VARCHAR(255) NULL,
 			payment_links TEXT NULL,
 			check_payable_to VARCHAR(255) NULL,
+			other_payment_instructions VARCHAR(255) NULL,
 			pdf_accent_color VARCHAR(7) NULL,
 			email_template TEXT NULL,
 			invoice_bcc_enabled TINYINT(1) NOT NULL DEFAULT 0,

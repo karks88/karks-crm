@@ -29,6 +29,7 @@ class KCRM_Company extends KCRM_Model_Base {
 			'accepted_payment_types' => '%s',
 			'payment_links'        => '%s',
 			'check_payable_to'     => '%s',
+			'other_payment_instructions' => '%s',
 			'pdf_accent_color'     => '%s',
 			'email_template'       => '%s',
 			'invoice_bcc_enabled'  => '%d',
