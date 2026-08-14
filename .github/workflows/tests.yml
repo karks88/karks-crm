@@ -52,8 +52,11 @@ jobs:
 
       # Uses trunk rather than pinning a specific tag (e.g. a "7.0" tag) so
       # this doesn't need updating/guessing a tag name every WP release.
+      # --force is required: wp-core/wp-content/plugins/karks-crm/ already
+      # exists from the checkout step above, and svn export otherwise refuses
+      # to export into a non-empty target directory.
       - name: Check out current WordPress core into wp-core/
-        run: svn export --quiet https://develop.svn.wordpress.org/trunk/src/ wp-core
+        run: svn export --quiet --force https://develop.svn.wordpress.org/trunk/src/ wp-core
 
       - name: Install PHPUnit/wp-phpunit (dev-only, not the plugin's own committed vendor/)
         working-directory: wp-core/wp-content/plugins/karks-crm/tests
