@@ -50,13 +50,19 @@ jobs:
       - name: Install svn
         run: sudo apt-get update && sudo apt-get install -y subversion
 
-      # Uses trunk rather than pinning a specific tag (e.g. a "7.0" tag) so
-      # this doesn't need updating/guessing a tag name every WP release.
+      # Pinned to the same version as readme.txt's "Tested up to" rather than
+      # trunk (WP core's unreleased dev branch) -- trunk broke the PHP 7.4
+      # matrix job (passed on 8.3, failed on 7.4 with no other difference),
+      # almost certainly because trunk has already raised its own PHP floor
+      # past 7.4 ahead of its next release. Pinning to an actual released
+      # version keeps this suite testing what "Requires PHP: 7.4" claims to
+      # support, and stops results changing out from under us as trunk moves.
+      # Bump this alongside "Tested up to" in readme.txt.
       # --force is required: wp-core/wp-content/plugins/karks-crm/ already
       # exists from the checkout step above, and svn export otherwise refuses
       # to export into a non-empty target directory.
-      - name: Check out current WordPress core into wp-core/
-        run: svn export --quiet --force https://develop.svn.wordpress.org/trunk/src/ wp-core
+      - name: Check out WordPress core (matching readme.txt's Tested up to) into wp-core/
+        run: svn export --quiet --force https://develop.svn.wordpress.org/tags/7.0.4/src/ wp-core
 
       - name: Install PHPUnit/wp-phpunit (dev-only, not the plugin's own committed vendor/)
         working-directory: wp-core/wp-content/plugins/karks-crm/tests
