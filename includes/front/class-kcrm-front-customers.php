@@ -384,6 +384,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 
 		$tabs['billing'] = array(
 			'label'  => __( 'Invoices & Payments', 'karks-crm' ),
+			'badge'  => count( KCRM_Invoice::open_for_customers( $rollup_ids ) ) ?: null,
 			'render' => function () use ( $rollup_ids, $customer, $job_ids ) {
 				$this->render_revenue_section( $rollup_ids, $customer->id, ! empty( $job_ids ) );
 				$this->render_invoices_section( $rollup_ids, $customer->id, ! empty( $job_ids ) );

@@ -28,10 +28,10 @@ class KCRM_Merge_Tags {
 		$currency = $company && $company->currency ? $company->currency : 'USD';
 
 		$values = array(
-			'{{first_name}}'     => $first_name,
-			'{{last_name}}'      => $last_name,
-			'{{customer}}'       => $customer ? $customer->company_name : '',
-			'{{service}}'        => $invoice ? KCRM_Invoice::type_label( $invoice ) : '',
+			'{{first_name}}'     => wp_strip_all_tags( $first_name ),
+			'{{last_name}}'      => wp_strip_all_tags( $last_name ),
+			'{{customer}}'       => $customer ? wp_strip_all_tags( $customer->company_name ) : '',
+			'{{service}}'        => $invoice ? wp_strip_all_tags( KCRM_Invoice::type_label( $invoice ) ) : '',
 			'{{invoice_amount}}' => $invoice ? $currency . ' ' . number_format( (float) $invoice->total, 2 ) : '',
 		);
 

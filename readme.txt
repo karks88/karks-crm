@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.9.5
+Stable tag: 0.9.9.7
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,12 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.9.7 =
+* Hardening: the Email Invoice merge tags ({{first_name}}, {{last_name}}, {{customer}}, {{service}}) now strip any HTML from customer/service data before substituting into the email template, so a customer record can't inject markup into an outbound email regardless of which code path sends it.
+
+= 0.9.9.6 =
+* The front-end customer profile's "Invoices & Payments" tab now shows a count badge for open/partially-paid invoices (the same $0.00 exclusion as the Open Balance export), matching the existing "Jobs" tab badge.
 
 = 0.9.9.5 =
 * Fixed: the bundled Dompdf library (`vendor/`) actually required PHP 8.1+ despite this plugin declaring "Requires PHP: 7.4" -- a transitive dependency had drifted to a version with a higher floor than intended. Re-pinned so the bundled library genuinely supports PHP 7.4 again, matching what's declared.
