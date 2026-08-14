@@ -1,20 +1,43 @@
 <?php
 
-if (str_starts_with(PHP_VERSION, "8.1.")) {
-    require_once __DIR__ . '/8.1/libxml.php';
+namespace Safe;
+
+use Safe\Exceptions\LibxmlException;
+
+/**
+ * Retrieve last error from libxml.
+ *
+ * @return \LibXMLError Returns a LibXMLError object if there is any error in the
+ * buffer, FALSE otherwise.
+ * @throws LibxmlException
+ *
+ */
+function libxml_get_last_error(): \LibXMLError
+{
+    error_clear_last();
+    $result = \libxml_get_last_error();
+    if ($result === false) {
+        throw LibxmlException::createFromPhpError();
+    }
+    return $result;
 }
-if (str_starts_with(PHP_VERSION, "8.2.")) {
-    require_once __DIR__ . '/8.1/libxml.php';
-}
-if (str_starts_with(PHP_VERSION, "8.3.")) {
-    require_once __DIR__ . '/8.1/libxml.php';
-}
-if (str_starts_with(PHP_VERSION, "8.4.")) {
-    require_once __DIR__ . '/8.1/libxml.php';
-}
-if (str_starts_with(PHP_VERSION, "8.5.")) {
-    require_once __DIR__ . '/8.1/libxml.php';
-}
-if (str_starts_with(PHP_VERSION, "8.6.")) {
-    require_once __DIR__ . '/8.1/libxml.php';
+
+
+/**
+ * Changes the default external entity loader.
+ *
+ * @param callable $resolver_function A callable that takes three arguments. Two strings, a public id
+ * and system id, and a context (an array with four keys) as the third argument.
+ * This callback should return a resource, a string from which a resource can be
+ * opened, or NULL.
+ * @throws LibxmlException
+ *
+ */
+function libxml_set_external_entity_loader(callable $resolver_function): void
+{
+    error_clear_last();
+    $result = \libxml_set_external_entity_loader($resolver_function);
+    if ($result === false) {
+        throw LibxmlException::createFromPhpError();
+    }
 }

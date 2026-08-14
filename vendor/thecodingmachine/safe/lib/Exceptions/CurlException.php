@@ -1,14 +1,15 @@
 <?php
 
+
 namespace Safe\Exceptions;
 
 class CurlException extends \Exception implements SafeExceptionInterface
 {
     /**
-     * @param \CurlHandle $ch
+     * @param resource $ch
      */
-    public static function createFromPhpError($ch = null): self
+    public static function createFromCurlResource($ch): self
     {
-        return new self($ch ? \curl_error($ch) : '', $ch ? \curl_errno($ch) : 0);
+        return new self(\curl_error($ch), \curl_errno($ch));
     }
 }

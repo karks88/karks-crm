@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.9.4
+Stable tag: 0.9.9.5
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,9 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.9.5 =
+* Fixed: the bundled Dompdf library (`vendor/`) actually required PHP 8.1+ despite this plugin declaring "Requires PHP: 7.4" -- a transitive dependency had drifted to a version with a higher floor than intended. Re-pinned so the bundled library genuinely supports PHP 7.4 again, matching what's declared.
 
 = 0.9.9.4 =
 * Reliability: if a database update ever fails partway (e.g. a hosting/permissions issue), the plugin no longer silently marks it "done" -- it keeps retrying and shows a persistent notice to site administrators until it's resolved, instead of leaving the database in an inconsistent state unnoticed.

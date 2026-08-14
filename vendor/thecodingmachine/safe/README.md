@@ -1,11 +1,15 @@
-[![Latest Version](https://poser.pugx.org/thecodingmachine/safe/v/stable.svg)](https://packagist.org/packages/thecodingmachine/safe)
+[![Latest Stable Version](https://poser.pugx.org/thecodingmachine/safe/v/stable.svg)](https://packagist.org/packages/thecodingmachine/safe)
 [![Total Downloads](https://poser.pugx.org/thecodingmachine/safe/downloads.svg)](https://packagist.org/packages/thecodingmachine/safe)
+[![Latest Unstable Version](https://poser.pugx.org/thecodingmachine/safe/v/unstable.svg)](https://packagist.org/packages/thecodingmachine/safe)
 [![License](https://poser.pugx.org/thecodingmachine/safe/license.svg)](https://packagist.org/packages/thecodingmachine/safe)
-[![Tests](https://github.com/thecodingmachine/safe/workflows/Tests/badge.svg)](https://github.com/thecodingmachine/safe/actions)
+[![Build Status](https://travis-ci.org/thecodingmachine/safe.svg?branch=master)](https://travis-ci.org/thecodingmachine/safe)
+[![Continuous Integration](https://github.com/thecodingmachine/safe/workflows/Continuous%20Integration/badge.svg)](https://github.com/thecodingmachine/safe/actions)
 [![codecov](https://codecov.io/gh/thecodingmachine/safe/branch/master/graph/badge.svg)](https://codecov.io/gh/thecodingmachine/safe)
 
 Safe PHP
 ========
+
+**Work in progress**
 
 A set of core PHP functions rewritten to throw exceptions instead of returning `false` when an error is encountered.
 
@@ -18,7 +22,7 @@ But most of us are too lazy to check explicitly for every single return of every
 
 ```php
 // This code is incorrect. Twice.
-// "file_get_contents" can return false if the file does not exist
+// "file_get_contents" can return false if the file does not exists
 // "json_decode" can return false if the file content is not valid JSON
 $content = file_get_contents('foobar.json');
 $foobar = json_decode($content);
@@ -84,13 +88,13 @@ $content = file_get_contents('foobar.json');
 Use composer to install Safe-PHP:
 
 ```bash
-composer require thecodingmachine/safe
+$ composer require thecodingmachine/safe
 ```
 
 *Highly recommended*: install PHPStan and PHPStan extension:
 
 ```bash
-composer require --dev thecodingmachine/phpstan-safe-rule
+$ composer require --dev thecodingmachine/phpstan-safe-rule
 ```
 
 Now, edit your `phpstan.neon` file and add these rules:
@@ -111,7 +115,7 @@ tool that performs instant refactoring of your application.
 Run
 
 ```bash
-composer require --dev rector/rector
+$ composer require --dev rector/rector:^0.7
 ```
 
 to install `rector/rector`.
@@ -119,7 +123,7 @@ to install `rector/rector`.
 Run
 
 ```bash
-vendor/bin/rector process src/ --config vendor/thecodingmachine/safe/rector-migrate.php
+vendor/bin/rector process src/ --config vendor/thecodingmachine/safe/rector-migrate-0.7.php
 ```
 
 to run `rector/rector`.
