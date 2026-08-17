@@ -18,10 +18,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * on import from the imported line items/payments instead of trusting a
  * possibly-stale export).
  *
- * Import never merges into an existing company, even if the name matches
- * one already on this site -- it always creates a new one (auto-suffixing
- * the name on collision), rather than an implicit cascading overwrite of
- * whatever's already attached to that company.
+ * Import creates a new company by default, even if the name matches one
+ * already on this site (auto-suffixing the name on collision), rather than
+ * an implicit cascading overwrite of whatever's already attached to that
+ * company. Passing $target_company_id to import() opts into that overwrite
+ * instead -- wiping and replacing one specific existing company's data in
+ * place -- for callers (e.g. a backup/restore add-on) that need it
+ * explicitly; nothing in this plugin's own UI does that.
  */
 class KCRM_Company_Transfer {
 
@@ -145,10 +148,17 @@ class KCRM_Company_Transfer {
 	}
 
 	/**
-	 * @param array $data Decoded export (see export()).
+	 * @param array    $data              Decoded export (see export()).
+	 * @param int|null $target_company_id If given, restore into this existing company in place
+	 *                                    (wiping its current customers/services/invoices/items/
+	 *                                    payments first and overwriting its profile fields) instead
+	 *                                    of creating a brand-new company. The company itself must
+	 *                                    already exist; callers are responsible for their own
+	 *                                    authorization/confirmation around this destructive path --
+	 *                                    this method does not gate it further.
 	 * @return array|WP_Error [ 'company_id', 'customers', 'services', 'invoices', 'payments' ] counts on success.
 	 */
-	public static function import( array $data ) {
+	public static function import( array $data, $target_company_id = null ) {
 		if ( empty( $data['format_version'] ) || KCRM_VERSION !== $data['format_version'] ) {
 			return new WP_Error(
 				'kcrm_import_version_mismatch',
@@ -165,9 +175,21 @@ class KCRM_Company_Transfer {
 			return new WP_Error( 'kcrm_import_invalid', __( 'That file does not look like a Karks CRM company export.', 'karks-crm' ) );
 		}
 
-		$company_data         = $data['company'];
-		$company_data['name'] = self::unique_company_name( $company_data['name'] ?? __( 'Imported Company', 'karks-crm' ) );
-		$company_id           = KCRM_Company::create( $company_data );
+		$target_company_id = $target_company_id ? (int) $target_company_id : 0;
+		if ( $target_company_id && ! KCRM_Company::find( $target_company_id ) ) {
+			return new WP_Error( 'kcrm_import_target_missing', __( 'The company to restore into no longer exists.', 'karks-crm' ) );
+		}
+
+		$company_data = $data['company'];
+
+		if ( $target_company_id ) {
+			$company_id = $target_company_id;
+			self::wipe_company_data( $company_id );
+			KCRM_Company::update( $company_id, $company_data );
+		} else {
+			$company_data['name'] = self::unique_company_name( $company_data['name'] ?? __( 'Imported Company', 'karks-crm' ) );
+			$company_id           = KCRM_Company::create( $company_data );
+		}
 
 		$customer_id_map = array();
 		$customers       = is_array( $data['customers'] ?? null ) ? $data['customers'] : array();
@@ -300,6 +322,28 @@ class KCRM_Company_Transfer {
 				'status'                   => in_array( $customer['status'] ?? '', array_keys( KCRM_Customer::statuses() ), true ) ? $customer['status'] : KCRM_Customer::STATUS_ACTIVE,
 			)
 		);
+	}
+
+	/**
+	 * Deletes every customer/service/invoice (+ items + payments) belonging
+	 * to $company_id, in preparation for import() rebuilding it from a
+	 * restore -- leaves the company row itself untouched (import() updates
+	 * its profile fields separately).
+	 */
+	private static function wipe_company_data( $company_id ) {
+		foreach ( KCRM_Invoice::for_company( $company_id ) as $invoice ) {
+			KCRM_Invoice_Item::delete_for_invoice( $invoice->id );
+			KCRM_Payment::delete_for_invoice( $invoice->id );
+			KCRM_Invoice::delete( $invoice->id );
+		}
+
+		foreach ( KCRM_Service::for_company( $company_id ) as $service ) {
+			KCRM_Service::delete( $service->id );
+		}
+
+		foreach ( KCRM_Customer::for_company( $company_id ) as $customer ) {
+			KCRM_Customer::delete( $customer->id );
+		}
 	}
 
 	/** @return string $name, or "$name (2)", "$name (3)", ... if a company with that exact name already exists. */

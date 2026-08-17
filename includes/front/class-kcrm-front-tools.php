@@ -90,5 +90,14 @@ class KCRM_Front_Tools extends KCRM_Controller_Base {
 				'<span class="dashicons dashicons-plus-alt2"></span>'
 			)
 		);
+
+		/**
+		 * Fires at the end of the front-end Tools screen, after the company
+		 * list and "Add a Company" button. See kcrm_customer_edit_after_sections
+		 * for the equivalent extension point on the customer screen; this is
+		 * the Tools-screen counterpart for add-ons that need a front-end
+		 * presence without a whole new nav tab/endpoint of their own.
+		 */
+		do_action( 'kcrm_front_tools_after_sections' );
 	}
 }

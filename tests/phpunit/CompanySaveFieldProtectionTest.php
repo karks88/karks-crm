@@ -35,6 +35,7 @@ class CompanySaveFieldProtectionTest extends WP_UnitTestCase {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- snapshotting the current superglobal state to restore in tear_down(), not processing a submitted request.
 		$this->original_post    = $_POST;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- same snapshot as above; phpcs:ignore only covers the single following line, not both.
 		$this->original_request = $_REQUEST;
 		$this->original_user    = get_current_user_id();
 

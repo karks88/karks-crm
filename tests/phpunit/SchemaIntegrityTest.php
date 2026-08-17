@@ -86,6 +86,7 @@ class SchemaIntegrityTest extends WP_UnitTestCase {
 		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN kcrm_test_legacy_column VARCHAR(50) NULL', $table ) );
 
 		$company_id = KCRM_Company::create( array( 'name' => 'Legacy Column Test Co' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- test-only write to the throwaway column added above.
 		$wpdb->update( $table, array( 'kcrm_test_legacy_column' => 'keep-me' ), array( 'id' => $company_id ) );
 
 		$ref = new ReflectionMethod( 'KCRM_Activator', 'create_tables' );

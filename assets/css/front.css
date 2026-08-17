@@ -158,6 +158,15 @@ a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover, .kcrm-pr
 	padding-top: 1.5em;
 }
 
+/* An h3 immediately under an h2 is that section's own subheading, not the
+   start of a new section below it -- the spacing/divider above is only
+   wanted between one section's content and the next section's heading. */
+.kcrm-front h2 + h3 {
+	border-top: none;
+	margin-top: 0;
+	padding-top: 0;
+}
+
 .kcrm-profile-tabs {
 	border: 1px solid #dcdcde;
 	border-radius: 4px;

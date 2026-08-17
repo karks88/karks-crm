@@ -24,6 +24,29 @@ add_action( 'kcrm_customer_edit_after_sections', function ( $customer, $rollup_i
 }, 10, 2 );
 ```
 
+### `kcrm_front_tools_after_sections`
+
+Front-end only. Fires at the end of the Tools screen (`/crm/tools/`), after the company list and "Add a Company" button. Use it to render additional company-level utility UI (e.g. a backup/restore panel) without a whole new nav tab/rewrite endpoint of your own — this screen is already the home for company-level utility actions like Export.
+
+```php
+do_action( 'kcrm_front_tools_after_sections' );
+```
+
+Takes no arguments; there's no single "current customer" here the way `kcrm_customer_edit_after_sections` has a current customer, so read whatever context you need yourself (e.g. `KCRM_Context::get_current_company_id()` for "the current company", or loop `KCRM_Company::all_ordered()` for an all-companies view like the built-in table above it).
+
+Example listener:
+
+```php
+add_action( 'kcrm_front_tools_after_sections', function () {
+    $company_id = KCRM_Context::get_current_company_id();
+    if ( ! $company_id ) {
+        return;
+    }
+    echo '<h3>' . esc_html__( 'My Add-on', 'my-addon' ) . '</h3>';
+    // ... render something using $company_id ...
+} );
+```
+
 ## Filters
 
 ### `kcrm_customer_profile_tabs`

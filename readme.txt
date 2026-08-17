@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.9.7
+Stable tag: 0.9.10.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,11 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.10.0 =
+* Added an extension point for add-ons: a new `kcrm_front_tools_after_sections` action fires at the end of the front-end Tools screen (see the wiki's Hooks and Filters page).
+* `KCRM_Company_Transfer::import()` gained an optional second parameter to restore a company's data in place (for the upcoming Karks CRM Backups add-on); the existing Import feature's behavior (always creates a new company) is unchanged.
+* Fixed: the front end's h3 subheading spacing (added so a section's own subheading has visible separation from unrelated content above it) was being applied even when an h3 immediately follows its own h2 -- e.g. "Companies" under the Tools screen's "Tools" heading -- pushing it down and adding an unwanted divider line right below the section title it belongs to.
 
 = 0.9.9.7 =
 * Hardening: the Email Invoice merge tags ({{first_name}}, {{last_name}}, {{customer}}, {{service}}) now strip any HTML from customer/service data before substituting into the email template, so a customer record can't inject markup into an outbound email regardless of which code path sends it.
