@@ -241,7 +241,7 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 							<?php endif; ?>
 						</div>
 						<input type="hidden" name="logo_attachment_id" id="logo_attachment_id" value="<?php echo esc_attr( $logo_id ); ?>">
-						<button type="button" class="button" id="kcrm-select-logo"><?php esc_html_e( 'Select Logo', 'karks-crm' ); ?></button>
+						<button type="button" class="button" id="kcrm-select-logo" data-kcrm-media-title="<?php echo esc_attr__( 'Select Company Logo', 'karks-crm' ); ?>"><?php esc_html_e( 'Select Logo', 'karks-crm' ); ?></button>
 						<button type="button" class="button" id="kcrm-remove-logo" style="<?php echo $logo_id ? '' : 'display:none;'; ?>"><?php esc_html_e( 'Remove', 'karks-crm' ); ?></button>
 						<p class="description"><?php esc_html_e( 'Appears on PDF invoices for this company.', 'karks-crm' ); ?></p>
 					</td>
@@ -394,34 +394,6 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 
 			<?php submit_button( $id ? __( 'Update Company', 'karks-crm' ) : __( 'Add Company', 'karks-crm' ) ); ?>
 		</form>
-		<script>
-		jQuery(function($){
-			$('#kcrm-select-logo').on('click', function(e){
-				e.preventDefault();
-				var frame = wp.media({ title: '<?php echo esc_js( __( 'Select Company Logo', 'karks-crm' ) ); ?>', multiple: false, library: { type: 'image' } });
-				frame.on('select', function(){
-					var attachment = frame.state().get('selection').first().toJSON();
-					$('#logo_attachment_id').val(attachment.id);
-					$('#kcrm-logo-preview').html('<img src="' + attachment.url + '" style="max-width:150px;max-height:150px;">');
-					$('#kcrm-remove-logo').show();
-				});
-				frame.open();
-			});
-			$('#kcrm-remove-logo').on('click', function(e){
-				e.preventDefault();
-				$('#logo_attachment_id').val('');
-				$('#kcrm-logo-preview').empty();
-				$(this).hide();
-			});
-			$('.kcrm-payment-type-checkbox[data-type="check"]').on('change', function(){
-				$('#kcrm-check-payable-to-row').toggle(this.checked);
-			});
-			$('.kcrm-payment-type-checkbox[data-type="other"]').on('change', function(){
-				$('#kcrm-other-payment-instructions-row').toggle(this.checked);
-			});
-			$('.kcrm-color-picker').wpColorPicker();
-		});
-		</script>
 		<?php
 	}
 }

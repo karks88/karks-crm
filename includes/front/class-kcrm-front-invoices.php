@@ -645,9 +645,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			<p><button type="submit" class="kcrm-button kcrm-button-primary kcrm-button-emphasized"><span class="dashicons dashicons-saved"></span> <?php echo esc_html( $id ? __( 'Update Invoice', 'karks-crm' ) : __( 'Create Invoice', 'karks-crm' ) ); ?></button></p>
 		</form>
 
-		<script>
-			window.kcrmServices = <?php echo wp_json_encode( $services_js ); ?>;
-		</script>
+		<?php wp_add_inline_script( 'kcrm-admin', 'window.kcrmServices = ' . wp_json_encode( $services_js ) . ';', 'before' ); ?>
 
 		<?php if ( $invoice ) : ?>
 			<?php $this->render_payments_section( $invoice, $company ); ?>

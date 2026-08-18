@@ -394,4 +394,48 @@
 			$toggle.attr('aria-expanded', isOpen ? 'true' : 'false');
 		});
 	});
+
+	/**
+	 * Company profile logo picker (wp.media) and Accepts Payment Via
+	 * conditional rows -- shared by the wp-admin and front-end Company
+	 * Profile screens, which render identical markup for these.
+	 */
+	$(function () {
+		$('#kcrm-select-logo').on('click', function (e) {
+			e.preventDefault();
+			var frame = wp.media({
+				title: $(this).data('kcrm-media-title') || '',
+				multiple: false,
+				library: { type: 'image' }
+			});
+			frame.on('select', function () {
+				var attachment = frame.state().get('selection').first().toJSON();
+				$('#logo_attachment_id').val(attachment.id);
+				$('#kcrm-logo-preview').html('<img src="' + attachment.url + '" style="max-width:150px;max-height:150px;">');
+				$('#kcrm-remove-logo').show();
+			});
+			frame.open();
+		});
+		$('#kcrm-remove-logo').on('click', function (e) {
+			e.preventDefault();
+			$('#logo_attachment_id').val('');
+			$('#kcrm-logo-preview').empty();
+			$(this).hide();
+		});
+		$('.kcrm-payment-type-checkbox[data-type="check"]').on('change', function () {
+			$('#kcrm-check-payable-to-row').toggle(this.checked);
+		});
+		$('.kcrm-payment-type-checkbox[data-type="other"]').on('change', function () {
+			$('#kcrm-other-payment-instructions-row').toggle(this.checked);
+		});
+	});
+
+	/**
+	 * Any `.kcrm-color-picker` text input (Company Profile logo/PDF accent
+	 * color, and the Appearance screen's 4-color scheme) gets the core
+	 * wp-color-picker UI.
+	 */
+	$(function () {
+		$('.kcrm-color-picker').wpColorPicker();
+	});
 })(jQuery);

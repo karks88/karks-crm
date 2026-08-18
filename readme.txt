@@ -1,10 +1,10 @@
 === Karks CRM ===
-Contributors: karkovack
+Contributors: karks88
 Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.9.10.0
+Stable tag: 0.9.10.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,10 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.10.1 =
+* Hardening: replaced inline `<script>` blocks in the Company Profile, Invoice, and Appearance screens (wp-admin and front end) with properly enqueued/inlined scripts via `wp_enqueue_script()`/`wp_add_inline_script()`, per WordPress.org Plugin Review Team feedback.
+* Corrected the Contributors field in this file (karkovack -> karks88).
 
 = 0.9.10.0 =
 * Added an extension point for add-ons: a new `kcrm_front_tools_after_sections` action fires at the end of the front-end Tools screen (see the wiki's Hooks and Filters page).
