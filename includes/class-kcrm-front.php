@@ -131,6 +131,26 @@ class KCRM_Front {
 		return $args ? add_query_arg( $args, $base ) : $base;
 	}
 
+	/**
+	 * A fresh nav nonce for the `_kcrmnav` query arg (see
+	 * KCRM_Controller_Base::nav_nonce_valid()/NAV_NONCE_ACTION). Front-end
+	 * screens like the customer profile only trust an `id` query arg on a
+	 * GET link/redirect when this nonce is present, so an add-on linking
+	 * or redirecting into one of those screens (e.g. karks-crm-packages
+	 * sending staff back to the customer profile after logging usage)
+	 * needs to include it via nav_nonce_args() below, or its `id` will be
+	 * silently ignored.
+	 */
+	public static function nav_nonce() {
+		return wp_create_nonce( KCRM_Controller_Base::NAV_NONCE_ACTION );
+	}
+
+	/** Merges a fresh nav_nonce() onto $args for a GET link/form/redirect an add-on builds into a karks-crm front-end screen. */
+	public static function nav_nonce_args( array $args = array() ) {
+		$args['_kcrmnav'] = self::nav_nonce();
+		return $args;
+	}
+
 	/** Which registered endpoint matches the current request, or '' for the bare CRM page. */
 	private function current_endpoint() {
 		global $wp_query;
@@ -281,6 +301,14 @@ class KCRM_Front {
 		}
 		wp_enqueue_media();
 		wp_enqueue_style( 'wp-color-picker' );
+		// wp-color-picker/iris are only ever registered by WordPress core when
+		// is_admin() is true (see wp-includes/script-loader.php), so on the
+		// front end this enqueue is a no-op and the handle never resolves --
+		// kcrm-admin deliberately does NOT declare it as a dependency here,
+		// since an unresolvable dependency would silently drop kcrm-admin
+		// (and the inline data attached to it) from the page entirely rather
+		// than just leaving .wpColorPicker() a no-op, per admin.js's own
+		// `if ($.fn.wpColorPicker)` guard.
 		wp_enqueue_script( 'wp-color-picker' );
 		wp_enqueue_script( 'kcrm-admin', KCRM_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery' ), KCRM_VERSION, true );
 	}

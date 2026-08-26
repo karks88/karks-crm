@@ -2,9 +2,9 @@
 Contributors: karks88
 Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.1
+Stable tag: 0.9.10.2
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,10 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.10.2 =
+* Fixed: the front-end customer profile's `id` query arg now fails closed instead of open when its nav nonce is missing or invalid -- previously it silently fell back to "Customer not found," which is what add-ons linking into that screen without the nonce (e.g. Karks CRM Packages' "Log Usage" flow) hit after this plugin's nonce hardening. Now shows an explicit "link has expired" message instead, and `KCRM_Front::nav_nonce()`/`nav_nonce_args()` are available for add-ons to build valid links.
+* Corrected "Tested up to" (7.0 -> 7.1).
 
 = 0.9.10.1 =
 * Hardening: replaced inline `<script>` blocks in the Company Profile, Invoice, and Appearance screens (wp-admin and front end) with properly enqueued/inlined scripts via `wp_enqueue_script()`/`wp_add_inline_script()`, per WordPress.org Plugin Review Team feedback.

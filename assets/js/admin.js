@@ -436,6 +436,8 @@
 	 * wp-color-picker UI.
 	 */
 	$(function () {
-		$('.kcrm-color-picker').wpColorPicker();
+		if ($.fn.wpColorPicker) {
+			$('.kcrm-color-picker').wpColorPicker();
+		}
 	});
 })(jQuery);

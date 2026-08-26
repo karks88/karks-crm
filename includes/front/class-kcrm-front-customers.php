@@ -51,9 +51,9 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		$link = sprintf( '<a href="%s">%s</a>', esc_url( $this->screen_url() ), esc_html( $label ) );
 
 		if ( 'edit' === $view ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param, no state change.
-			$id       = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
-			$customer = $id ? KCRM_Customer::find( $id ) : null;
+			// nav_record_id() is fail-closed; kept consistent with the same read in render_form() so the heading and body never disagree on which record is being shown.
+			list( $id ) = $this->nav_record_id();
+			$customer   = $id ? KCRM_Customer::find( $id ) : null;
 
 			if ( $customer ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $link is built from esc_url()/esc_html() above; safe to output as-is.
@@ -282,7 +282,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 					<tr class="kcrm-customer-row" data-kcrm-customer-row="<?php echo esc_attr( $customer->id ); ?>">
 						<td>
 							<strong>
-								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $customer->id ) ) ); ?>">
+								<a href="<?php echo esc_url( $this->screen_url( $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $customer->id ) ) ) ); ?>">
 									<?php echo esc_html( $customer->company_name ); ?>
 								</a>
 							</strong>
@@ -302,7 +302,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 						<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $customer->status ); ?>"><?php echo esc_html( $statuses[ $customer->status ] ?? $customer->status ); ?></span></td>
 						<td><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
 						<td>
-							<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $customer->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
+							<a href="<?php echo esc_url( $this->screen_url( $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $customer->id ) ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
 							|
 							<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $customer->id ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
 							|
@@ -317,7 +317,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 						<tr class="kcrm-job-row" data-kcrm-jobs-parent="<?php echo esc_attr( $customer->id ); ?>" style="display:none;">
 							<td>
 								&#8627;
-								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $job->id ) ) ); ?>">
+								<a href="<?php echo esc_url( $this->screen_url( $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $job->id ) ) ) ); ?>">
 									<?php echo esc_html( $job->company_name ); ?>
 								</a>
 							</td>
@@ -326,7 +326,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 							<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $job->status ); ?>"><?php echo esc_html( $statuses[ $job->status ] ?? $job->status ); ?></span></td>
 							<td><?php echo esc_html( number_format_i18n( $job_balance, 2 ) ); ?></td>
 							<td>
-								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $job->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
+								<a href="<?php echo esc_url( $this->screen_url( $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $job->id ) ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
 								|
 								<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $job->id ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
 								|
@@ -345,12 +345,15 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 	}
 
 	private function render_form( $view ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param, no state change.
-		$id       = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
-		$customer = $id ? KCRM_Customer::find( $id ) : null;
+		list( $id, $link_expired ) = $this->nav_record_id();
+		$customer                  = $id ? KCRM_Customer::find( $id ) : null;
 
 		if ( 'edit' === $view && ! $customer ) {
-			echo '<p>' . esc_html__( 'Customer not found.', 'karks-crm' ) . '</p>';
+			echo '<p>' . esc_html(
+				$link_expired
+					? __( 'This link has expired. Please navigate here from the customer list instead of a bookmark or shared link.', 'karks-crm' )
+					: __( 'Customer not found.', 'karks-crm' )
+			) . '</p>';
 			return;
 		}
 
@@ -434,7 +437,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 		<div class="kcrm-profile-tabs">
 			<nav class="kcrm-profile-tablist">
 				<?php foreach ( $tabs as $key => $tab ) : ?>
-					<a class="kcrm-profile-tab<?php echo $key === $active ? ' is-active' : ''; ?>" href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $id, 'tab' => $key ) ) ); ?>">
+					<a class="kcrm-profile-tab<?php echo $key === $active ? ' is-active' : ''; ?>" href="<?php echo esc_url( $this->screen_url( $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $id, 'tab' => $key ) ) ) ); ?>">
 						<?php echo esc_html( $tab['label'] ); ?>
 						<?php if ( ! empty( $tab['badge'] ) ) : ?>
 							<span class="kcrm-profile-tab-badge"><?php echo esc_html( $tab['badge'] ); ?></span>
@@ -587,7 +590,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 					<?php $job_balances = KCRM_Customer::balances_for( wp_list_pluck( $jobs, 'id' ) ); ?>
 					<?php foreach ( $jobs as $job ) : ?>
 						<tr>
-							<td><a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $job->id ) ) ); ?>"><?php echo esc_html( $job->company_name ); ?></a></td>
+							<td><a href="<?php echo esc_url( $this->screen_url( $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $job->id ) ) ) ); ?>"><?php echo esc_html( $job->company_name ); ?></a></td>
 							<td><?php echo esc_html( $job->contact_person ); ?></td>
 							<td><?php echo esc_html( number_format_i18n( $job_balances[ (int) $job->id ], 2 ) ); ?></td>
 						</tr>

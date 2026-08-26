@@ -71,9 +71,19 @@ class KCRM_Colors {
 	 *   fail.
 	 */
 	public static function inline_css() {
-		$colors = self::get();
-		$vars   = array();
+		$defaults = self::defaults();
+		$colors   = array();
 
+		// Every value here is re-validated as a hex color right before it's
+		// concatenated into a <style> block -- get() already only returns
+		// sanitize_hex_color()-validated values from a normal save, but this
+		// is the one place a bad value would actually reach output, so it's
+		// re-checked here rather than trusted from further upstream.
+		foreach ( self::get() as $key => $value ) {
+			$colors[ $key ] = sanitize_hex_color( $value ) ?: ( $defaults[ $key ] ?? '#000000' );
+		}
+
+		$vars = array();
 		foreach ( $colors as $key => $value ) {
 			$vars[] = '--kcrm-color-' . $key . ': ' . $value . ';';
 		}

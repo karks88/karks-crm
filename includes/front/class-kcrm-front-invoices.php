@@ -7,6 +7,32 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 
 	use KCRM_Front_Screen_Trait;
 
+	/**
+	 * Set by render_form(), consumed by print_services_js(). Block themes
+	 * (e.g. Twenty Twenty Five) render page content -- including this
+	 * shortcode, via the_content -- *before* wp_head()/wp_enqueue_scripts
+	 * ever fires (classic PHP themes call wp_head() first via get_header(),
+	 * so that ordering assumption held there, but it's inverted here), so a
+	 * wp_add_inline_script() call made directly from render_form() would
+	 * run before the 'kcrm-admin' handle it targets is even registered and
+	 * silently no-op. wp_footer always fires after both content rendering
+	 * and wp_enqueue_scripts regardless of theme architecture, so the actual
+	 * call is deferred there instead via print_services_js().
+	 */
+	private static $pending_services_js = null;
+
+	public function __construct() {
+		add_action( 'wp_footer', array( $this, 'print_services_js' ), 1 );
+	}
+
+	/** @internal wp_footer callback -- see $pending_services_js. */
+	public function print_services_js() {
+		if ( null === self::$pending_services_js ) {
+			return;
+		}
+		wp_add_inline_script( 'kcrm-admin', 'window.kcrmServices = ' . wp_json_encode( self::$pending_services_js ) . ';', 'before' );
+	}
+
 	public function render() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
 		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
@@ -368,7 +394,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 								<a href="#" class="kcrm-invoice-group-toggle" data-kcrm-invoice-group="<?php echo esc_attr( $group_id ); ?>">
 									<span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span>
 								</a>
-								<strong><a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $group['customer']->id, 'tab' => 'billing' ) ) ); ?>"><?php echo esc_html( $group['customer']->company_name ); ?></a></strong>
+								<strong><a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $group['customer']->id, 'tab' => 'billing' ) ) ) ); ?>"><?php echo esc_html( $group['customer']->company_name ); ?></a></strong>
 								&nbsp;&mdash;&nbsp;
 								<?php
 								echo esc_html(
@@ -477,7 +503,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			</td>
 			<td>
 				<?php if ( $customer ) : ?>
-					<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $customer->id, 'tab' => 'billing' ) ) ); ?>"><?php echo esc_html( KCRM_Customer::display_name( $customer ) ); ?></a>
+					<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $customer->id, 'tab' => 'billing' ) ) ) ); ?>"><?php echo esc_html( KCRM_Customer::display_name( $customer ) ); ?></a>
 				<?php endif; ?>
 			</td>
 			<td><?php echo esc_html( $invoice->issue_date ); ?></td>
@@ -585,7 +611,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 					<?php endforeach; ?>
 				</select>
 				<?php if ( $invoice ) : ?>
-					<a class="kcrm-button" href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $invoice->customer_id, 'tab' => 'billing' ) ) ); ?>"><?php esc_html_e( 'View Customer Profile', 'karks-crm' ); ?></a>
+					<a class="kcrm-button" href="<?php echo esc_url( KCRM_Front::endpoint_url( 'customers', $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $invoice->customer_id, 'tab' => 'billing' ) ) ) ); ?>"><?php esc_html_e( 'View Customer Profile', 'karks-crm' ); ?></a>
 				<?php endif; ?>
 			</p>
 			<p>
@@ -645,7 +671,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			<p><button type="submit" class="kcrm-button kcrm-button-primary kcrm-button-emphasized"><span class="dashicons dashicons-saved"></span> <?php echo esc_html( $id ? __( 'Update Invoice', 'karks-crm' ) : __( 'Create Invoice', 'karks-crm' ) ); ?></button></p>
 		</form>
 
-		<?php wp_add_inline_script( 'kcrm-admin', 'window.kcrmServices = ' . wp_json_encode( $services_js ) . ';', 'before' ); ?>
+		<?php self::$pending_services_js = $services_js; ?>
 
 		<?php if ( $invoice ) : ?>
 			<?php $this->render_payments_section( $invoice, $company ); ?>

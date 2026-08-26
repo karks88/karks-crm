@@ -180,7 +180,7 @@ class KCRM_Company_Transfer {
 			return new WP_Error( 'kcrm_import_target_missing', __( 'The company to restore into no longer exists.', 'karks-crm' ) );
 		}
 
-		$company_data = $data['company'];
+		$company_data = self::sanitize_company_data( $data['company'] );
 
 		if ( $target_company_id ) {
 			$company_id = $target_company_id;
@@ -299,6 +299,52 @@ class KCRM_Company_Transfer {
 			'invoices'   => count( $invoices ),
 			'payments'   => $payment_count,
 		);
+	}
+
+	/**
+	 * Runs the same sanitizers KCRM_Companies_Controller::save() applies to
+	 * a normal profile edit, against an imported company's data instead of
+	 * $_POST. Without this, an imported file's `invoice_footer` (rendered
+	 * unescaped via wpautop() in the invoice PDF -- see templates/invoice-pdf.php)
+	 * and `email_template` would reach the database as raw, unsanitized HTML;
+	 * every other save path relies on this having already happened, so
+	 * import() -- which builds this array from a hand-editable JSON file
+	 * instead of a same-site form submission -- can't skip it.
+	 *
+	 * @return array The same shape as $data, with known fields sanitized.
+	 */
+	private static function sanitize_company_data( array $data ) {
+		$text = static function ( $v ) { return sanitize_text_field( (string) $v ); };
+		$html = static function ( $v ) { return wp_kses_post( (string) $v ); };
+
+		$sanitizers = array(
+			'name'                       => $text,
+			'email'                      => static function ( $v ) { return sanitize_email( (string) $v ); },
+			'phone'                      => $text,
+			'address_street'             => $text,
+			'address_street_2'           => $text,
+			'address_city'               => $text,
+			'address_state'              => $text,
+			'address_postal_code'        => $text,
+			'invoice_prefix'             => $text,
+			'currency'                   => $text,
+			'invoice_footer'             => $html,
+			'check_payable_to'           => $text,
+			'other_payment_instructions' => $text,
+			'email_template'             => $html,
+		);
+
+		foreach ( $sanitizers as $key => $sanitize ) {
+			if ( isset( $data[ $key ] ) ) {
+				$data[ $key ] = $sanitize( $data[ $key ] );
+			}
+		}
+
+		if ( ! empty( $data['address_country'] ) && ! array_key_exists( $data['address_country'], KCRM_Countries::list() ) ) {
+			$data['address_country'] = KCRM_Countries::DEFAULT_CODE;
+		}
+
+		return $data;
 	}
 
 	private static function import_customer( $company_id, array $customer, $new_parent_id ) {

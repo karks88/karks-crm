@@ -55,6 +55,71 @@ abstract class KCRM_Controller_Base {
 	}
 
 	/**
+	 * Nonce action for read-only navigation query args (pagination,
+	 * filters, record routing). Shared across every screen rather than
+	 * scoped per class -- several screens legitimately link into another
+	 * screen's record view (e.g. an invoice row linking to its customer's
+	 * profile), and since nav_nonce_valid() is fail-open with no side
+	 * effects either way, there's nothing a cross-screen replay would gain.
+	 *
+	 * Exposed as a public constant (rather than kept private) so add-ons
+	 * building their own links into a karks-crm screen -- e.g.
+	 * karks-crm-packages via KCRM_Front::nav_nonce()/nav_nonce_args() --
+	 * can produce a nonce that nav_nonce_valid() will accept, instead of
+	 * their links silently losing the `id` query arg.
+	 */
+	const NAV_NONCE_ACTION = 'kcrm_nav';
+
+	private function nav_nonce_action() {
+		return self::NAV_NONCE_ACTION;
+	}
+
+	/**
+	 * Fail-open nonce check for read-only navigation query args. These
+	 * params don't change any state, so an invalid or missing nonce (an
+	 * old bookmark, a hand-edited URL, a link from before this check
+	 * existed) isn't treated as a rejected request -- callers just ignore
+	 * the submitted value and fall back to their own default, the same as
+	 * if the param had never been present at all.
+	 */
+	protected function nav_nonce_valid() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- this *is* the nonce check; nothing here reads the value for any other purpose.
+		return isset( $_GET['_kcrmnav'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_kcrmnav'] ) ), $this->nav_nonce_action() );
+	}
+
+	/** Merges a fresh nav nonce onto $args for a GET link/form this screen generates, so links it renders keep working once nav_nonce_valid() is required to read them back. */
+	protected function nav_nonce_args( array $args = array() ) {
+		$args['_kcrmnav'] = wp_create_nonce( $this->nav_nonce_action() );
+		return $args;
+	}
+
+	/**
+	 * Reads $_GET['id'] for a record-view screen (e.g. the front-end
+	 * customer profile), requiring a valid nav nonce -- fail-CLOSED, unlike
+	 * nav_nonce_valid()'s other callers. Pagination/date-range filters have
+	 * a sane default to silently fall back to; a record id doesn't, so
+	 * treating "nonce missing/invalid" the same as "id never submitted"
+	 * just makes an existing record look deleted with no explanation.
+	 *
+	 * @return array{0: int, 1: bool} array( $id, $link_expired ). $id is 0
+	 *         whenever $link_expired is true, so callers that only need the
+	 *         id can ignore the second value; callers rendering an error
+	 *         message can use $link_expired to say the link is stale rather
+	 *         than implying the record doesn't exist.
+	 */
+	protected function nav_record_id() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only routing param; checked explicitly below via nav_nonce_valid().
+		if ( ! isset( $_GET['id'] ) ) {
+			return array( 0, false );
+		}
+		if ( ! $this->nav_nonce_valid() ) {
+			return array( 0, true );
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nav_nonce_valid() above is the check.
+		return array( absint( $_GET['id'] ), false );
+	}
+
+	/**
 	 * Reads a 1-based page number from $_GET[ $query_arg ], clamped to
 	 * [1, max(1, $total_pages)]. Kept off WordPress's reserved 'page'/
 	 * 'paged' query var names by convention (callers should use a
@@ -62,8 +127,8 @@ abstract class KCRM_Controller_Base {
 	 * vars KCRM_Front::sanitize_query_vars() already has to guard against.
 	 */
 	protected function current_page_number( $query_arg, $total_pages ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only pagination param, no state change.
-		$page = isset( $_GET[ $query_arg ] ) ? absint( $_GET[ $query_arg ] ) : 1;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- fail-open nav_nonce_valid() check on the next line stands in for this.
+		$page = ( isset( $_GET[ $query_arg ] ) && $this->nav_nonce_valid() ) ? absint( $_GET[ $query_arg ] ) : 1;
 		$page = max( 1, $page );
 		return min( $page, max( 1, $total_pages ) );
 	}
@@ -82,7 +147,7 @@ abstract class KCRM_Controller_Base {
 		?>
 		<div class="kcrm-pagination">
 			<?php if ( $current_page > 1 ) : ?>
-				<a class="kcrm-button" href="<?php echo esc_url( add_query_arg( $query_arg, $current_page - 1 ) . $fragment ); ?>">&laquo; <?php esc_html_e( 'Previous', 'karks-crm' ); ?></a>
+				<a class="kcrm-button" href="<?php echo esc_url( add_query_arg( $this->nav_nonce_args( array( $query_arg => $current_page - 1 ) ) ) . $fragment ); ?>">&laquo; <?php esc_html_e( 'Previous', 'karks-crm' ); ?></a>
 			<?php endif; ?>
 			<span class="kcrm-pagination-status">
 				<?php
@@ -95,7 +160,7 @@ abstract class KCRM_Controller_Base {
 				?>
 			</span>
 			<?php if ( $current_page < $total_pages ) : ?>
-				<a class="kcrm-button" href="<?php echo esc_url( add_query_arg( $query_arg, $current_page + 1 ) . $fragment ); ?>"><?php esc_html_e( 'Next', 'karks-crm' ); ?> &raquo;</a>
+				<a class="kcrm-button" href="<?php echo esc_url( add_query_arg( $this->nav_nonce_args( array( $query_arg => $current_page + 1 ) ) ) . $fragment ); ?>"><?php esc_html_e( 'Next', 'karks-crm' ); ?> &raquo;</a>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -110,8 +175,9 @@ abstract class KCRM_Controller_Base {
 	 * @return array [ $range_key, $date_from|null, $date_to|null ] -- 'Y-m-d' strings, or null for no bound.
 	 */
 	protected function resolve_date_range( $prefix, $default_range = 'this_year' ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display filter, no state change.
-		$range = isset( $_GET[ "{$prefix}_range" ] ) ? sanitize_key( wp_unslash( $_GET[ "{$prefix}_range" ] ) ) : $default_range;
+		$nonce_ok = $this->nav_nonce_valid();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- fail-open $nonce_ok check above stands in for this.
+		$range = ( $nonce_ok && isset( $_GET[ "{$prefix}_range" ] ) ) ? sanitize_key( wp_unslash( $_GET[ "{$prefix}_range" ] ) ) : $default_range;
 		if ( ! in_array( $range, array( 'this_year', 'last_year', 'all', 'custom' ), true ) ) {
 			$range = $default_range;
 		}
@@ -127,10 +193,10 @@ abstract class KCRM_Controller_Base {
 		}
 
 		if ( 'custom' === $range ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display filter, no state change; sanitize_date_or_null() sanitizes internally.
-			$from = isset( $_GET[ "{$prefix}_from" ] ) ? $this->sanitize_date_or_null( wp_unslash( $_GET[ "{$prefix}_from" ] ) ) : null;
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- read-only display filter, no state change; sanitize_date_or_null() sanitizes internally.
-			$to = isset( $_GET[ "{$prefix}_to" ] ) ? $this->sanitize_date_or_null( wp_unslash( $_GET[ "{$prefix}_to" ] ) ) : null;
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- fail-open $nonce_ok check above stands in for this; sanitize_date_or_null() sanitizes internally.
+			$from = ( $nonce_ok && isset( $_GET[ "{$prefix}_from" ] ) ) ? $this->sanitize_date_or_null( wp_unslash( $_GET[ "{$prefix}_from" ] ) ) : null;
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- fail-open $nonce_ok check above stands in for this; sanitize_date_or_null() sanitizes internally.
+			$to = ( $nonce_ok && isset( $_GET[ "{$prefix}_to" ] ) ) ? $this->sanitize_date_or_null( wp_unslash( $_GET[ "{$prefix}_to" ] ) ) : null;
 			return array( $range, $from, $to );
 		}
 
@@ -160,7 +226,7 @@ abstract class KCRM_Controller_Base {
 		$preserve = array();
 		foreach ( $_GET as $key => $value ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only, used only to rebuild hidden fields for this same filter form.
 			$key = sanitize_key( $key );
-			if ( in_array( $key, array( "{$prefix}_range", "{$prefix}_from", "{$prefix}_to" ), true ) ) {
+			if ( in_array( $key, array( "{$prefix}_range", "{$prefix}_from", "{$prefix}_to", '_kcrmnav' ), true ) ) {
 				continue;
 			}
 			$preserve[ $key ] = sanitize_text_field( wp_unslash( $value ) );
@@ -170,6 +236,7 @@ abstract class KCRM_Controller_Base {
 			<?php foreach ( $preserve as $key => $value ) : ?>
 				<input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>">
 			<?php endforeach; ?>
+			<input type="hidden" name="_kcrmnav" value="<?php echo esc_attr( wp_create_nonce( $this->nav_nonce_action() ) ); ?>">
 			<label>
 				<?php esc_html_e( 'Date Range:', 'karks-crm' ); ?>
 				<select name="<?php echo esc_attr( "{$prefix}_range" ); ?>">

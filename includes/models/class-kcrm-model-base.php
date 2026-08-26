@@ -34,6 +34,34 @@ abstract class KCRM_Model_Base {
 			: $default;
 	}
 
+	/**
+	 * Builds "$column = %s" clauses for where()/count_where(), restricted to
+	 * $where keys that are actually declared columns() (or 'id') -- the
+	 * column name itself can't go through a %s/%i placeholder the way a
+	 * value can, so every caller today passes hardcoded literal keys; this
+	 * is a second, structural guard against that ever silently stopping
+	 * being true, the same whitelist discipline insert()/update() already
+	 * apply to values.
+	 *
+	 * @return array{0: string[], 1: array} [ $clauses, $params ] -- a column
+	 * not in the whitelist is simply dropped from $where, not fatal.
+	 */
+	private static function safe_where_clauses( array $where ) {
+		$allowed = array_keys( static::columns() );
+		$allowed[] = 'id';
+
+		$clauses = array();
+		$params  = array();
+		foreach ( $where as $column => $value ) {
+			if ( ! in_array( $column, $allowed, true ) ) {
+				continue;
+			}
+			$clauses[] = "$column = %s";
+			$params[]  = $value;
+		}
+		return array( $clauses, $params );
+	}
+
 	public static function find( $id ) {
 		global $wpdb;
 		$table = static::table();
@@ -69,7 +97,7 @@ abstract class KCRM_Model_Base {
 	}
 
 	/**
-	 * @param array  $where    Column => value equality filters (column names are hardcoded by callers, not user input).
+	 * @param array  $where    Column => value equality filters (column names are hardcoded by callers, not user input; also enforced by safe_where_clauses() as defense in depth).
 	 * @param string $order_by Raw ORDER BY clause (not user input); restricted to identifier characters as defense in depth.
 	 */
 	public static function where( $where = array(), $order_by = 'id DESC', $limit = 0, $offset = 0 ) {
@@ -79,13 +107,10 @@ abstract class KCRM_Model_Base {
 		$sql    = 'SELECT * FROM %i';
 		$params = array( $table );
 
-		if ( ! empty( $where ) ) {
-			$clauses = array();
-			foreach ( $where as $column => $value ) {
-				$clauses[] = "$column = %s";
-				$params[]  = $value;
-			}
-			$sql .= ' WHERE ' . implode( ' AND ', $clauses );
+		list( $clauses, $clause_params ) = static::safe_where_clauses( $where );
+		if ( $clauses ) {
+			$sql   .= ' WHERE ' . implode( ' AND ', $clauses );
+			$params = array_merge( $params, $clause_params );
 		}
 
 		if ( $order_by ) {
@@ -109,13 +134,10 @@ abstract class KCRM_Model_Base {
 		$sql    = 'SELECT COUNT(*) FROM %i';
 		$params = array( $table );
 
-		if ( ! empty( $where ) ) {
-			$clauses = array();
-			foreach ( $where as $column => $value ) {
-				$clauses[] = "$column = %s";
-				$params[]  = $value;
-			}
-			$sql .= ' WHERE ' . implode( ' AND ', $clauses );
+		list( $clauses, $clause_params ) = static::safe_where_clauses( $where );
+		if ( $clauses ) {
+			$sql   .= ' WHERE ' . implode( ' AND ', $clauses );
+			$params = array_merge( $params, $clause_params );
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is built from %i/%s placeholders only, filled in via $wpdb->prepare() on the same line; the dynamic WHERE clause count can't be a static literal.

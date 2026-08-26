@@ -233,7 +233,7 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 					__( 'New customer added: %s', 'karks-crm' ),
 					KCRM_Customer::display_name( $customer )
 				),
-				'url'   => KCRM_Front::endpoint_url( 'customers', array( 'view' => 'edit', 'id' => $customer->id ) ),
+				'url'   => KCRM_Front::endpoint_url( 'customers', $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $customer->id ) ) ),
 			);
 		}
 
