@@ -9,7 +9,7 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 
 	public function render() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
-		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
+		$view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'list';
 
 		echo '<div class="kcrm-front-screen">';
 

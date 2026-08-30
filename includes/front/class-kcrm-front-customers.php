@@ -9,7 +9,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 
 	public function render() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
-		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
+		$view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'list';
 
 		echo '<div class="kcrm-front-screen">';
 		$this->render_company_header();
@@ -68,7 +68,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 
 	private function render_import() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing params, no state change.
-		$stage = isset( $_GET['stage'] ) ? sanitize_key( $_GET['stage'] ) : 'upload';
+		$stage = isset( $_GET['stage'] ) ? sanitize_key( wp_unslash( $_GET['stage'] ) ) : 'upload';
 
 		if ( 'done' === $stage ) {
 			$this->render_import_done();

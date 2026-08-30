@@ -1060,6 +1060,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 	 * works the same either way.
 	 */
 	public function handle_pdf_download() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read only to build the nonce action name; check_admin_referer() verifies it on the next line.
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 		check_admin_referer( 'kcrm_download_invoice_pdf_' . $id );
 
@@ -1081,6 +1082,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 	 * handle_pdf_download() -- not yet a customer-facing shareable link.
 	 */
 	public function handle_html_preview() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read only to build the nonce action name; check_admin_referer() verifies it on the next line.
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 		check_admin_referer( 'kcrm_preview_invoice_html_' . $id );
 

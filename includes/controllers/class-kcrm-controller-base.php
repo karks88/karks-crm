@@ -23,8 +23,15 @@ abstract class KCRM_Controller_Base {
 	/** Process any POST/GET actions for this screen (called before output is sent). */
 	public function handle_actions() {}
 
+	/**
+	 * Redirects back to this screen after a POST/GET action (save, delete,
+	 * payment, import, etc.). Always carries a fresh nav nonce -- since
+	 * nav_record_id() (see below) fails closed on a missing/invalid one,
+	 * every redirect this method builds needs it, not just the explicit
+	 * links a screen renders into its own markup.
+	 */
 	protected function redirect( array $args = array() ) {
-		wp_safe_redirect( $this->screen_url( $args ) );
+		wp_safe_redirect( $this->screen_url( $this->nav_nonce_args( $args ) ) );
 		exit;
 	}
 

@@ -9,7 +9,7 @@ class KCRM_Admin_Services extends KCRM_Services_Controller {
 
 	public function render() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
-		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
+		$view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'list';
 
 		echo '<div class="wrap kcrm-wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Services', 'karks-crm' ) . '</h1>';
 		if ( 'list' === $view ) {

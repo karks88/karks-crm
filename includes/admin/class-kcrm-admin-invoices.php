@@ -9,7 +9,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 
 	public function render() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
-		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
+		$view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'list';
 
 		echo '<div class="wrap kcrm-wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Invoices', 'karks-crm' ) . '</h1>';
 		if ( 'list' === $view ) {
@@ -42,7 +42,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 
 	private function render_invoice_import() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing params, no state change.
-		$stage = isset( $_GET['stage'] ) ? sanitize_key( $_GET['stage'] ) : 'upload';
+		$stage = isset( $_GET['stage'] ) ? sanitize_key( wp_unslash( $_GET['stage'] ) ) : 'upload';
 
 		if ( 'done' === $stage ) {
 			$this->render_import_done(
@@ -85,7 +85,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 
 	private function render_payment_import() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing params, no state change.
-		$stage = isset( $_GET['stage'] ) ? sanitize_key( $_GET['stage'] ) : 'upload';
+		$stage = isset( $_GET['stage'] ) ? sanitize_key( wp_unslash( $_GET['stage'] ) ) : 'upload';
 
 		if ( 'done' === $stage ) {
 			$this->render_import_done(

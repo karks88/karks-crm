@@ -3,7 +3,7 @@
  * Plugin Name: Karks CRM
  * Plugin URI: https://karks-crm.com
  * Description: Manage customers, services, and invoices across multiple companies.
- * Version: 0.9.10.2
+ * Version: 0.9.10.3
  * Author: Eric Karkovack
  * Author URI: https://karks.com
  * Text Domain: karks-crm
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'KCRM_VERSION', '0.9.10.2' );
+define( 'KCRM_VERSION', '0.9.10.3' );
 define( 'KCRM_DB_VERSION', '1.17.0' );
 define( 'KCRM_PLUGIN_FILE', __FILE__ );
 define( 'KCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

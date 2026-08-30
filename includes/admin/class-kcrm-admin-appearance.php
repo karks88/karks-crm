@@ -20,7 +20,7 @@ class KCRM_Admin_Appearance {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route check; the real nonce check is in save() below.
-		$page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 		if ( self::PAGE !== $page ) {
 			return;
 		}

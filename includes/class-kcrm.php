@@ -97,7 +97,7 @@ class KCRM_Plugin {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route dispatch; real nonce checks happen in the handler methods below.
-		$page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 		foreach ( $this->screens as $screen ) {
 			if ( $page === $screen::PAGE ) {
 				$screen->handle_actions();

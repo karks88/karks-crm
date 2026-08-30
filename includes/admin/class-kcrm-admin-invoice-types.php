@@ -21,7 +21,7 @@ class KCRM_Admin_Invoice_Types {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route check; the real nonce check is in save()/delete() below.
-		$page = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : '';
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 		if ( self::PAGE !== $page ) {
 			return;
 		}
@@ -62,7 +62,7 @@ class KCRM_Admin_Invoice_Types {
 
 	public function render() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
-		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
+		$view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'list';
 
 		echo '<div class="wrap kcrm-wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Invoice Types', 'karks-crm' ) . '</h1>';
 		if ( 'list' === $view ) {

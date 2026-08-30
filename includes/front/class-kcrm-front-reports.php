@@ -19,7 +19,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 
 	public function render() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
-		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'overview';
+		$view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'overview';
 
 		echo '<div class="kcrm-front-screen">';
 		$this->render_company_header();
@@ -476,7 +476,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 		check_admin_referer( 'kcrm_export_report_csv' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce already verified above via check_admin_referer().
-		$report  = isset( $_GET['report'] ) ? sanitize_key( $_GET['report'] ) : '';
+		$report  = isset( $_GET['report'] ) ? sanitize_key( wp_unslash( $_GET['report'] ) ) : '';
 		$company = KCRM_Company::find( $this->current_company_id() );
 
 		if ( ! $company || ! in_array( $report, array( 'revenue', 'customer', 'aging' ), true ) ) {

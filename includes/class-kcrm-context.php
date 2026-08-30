@@ -36,7 +36,8 @@ class KCRM_Context {
 		$user_id = get_current_user_id();
 
 		if ( isset( $_GET['kcrm_company'] ) && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'kcrm_switch_company' ) ) {
-			$requested = absint( $_GET['kcrm_company'] );
+			// Nonce verified on the line above; value is absint()-cast and existence-checked via KCRM_Company::find() below.
+			$requested = absint( wp_unslash( $_GET['kcrm_company'] ) );
 			if ( $requested && KCRM_Company::find( $requested ) ) {
 				update_user_meta( $user_id, self::META_KEY, $requested );
 				return $requested;

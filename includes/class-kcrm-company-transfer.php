@@ -214,8 +214,8 @@ class KCRM_Company_Transfer {
 			$service_id_map[ $service['id'] ] = KCRM_Service::create(
 				array(
 					'company_id'  => $company_id,
-					'name'        => $service['name'] ?? '',
-					'description' => $service['description'] ?? '',
+					'name'        => sanitize_text_field( (string) ( $service['name'] ?? '' ) ),
+					'description' => sanitize_textarea_field( (string) ( $service['description'] ?? '' ) ),
 					'type'        => in_array( $service['type'] ?? '', array_keys( KCRM_Service::types() ), true ) ? $service['type'] : KCRM_Service::TYPE_HOURLY,
 					'rate'        => (float) ( $service['rate'] ?? 0 ),
 					'is_active'   => empty( $service['is_active'] ) ? 0 : 1,
@@ -236,18 +236,22 @@ class KCRM_Company_Transfer {
 			$status = in_array( $invoice['status'] ?? '', array_keys( KCRM_Invoice::statuses() ), true ) ? $invoice['status'] : KCRM_Invoice::STATUS_OPEN;
 			$type   = in_array( $invoice['invoice_type'] ?? '', array_keys( KCRM_Invoice::types() ), true ) ? $invoice['invoice_type'] : KCRM_Invoice::TYPE_OTHER;
 
+			$month_year = isset( $invoice['invoice_type_month'] ) && preg_match( '/^\d{4}-(0[1-9]|1[0-2])$/', (string) $invoice['invoice_type_month'] )
+				? $invoice['invoice_type_month']
+				: null;
+
 			$new_invoice_id = KCRM_Invoice::create(
 				array(
 					'company_id'         => $company_id,
 					'customer_id'        => $new_customer_id,
-					'invoice_number'     => $invoice['invoice_number'] ?? '',
+					'invoice_number'     => sanitize_text_field( (string) ( $invoice['invoice_number'] ?? '' ) ),
 					'status'             => $status,
-					'issue_date'         => $invoice['issue_date'] ?? current_time( 'Y-m-d' ),
-					'due_date'           => $invoice['due_date'] ?? null,
+					'issue_date'         => self::sanitize_import_date( $invoice['issue_date'] ?? '' ) ?: current_time( 'Y-m-d' ),
+					'due_date'           => self::sanitize_import_date( $invoice['due_date'] ?? '' ),
 					'invoice_type'       => $type,
-					'invoice_type_month' => $invoice['invoice_type_month'] ?? null,
-					'invoice_type_other' => $invoice['invoice_type_other'] ?? null,
-					'notes'              => $invoice['notes'] ?? '',
+					'invoice_type_month' => $month_year,
+					'invoice_type_other' => isset( $invoice['invoice_type_other'] ) ? sanitize_text_field( (string) $invoice['invoice_type_other'] ) : null,
+					'notes'              => sanitize_textarea_field( (string) ( $invoice['notes'] ?? '' ) ),
 					'tax_rate'           => (float) ( $invoice['tax_rate'] ?? 0 ),
 				)
 			);
@@ -255,15 +259,20 @@ class KCRM_Company_Transfer {
 			$sort = 0;
 			foreach ( (array) ( $invoice['items'] ?? array() ) as $item ) {
 				$old_service_id = $item['service_id'] ?? null;
+				$quantity       = (float) ( $item['quantity'] ?? 0 );
+				$rate           = (float) ( $item['rate'] ?? 0 );
 				KCRM_Invoice_Item::insert(
 					array(
 						'invoice_id'  => $new_invoice_id,
 						'service_id'  => $old_service_id ? ( $service_id_map[ $old_service_id ] ?? null ) : null,
-						'description' => $item['description'] ?? '',
+						'description' => sanitize_text_field( (string) ( $item['description'] ?? '' ) ),
 						'type'        => in_array( $item['type'] ?? '', array_keys( KCRM_Service::types() ), true ) ? $item['type'] : KCRM_Service::TYPE_PROJECT,
-						'quantity'    => (float) ( $item['quantity'] ?? 0 ),
-						'rate'        => (float) ( $item['rate'] ?? 0 ),
-						'amount'      => (float) ( $item['amount'] ?? 0 ),
+						'quantity'    => $quantity,
+						'rate'        => $rate,
+						// Recomputed from quantity * rate rather than trusted from the file -- matches
+						// KCRM_Invoices_Controller::save_line_items(); KCRM_Invoice::recalculate_totals()
+						// sums these into the invoice total below.
+						'amount'      => round( $quantity * $rate, 2 ),
 						'is_taxable'  => empty( $item['is_taxable'] ) ? 0 : 1,
 						'sort_order'  => isset( $item['sort_order'] ) ? (int) $item['sort_order'] : $sort,
 					)
@@ -278,9 +287,9 @@ class KCRM_Company_Transfer {
 						'customer_id'  => $new_customer_id,
 						'company_id'   => $company_id,
 						'amount'       => (float) ( $payment['amount'] ?? 0 ),
-						'payment_date' => $payment['payment_date'] ?? current_time( 'Y-m-d' ),
-						'method'       => $payment['method'] ?? '',
-						'note'         => $payment['note'] ?? '',
+						'payment_date' => self::sanitize_import_date( $payment['payment_date'] ?? '' ) ?: current_time( 'Y-m-d' ),
+						'method'       => sanitize_text_field( (string) ( $payment['method'] ?? '' ) ),
+						'note'         => sanitize_text_field( (string) ( $payment['note'] ?? '' ) ),
 					)
 				);
 				$payment_count++;
@@ -348,26 +357,39 @@ class KCRM_Company_Transfer {
 	}
 
 	private static function import_customer( $company_id, array $customer, $new_parent_id ) {
+		$text = static function ( $v ) { return sanitize_text_field( (string) $v ); };
+
+		$country = $customer['address_country'] ?? KCRM_Countries::DEFAULT_CODE;
+		if ( ! array_key_exists( $country, KCRM_Countries::list() ) ) {
+			$country = KCRM_Countries::DEFAULT_CODE;
+		}
+
 		return KCRM_Customer::create(
 			array(
 				'company_id'               => $company_id,
 				'parent_customer_id'       => $new_parent_id,
-				'company_name'             => $customer['company_name'] ?? '',
-				'contact_person'           => $customer['contact_person'] ?? '',
-				'secondary_contact_person' => $customer['secondary_contact_person'] ?? '',
-				'address_street'           => $customer['address_street'] ?? '',
-				'address_street_2'         => $customer['address_street_2'] ?? '',
-				'address_city'             => $customer['address_city'] ?? '',
-				'address_state'            => $customer['address_state'] ?? '',
-				'address_postal_code'      => $customer['address_postal_code'] ?? '',
-				'address_country'          => $customer['address_country'] ?? KCRM_Countries::DEFAULT_CODE,
-				'phone'                    => $customer['phone'] ?? '',
-				'email'                    => $customer['email'] ?? '',
-				'secondary_email'          => $customer['secondary_email'] ?? '',
-				'notes'                    => $customer['notes'] ?? '',
+				'company_name'             => $text( $customer['company_name'] ?? '' ),
+				'contact_person'           => $text( $customer['contact_person'] ?? '' ),
+				'secondary_contact_person' => $text( $customer['secondary_contact_person'] ?? '' ),
+				'address_street'           => $text( $customer['address_street'] ?? '' ),
+				'address_street_2'         => $text( $customer['address_street_2'] ?? '' ),
+				'address_city'             => $text( $customer['address_city'] ?? '' ),
+				'address_state'            => $text( $customer['address_state'] ?? '' ),
+				'address_postal_code'      => $text( $customer['address_postal_code'] ?? '' ),
+				'address_country'          => $country,
+				'phone'                    => $text( $customer['phone'] ?? '' ),
+				'email'                    => sanitize_email( (string) ( $customer['email'] ?? '' ) ),
+				'secondary_email'          => sanitize_email( (string) ( $customer['secondary_email'] ?? '' ) ),
+				'notes'                    => sanitize_textarea_field( (string) ( $customer['notes'] ?? '' ) ),
 				'status'                   => in_array( $customer['status'] ?? '', array_keys( KCRM_Customer::statuses() ), true ) ? $customer['status'] : KCRM_Customer::STATUS_ACTIVE,
 			)
 		);
+	}
+
+	/** @return string|null A strict 'Y-m-d' date, or null if $value isn't one -- mirrors KCRM_Controller_Base::sanitize_date_or_null(). */
+	private static function sanitize_import_date( $value ) {
+		$value = sanitize_text_field( (string) $value );
+		return preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ? $value : null;
 	}
 
 	/**

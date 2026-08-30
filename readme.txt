@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.2
+Stable tag: 0.9.10.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -37,6 +37,11 @@ Features:
 3. Go to Karks CRM → Companies and add your first company.
 
 == Changelog ==
+
+= 0.9.10.3 =
+* Fixed: saving a customer, receiving a payment, or any other action that redirects back to a front-end record-edit screen (`KCRM_Controller_Base::redirect()`, used by every controller's save/delete/payment/import handler) could land on "This link has expired" -- the redirect itself never carried the nav nonce that 0.9.10.2 started requiring. `redirect()` now always includes it.
+* Hardening: `KCRM_Company_Transfer::import()` now runs every imported customer, service, invoice, line-item, and payment field through the same sanitizers as the normal save screens (previously only the company profile was sanitized) -- so a hand-edited export file can't store unescaped markup, an invalid country, or a malformed date. Imported line-item amounts are recomputed from quantity x rate rather than trusted from the file. Per WordPress.org Plugin Review Team feedback.
+* Hardening: `GET` parameters read through `sanitize_key()` are now unslashed first, and three admin-post download handlers gained the standard nonce-verification comment, for Plugin Check compliance. No behavior change.
 
 = 0.9.10.2 =
 * Fixed: the front-end customer profile's `id` query arg now fails closed instead of open when its nav nonce is missing or invalid -- previously it silently fell back to "Customer not found," which is what add-ons linking into that screen without the nonce (e.g. Karks CRM Packages' "Log Usage" flow) hit after this plugin's nonce hardening. Now shows an explicit "link has expired" message instead, and `KCRM_Front::nav_nonce()`/`nav_nonce_args()` are available for add-ons to build valid links.

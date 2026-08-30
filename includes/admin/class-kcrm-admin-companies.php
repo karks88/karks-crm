@@ -9,7 +9,7 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 
 	public function render() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
-		$view = isset( $_GET['view'] ) ? sanitize_key( $_GET['view'] ) : 'list';
+		$view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'list';
 		echo '<div class="wrap kcrm-wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Companies', 'karks-crm' ) . '</h1>';
 
 		if ( 'list' === $view ) {
@@ -79,7 +79,7 @@ class KCRM_Admin_Companies extends KCRM_Companies_Controller {
 
 	private function render_import_company() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
-		$stage = isset( $_GET['stage'] ) ? sanitize_key( $_GET['stage'] ) : 'upload';
+		$stage = isset( $_GET['stage'] ) ? sanitize_key( wp_unslash( $_GET['stage'] ) ) : 'upload';
 
 		if ( 'done' === $stage ) {
 			$this->render_import_company_done();

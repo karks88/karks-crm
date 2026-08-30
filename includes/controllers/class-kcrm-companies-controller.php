@@ -157,6 +157,7 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 	 * since admin-post.php isn't wp-admin-only -- see KCRM_Company_Transfer.
 	 */
 	public function handle_export_download() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read only to build the nonce action name; check_admin_referer() verifies it on the next line.
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 		check_admin_referer( 'kcrm_export_company_' . $id );
 
