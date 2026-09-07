@@ -1,0 +1,32 @@
+name: Deploy to WordPress.org SVN
+
+# Triggered by pushing a tag like v0.9.10.3 (same trigger as release.yml), so
+# the GitHub Release and the WordPress.org SVN push happen from the same
+# tagged commit. workflow_dispatch lets an already-existing tag (e.g. the
+# first WordPress.org release) be (re-)deployed without re-tagging.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to deploy (e.g. v0.9.10.3)'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: WordPress Plugin Deploy
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: karks-crm
+          ASSETS_DIR: .wordpress-org

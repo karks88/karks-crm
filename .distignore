@@ -3,6 +3,7 @@
 .gitattributes
 .gitignore
 .distignore
+.wordpress-org
 wiki
 CLAUDE.md
 tests
