@@ -440,4 +440,25 @@
 			$('.kcrm-color-picker').wpColorPicker();
 		}
 	});
+
+	/**
+	 * The customer edit screen's "Company Name" field doubles as a Job's
+	 * name when "This is a Job of" has a parent selected -- flip the label
+	 * to "Company/Job Name" live as that selection changes, matching what
+	 * the initial page render already shows for an existing Job.
+	 */
+	$(function () {
+		var $label = $('#kcrm-company-name-label');
+		var $parentSelect = $('#parent_customer_id');
+		if (!$label.length || !$parentSelect.length) {
+			return;
+		}
+
+		function updateLabel() {
+			var isJob = parseInt($parentSelect.val(), 10) > 0;
+			$label.text(isJob ? $label.data('kcrm-job-label') : $label.data('kcrm-company-label'));
+		}
+
+		$parentSelect.on('change', updateLabel);
+	});
 })(jQuery);

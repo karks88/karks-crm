@@ -1,5 +1,9 @@
 == Changelog ==
 
+= 0.9.10.4 =
+* The Customers screen's "Company Name" field now reads "Company/Job Name" when the record is a Job (i.e. "This is a Job of" has a parent selected), on the front end and in wp-admin, since that field holds the Job's own name rather than a separate company.
+* Added a video tour and Helpful Links (official website, GitHub wiki) to this file's description, and added "billing" to the plugin's Tags.
+
 = 0.9.10.3 =
 * Fixed: saving a customer, receiving a payment, or any other action that redirects back to a front-end record-edit screen (`KCRM_Controller_Base::redirect()`, used by every controller's save/delete/payment/import handler) could land on "This link has expired" -- the redirect itself never carried the nav nonce that 0.9.10.2 started requiring. `redirect()` now always includes it.
 * Hardening: `KCRM_Company_Transfer::import()` now runs every imported customer, service, invoice, line-item, and payment field through the same sanitizers as the normal save screens (previously only the company profile was sanitized) -- so a hand-edited export file can't store unescaped markup, an invalid country, or a malformed date. Imported line-item amounts are recomputed from quantity x rate rather than trusted from the file. Per WordPress.org Plugin Review Team feedback.

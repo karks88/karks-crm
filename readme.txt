@@ -1,10 +1,10 @@
 === Karks CRM ===
 Contributors: karks88
-Tags: crm, invoicing, customers, invoices
+Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.3
+Stable tag: 0.9.10.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -14,7 +14,10 @@ A simple customer relationship management and invoicing plugin for tracking cust
 
 Karks CRM is an internal customer relationship and invoicing tool for managing multiple companies from a single WordPress install. It tracks customers (including "Jobs" nested under a parent customer), billable services, invoices with line items, and payments, and can generate PDF invoices.
 
-Features:
+***Video Tour***
+https://www.youtube.com/watch?v=yVpaxDGSW_8
+
+***Features:***
 
 * Multi-company support with a company switcher in the admin and on the front end
 * A front-end interface (a `/crm/` page) so a dedicated "CRM Manager" role can manage everything without wp-admin access
@@ -29,6 +32,11 @@ Features:
 * Reports (front-end): Revenue with a 12-month chart, per-customer revenue, and an Aging (accounts receivable) report, each with CSV export
 * Export/import a full company as a JSON file, for migrating between sites or duplicating a company as a template
 * Customizable front-end colors with automatic WCAG 2.1 contrast correction
+
+***Helpful Links***
+
+* [Official Website - karks-crm.com](https://karks-crm.com/)
+* [GitHub Wiki](https://github.com/karks88/karks-crm/wiki) - Contains a complete user and developer guide.
 
 == Installation ==
 
@@ -88,6 +96,10 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 == Changelog ==
 
+= 0.9.10.4 =
+* The Customers screen's "Company Name" field now reads "Company/Job Name" when the record is a Job (i.e. "This is a Job of" has a parent selected), on the front end and in wp-admin, since that field holds the Job's own name rather than a separate company.
+* Added a video tour and Helpful Links (official website, GitHub wiki) to this file's description, and added "billing" to the plugin's Tags.
+
 = 0.9.10.3 =
 * Fixed: saving a customer, receiving a payment, or any other action that redirects back to a front-end record-edit screen (`KCRM_Controller_Base::redirect()`, used by every controller's save/delete/payment/import handler) could land on "This link has expired" -- the redirect itself never carried the nav nonce that 0.9.10.2 started requiring. `redirect()` now always includes it.
 * Hardening: `KCRM_Company_Transfer::import()` now runs every imported customer, service, invoice, line-item, and payment field through the same sanitizers as the normal save screens (previously only the company profile was sanitized) -- so a hand-edited export file can't store unescaped markup, an invalid country, or a malformed date. Imported line-item amounts are recomputed from quantity x rate rather than trusted from the file. Per WordPress.org Plugin Review Team feedback.
@@ -105,9 +117,6 @@ It’s all about security and ease of maintenance. Building connections to payme
 * Added an extension point for add-ons: a new `kcrm_front_tools_after_sections` action fires at the end of the front-end Tools screen (see the wiki's Hooks and Filters page).
 * `KCRM_Company_Transfer::import()` gained an optional second parameter to restore a company's data in place (for the upcoming Karks CRM Backups add-on); the existing Import feature's behavior (always creates a new company) is unchanged.
 * Fixed: the front end's h3 subheading spacing (added so a section's own subheading has visible separation from unrelated content above it) was being applied even when an h3 immediately follows its own h2 -- e.g. "Companies" under the Tools screen's "Tools" heading -- pushing it down and adding an unwanted divider line right below the section title it belongs to.
-
-= 0.9.9.7 =
-* Hardening: the Email Invoice merge tags ({{first_name}}, {{last_name}}, {{customer}}, {{service}}) now strip any HTML from customer/service data before substituting into the email template, so a customer record can't inject markup into an outbound email regardless of which code path sends it.
 
 = Older versions =
 

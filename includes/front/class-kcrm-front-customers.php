@@ -497,7 +497,9 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 				</p>
 			<?php endif; ?>
 			<p>
-				<label for="company_name"><?php esc_html_e( 'Company Name', 'karks-crm' ); ?></label>
+				<label for="company_name" id="kcrm-company-name-label" data-kcrm-company-label="<?php esc_attr_e( 'Company Name', 'karks-crm' ); ?>" data-kcrm-job-label="<?php esc_attr_e( 'Company/Job Name', 'karks-crm' ); ?>">
+					<?php echo esc_html( $preselect_parent ? __( 'Company/Job Name', 'karks-crm' ) : __( 'Company Name', 'karks-crm' ) ); ?>
+				</label>
 				<input type="text" name="company_name" id="company_name" value="<?php echo esc_attr( $v( 'company_name' ) ); ?>" required>
 			</p>
 			<p>
