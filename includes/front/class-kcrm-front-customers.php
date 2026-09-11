@@ -302,14 +302,14 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 						<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $customer->status ); ?>"><?php echo esc_html( $statuses[ $customer->status ] ?? $customer->status ); ?></span></td>
 						<td><?php echo esc_html( number_format_i18n( $balance, 2 ) ); ?></td>
 						<td>
-							<a href="<?php echo esc_url( $this->screen_url( $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $customer->id ) ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
-							|
-							<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $customer->id ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
-							|
-							<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $customer->id ) ), 'kcrm_delete_customer_' . $customer->id ) ); ?>"
-								onclick="return confirm('<?php echo esc_js( $jobs ? __( 'Delete this customer and all of its Jobs?', 'karks-crm' ) : __( 'Delete this customer?', 'karks-crm' ) ); ?>');">
-								<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
-							</a>
+							<div class="kcrm-actions">
+								<a href="<?php echo esc_url( $this->screen_url( $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $customer->id ) ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
+								<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $customer->id ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
+								<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $customer->id ) ), 'kcrm_delete_customer_' . $customer->id ) ); ?>"
+									onclick="return confirm('<?php echo esc_js( $jobs ? __( 'Delete this customer and all of its Jobs?', 'karks-crm' ) : __( 'Delete this customer?', 'karks-crm' ) ); ?>');">
+									<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
+								</a>
+							</div>
 						</td>
 					</tr>
 					<?php foreach ( $jobs as $job ) : ?>
@@ -326,14 +326,14 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 							<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $job->status ); ?>"><?php echo esc_html( $statuses[ $job->status ] ?? $job->status ); ?></span></td>
 							<td><?php echo esc_html( number_format_i18n( $job_balance, 2 ) ); ?></td>
 							<td>
-								<a href="<?php echo esc_url( $this->screen_url( $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $job->id ) ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
-								|
-								<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $job->id ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
-								|
-								<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $job->id ) ), 'kcrm_delete_customer_' . $job->id ) ); ?>"
-									onclick="return confirm('<?php echo esc_js( __( 'Delete this Job?', 'karks-crm' ) ); ?>');">
-									<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
-								</a>
+								<div class="kcrm-actions">
+									<a href="<?php echo esc_url( $this->screen_url( $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $job->id ) ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
+									<a href="<?php echo esc_url( KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'add', 'customer_id' => $job->id ) ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
+									<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $job->id ) ), 'kcrm_delete_customer_' . $job->id ) ); ?>"
+										onclick="return confirm('<?php echo esc_js( __( 'Delete this Job?', 'karks-crm' ) ); ?>');">
+										<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
+									</a>
+								</div>
 							</td>
 						</tr>
 					<?php endforeach; ?>

@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.4
+Stable tag: 0.9.10.5
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -14,10 +14,10 @@ A simple customer relationship management and invoicing plugin for tracking cust
 
 Karks CRM is an internal customer relationship and invoicing tool for managing multiple companies from a single WordPress install. It tracks customers (including "Jobs" nested under a parent customer), billable services, invoices with line items, and payments, and can generate PDF invoices.
 
-***Video Tour***
+=== Video Tour ===
 https://www.youtube.com/watch?v=yVpaxDGSW_8
 
-***Features:***
+=== Features ===
 
 * Multi-company support with a company switcher in the admin and on the front end
 * A front-end interface (a `/crm/` page) so a dedicated "CRM Manager" role can manage everything without wp-admin access
@@ -33,7 +33,7 @@ https://www.youtube.com/watch?v=yVpaxDGSW_8
 * Export/import a full company as a JSON file, for migrating between sites or duplicating a company as a template
 * Customizable front-end colors with automatic WCAG 2.1 contrast correction
 
-***Helpful Links***
+=== Helpful Links ===
 
 * [Official Website - karks-crm.com](https://karks-crm.com/)
 * [GitHub Wiki](https://github.com/karks88/karks-crm/wiki) - Contains a complete user and developer guide.
@@ -95,6 +95,11 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 
 == Changelog ==
+
+= 0.9.10.5 =
+* Improved the front-end Invoices, Customers, and Services lists on tablet and smaller screens: secondary columns (Issue Date/Total on Invoices, Contact Person/Email on Customers, Type/Taxable on Services) now hide progressively as the screen narrows instead of forcing horizontal scrolling, and the Actions column now wraps its links in a proper container that stacks one link per line with real tap targets instead of wrapping awkwardly mid-row.
+* The Invoices list's Actions column now shows a "Record Payment" link (jumping straight to that invoice's Record a Payment section) in place of Delete, which is still available from the invoice's own Actions area. Also added a matching "Record a Payment" quick link under Due Date on the invoice edit screen (wp-admin and front end).
+* The front-end page now uses more of the available width on large screens (1600px and 1920px breakpoints) instead of staying capped at 1200px wide.
 
 = 0.9.10.4 =
 * The Customers screen's "Company Name" field now reads "Company/Job Name" when the record is a Job (i.e. "This is a Job of" has a parent selected), on the front end and in wp-admin, since that field holds the Job's own name rather than a separate company.

@@ -188,7 +188,7 @@ class KCRM_Front_Services extends KCRM_Services_Controller {
 		$services = KCRM_Service::for_company( $this->current_company_id() );
 		$types    = KCRM_Service::types();
 		?>
-		<table class="kcrm-front-table">
+		<table class="kcrm-front-table" id="kcrm-front-services-table">
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Name', 'karks-crm' ); ?></th>
@@ -222,12 +222,13 @@ class KCRM_Front_Services extends KCRM_Services_Controller {
 						<td><?php echo $service->is_taxable ? esc_html__( 'Yes', 'karks-crm' ) : esc_html__( 'No', 'karks-crm' ); ?></td>
 						<td><?php echo $service->is_active ? esc_html__( 'Yes', 'karks-crm' ) : esc_html__( 'No', 'karks-crm' ); ?></td>
 						<td>
-							<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $service->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
-							|
-							<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $service->id ) ), 'kcrm_delete_service_' . $service->id ) ); ?>"
-								onclick="return confirm('<?php echo esc_js( __( 'Delete this service?', 'karks-crm' ) ); ?>');">
-								<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
-							</a>
+							<div class="kcrm-actions">
+								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $service->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
+								<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $service->id ) ), 'kcrm_delete_service_' . $service->id ) ); ?>"
+									onclick="return confirm('<?php echo esc_js( __( 'Delete this service?', 'karks-crm' ) ); ?>');">
+									<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
+								</a>
+							</div>
 						</td>
 					</tr>
 				<?php endforeach; ?>

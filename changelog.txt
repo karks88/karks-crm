@@ -1,5 +1,10 @@
 == Changelog ==
 
+= 0.9.10.5 =
+* Improved the front-end Invoices, Customers, and Services lists on tablet and smaller screens: secondary columns (Issue Date/Total on Invoices, Contact Person/Email on Customers, Type/Taxable on Services) now hide progressively as the screen narrows instead of forcing horizontal scrolling, and the Actions column now wraps its links in a proper container that stacks one link per line with real tap targets instead of wrapping awkwardly mid-row.
+* The Invoices list's Actions column now shows a "Record Payment" link (jumping straight to that invoice's Record a Payment section) in place of Delete, which is still available from the invoice's own Actions area. Also added a matching "Record a Payment" quick link under Due Date on the invoice edit screen (wp-admin and front end).
+* The front-end page now uses more of the available width on large screens (1600px and 1920px breakpoints) instead of staying capped at 1200px wide.
+
 = 0.9.10.4 =
 * The Customers screen's "Company Name" field now reads "Company/Job Name" when the record is a Job (i.e. "This is a Job of" has a parent selected), on the front end and in wp-admin, since that field holds the Job's own name rather than a separate company.
 * Added a video tour and Helpful Links (official website, GitHub wiki) to this file's description, and added "billing" to the plugin's Tags.

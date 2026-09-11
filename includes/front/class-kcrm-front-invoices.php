@@ -512,14 +512,11 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			<td><?php echo esc_html( KCRM_Invoice::format_money( $balance ) ); ?></td>
 			<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $invoice->status ); ?>"><?php echo esc_html( $statuses[ $invoice->status ] ?? $invoice->status ); ?></span></td>
 			<td>
-				<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $invoice->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
-				|
-				<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_download_invoice_pdf&id=' . $invoice->id ), 'kcrm_download_invoice_pdf_' . $invoice->id ) ); ?>"><?php esc_html_e( 'PDF', 'karks-crm' ); ?></a>
-				|
-				<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $invoice->id ) ), 'kcrm_delete_invoice_' . $invoice->id ) ); ?>"
-					onclick="return confirm('<?php echo esc_js( __( 'Delete this invoice?', 'karks-crm' ) ); ?>');">
-					<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
-				</a>
+				<div class="kcrm-actions">
+					<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $invoice->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
+					<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_download_invoice_pdf&id=' . $invoice->id ), 'kcrm_download_invoice_pdf_' . $invoice->id ) ); ?>"><?php esc_html_e( 'PDF', 'karks-crm' ); ?></a>
+					<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $invoice->id ) ) . '#kcrm-record-payment' ); ?>"><?php esc_html_e( 'Record Payment', 'karks-crm' ); ?></a>
+				</div>
 			</td>
 		</tr>
 		<?php
@@ -631,6 +628,9 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 				<label for="due_date"><?php esc_html_e( 'Due Date', 'karks-crm' ); ?></label>
 				<input type="date" name="due_date" id="due_date" value="<?php echo esc_attr( $invoice ? $invoice->due_date : '' ); ?>">
 			</p>
+			<?php if ( $invoice ) : ?>
+				<p><a href="#kcrm-record-payment"><span class="dashicons dashicons-money-alt"></span> <?php esc_html_e( 'Record a Payment', 'karks-crm' ); ?></a></p>
+			<?php endif; ?>
 
 			<h3><?php esc_html_e( 'Line Items', 'karks-crm' ); ?></h3>
 			<table class="kcrm-front-table" id="kcrm-line-items">
@@ -923,7 +923,7 @@ class KCRM_Front_Invoices extends KCRM_Invoices_Controller {
 			</tbody>
 		</table>
 
-		<h4><?php esc_html_e( 'Record a Payment', 'karks-crm' ); ?></h4>
+		<h4 id="kcrm-record-payment"><?php esc_html_e( 'Record a Payment', 'karks-crm' ); ?></h4>
 		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>" class="kcrm-front-form">
 			<?php wp_nonce_field( 'kcrm_add_payment' ); ?>
 			<input type="hidden" name="kcrm_action" value="add_payment">

@@ -493,10 +493,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 				|
 				<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=kcrm_download_invoice_pdf&id=' . $invoice->id ), 'kcrm_download_invoice_pdf_' . $invoice->id ) ); ?>"><?php esc_html_e( 'PDF', 'karks-crm' ); ?></a>
 				|
-				<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $invoice->id ) ), 'kcrm_delete_invoice_' . $invoice->id ) ); ?>"
-					onclick="return confirm('<?php echo esc_js( __( 'Delete this invoice?', 'karks-crm' ) ); ?>');">
-					<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
-				</a>
+				<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $invoice->id ) ) . '#kcrm-record-payment' ); ?>"><?php esc_html_e( 'Record Payment', 'karks-crm' ); ?></a>
 			</td>
 		</tr>
 		<?php
@@ -646,6 +643,12 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 					<th><label for="due_date"><?php esc_html_e( 'Due Date', 'karks-crm' ); ?></label></th>
 					<td><input type="date" name="due_date" id="due_date" value="<?php echo esc_attr( $invoice ? $invoice->due_date : '' ); ?>"></td>
 				</tr>
+				<?php if ( $invoice ) : ?>
+					<tr>
+						<th></th>
+						<td><a href="#kcrm-record-payment"><span class="dashicons dashicons-money-alt"></span> <?php esc_html_e( 'Record a Payment', 'karks-crm' ); ?></a></td>
+					</tr>
+				<?php endif; ?>
 			</table>
 
 			<h2><?php esc_html_e( 'Line Items', 'karks-crm' ); ?></h2>
@@ -786,7 +789,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 			</tbody>
 		</table>
 
-		<h3><?php esc_html_e( 'Record a Payment', 'karks-crm' ); ?></h3>
+		<h3 id="kcrm-record-payment"><?php esc_html_e( 'Record a Payment', 'karks-crm' ); ?></h3>
 		<form method="post" action="<?php echo esc_url( $this->screen_url() ); ?>">
 			<?php wp_nonce_field( 'kcrm_add_payment' ); ?>
 			<input type="hidden" name="kcrm_action" value="add_payment">

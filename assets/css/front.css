@@ -29,6 +29,19 @@
 	line-height: 1.5;
 }
 
+/* Use more of the viewport on large screens -- the list tables are wide. */
+@media (min-width: 1600px) {
+	.kcrm-front {
+		max-width: 1440px;
+	}
+}
+
+@media (min-width: 1920px) {
+	.kcrm-front {
+		max-width: 1680px;
+	}
+}
+
 .kcrm-front-nav {
 	display: flex;
 	gap: 6px;
@@ -265,6 +278,23 @@ a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover, .kcrm-pr
 	color: var(--kcrm-color-highlight-text);
 }
 
+/* Row-action links in a list table's Actions column. Inline, divided by a thin
+   rule, on desktop; stacked one-per-line on tablet portrait and smaller (see
+   the max-width: 1024px block). The divider is a left border rather than a "|"
+   pseudo-element so it isn't part of any link (not clickable, not underlined). */
+.kcrm-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 0;
+}
+
+.kcrm-actions > a:not(:first-child) {
+	margin-left: 10px;
+	padding-left: 10px;
+	border-left: 1px solid #c3c4c7;
+}
+
 .kcrm-pagination {
 	display: flex;
 	align-items: center;
@@ -351,6 +381,7 @@ a.kcrm-button:hover .dashicons, a:hover .dashicons, .kcrm-card a:hover, .kcrm-pr
 .kcrm-job-row td:first-child {
 	padding-left: 24px;
 	color: #50575e;
+	white-space: nowrap;
 }
 
 .kcrm-invoice-group-header td {
@@ -850,6 +881,123 @@ a.kcrm-card:focus .kcrm-card-arrow {
 
 	.kcrm-bar-chart-value {
 		font-size: 9px;
+	}
+}
+
+/*
+ * Compact list layout for tablet portrait and smaller. Kept separate from the
+ * 768px block above (which also does phone-only nav/modal/dashboard changes we
+ * don't want on a ~1024px iPad) -- this block is only the browse-list tables
+ * plus their stacked Actions column.
+ */
+@media (max-width: 1024px) {
+	/*
+	 * Priority columns: drop the lower-value columns on the three main browse
+	 * lists so the essentials fit without horizontal scrolling. Nothing is
+	 * lost -- every hidden field is still on the record's own edit screen.
+	 */
+
+	/* Invoices -- hide Issue Date (3) and Total (5). The flat list and the
+	   "Customers with Multiple Jobs" grouped table share render_invoice_row(),
+	   so both need the same columns hidden; the group-header <td colspan> is
+	   :nth-child(1) and is left untouched. */
+	#kcrm-front-invoices-table th:nth-child(3),
+	#kcrm-front-invoices-table td:nth-child(3),
+	#kcrm-front-invoices-table th:nth-child(5),
+	#kcrm-front-invoices-table td:nth-child(5),
+	#kcrm-front-invoice-groups-table th:nth-child(3),
+	#kcrm-front-invoice-groups-table td:nth-child(3),
+	#kcrm-front-invoice-groups-table th:nth-child(5),
+	#kcrm-front-invoice-groups-table td:nth-child(5) {
+		display: none;
+	}
+
+	/* Customers -- hide Contact Person (2) and Email (3). Inline job sub-rows
+	   use the same 6-cell shape and stay aligned. */
+	#kcrm-front-customers-table th:nth-child(2),
+	#kcrm-front-customers-table td:nth-child(2),
+	#kcrm-front-customers-table th:nth-child(3),
+	#kcrm-front-customers-table td:nth-child(3) {
+		display: none;
+	}
+
+	/* Services -- hide Type (2) and Taxable (4). */
+	#kcrm-front-services-table th:nth-child(2),
+	#kcrm-front-services-table td:nth-child(2),
+	#kcrm-front-services-table th:nth-child(4),
+	#kcrm-front-services-table td:nth-child(4) {
+		display: none;
+	}
+
+	/* With fewer columns, let the kept ones wrap and tighten. */
+	#kcrm-front-invoices-table th,
+	#kcrm-front-invoices-table td,
+	#kcrm-front-invoice-groups-table th,
+	#kcrm-front-invoice-groups-table td,
+	#kcrm-front-customers-table th,
+	#kcrm-front-customers-table td,
+	#kcrm-front-services-table th,
+	#kcrm-front-services-table td {
+		white-space: normal;
+		padding: 6px;
+	}
+
+	/* Stack row actions one-per-line with real tap targets; drop the dividers. */
+	.kcrm-actions {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0;
+	}
+
+	.kcrm-actions > a {
+		display: block;
+		width: 100%;
+		padding: 8px 0;
+	}
+
+	.kcrm-actions > a:not(:first-child) {
+		margin-left: 0;
+		padding-left: 0;
+		border-left: 0;
+	}
+}
+
+/*
+ * The Invoices list carries 8 columns -- two more than Customers/Services -- so
+ * it stays cramped on ordinary laptop widths. Hide Issue Date (Due Date is the
+ * actionable one) up to 1600px; the <=1024px block above additionally hides
+ * Total. Both the flat list and the grouped table share render_invoice_row().
+ * The Actions column is also stacked one-per-line in this range (scoped to
+ * these two table ids, not the bare .kcrm-actions class) since "Edit | PDF |
+ * Record Payment" no longer fits inline once Issue Date's width is gone.
+ */
+@media (max-width: 1600px) {
+	#kcrm-front-invoices-table th:nth-child(3),
+	#kcrm-front-invoices-table td:nth-child(3),
+	#kcrm-front-invoice-groups-table th:nth-child(3),
+	#kcrm-front-invoice-groups-table td:nth-child(3) {
+		display: none;
+	}
+
+	#kcrm-front-invoices-table .kcrm-actions,
+	#kcrm-front-invoice-groups-table .kcrm-actions {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0;
+	}
+
+	#kcrm-front-invoices-table .kcrm-actions > a,
+	#kcrm-front-invoice-groups-table .kcrm-actions > a {
+		display: block;
+		width: 100%;
+		padding: 8px 0;
+	}
+
+	#kcrm-front-invoices-table .kcrm-actions > a:not(:first-child),
+	#kcrm-front-invoice-groups-table .kcrm-actions > a:not(:first-child) {
+		margin-left: 0;
+		padding-left: 0;
+		border-left: 0;
 	}
 }
 

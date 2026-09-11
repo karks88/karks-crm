@@ -33,6 +33,7 @@ A **company switcher** dropdown appears on every screen once more than one compa
 - Is added from the parent customer's own page ("Add Job").
 - Displays as "Job Name (Parent Name)" wherever it's picked (e.g. the invoice customer dropdown).
 - Rolls up into the parent's combined balance and revenue totals, while still being invoiced individually.
+- Uses that same Company Name field for its own name — the edit screen labels it "Company/Job Name" instead whenever "This is a Job of" has a parent selected.
 
 **Open Balance export.** From a customer's own profile page (or the [Customer Report](#reports)), **Export Open Balance PDF/CSV** downloads every open/partially-paid invoice for that customer (rolled up with its Jobs), oldest first — mirrors QuickBooks' "Customer Open Balance" report. $0.00 invoices are left out, the same way QuickBooks' own report excludes them.
 
@@ -57,13 +58,13 @@ A **company switcher** dropdown appears on every screen once more than one compa
 - **Line Items** — each references a Service (or "Custom" for a one-off line with its own description/type/rate), plus Quantity, Rate, and a per-line **Taxable** checkbox (defaults from the selected service; blank/Custom lines default to non-taxable).
 - **Notes**.
 
-The Invoices list (wp-admin and front end) can be sorted by Invoice #, Issue Date, Due Date, or Balance Due (click the column header), and filtered down to specific statuses via the checkboxes above the table -- leave all boxes checked (the default) to see everything. Every customer name shown on the list (and on an invoice's own edit screen) links directly to that customer's profile.
+The Invoices list (wp-admin and front end) can be sorted by Invoice #, Issue Date, Due Date, or Balance Due (click the column header), and filtered down to specific statuses via the checkboxes above the table -- leave all boxes checked (the default) to see everything. Every customer name shown on the list (and on an invoice's own edit screen) links directly to that customer's profile. Each row's Actions column offers Edit, PDF, and a **Record Payment** link that jumps straight to that invoice's Record a Payment section; deleting an invoice is done from its own edit screen, not the list.
 
 **Customers with Multiple Jobs** get their own section at the top of the list: a customer with two or more Jobs shows its own invoices together with every Job's invoices in one collapsible block (sorted by issue date, newest first), instead of those invoices being scattered through the regular sorted list below by whatever column you're sorting on. wp-admin also has a **Customer** filter dropdown to narrow the whole list down to one customer (+ its Jobs).
 
 **Totals** are always computed, never hand-entered: Subtotal = sum of every line's amount; Tax Amount = the invoice's tax rate applied only to the sum of lines marked Taxable; Total = Subtotal + Tax Amount. A negative line (e.g. a discount — just give it a negative Rate) displays in parentheses, e.g. "(50.00)", rather than a plain minus sign, everywhere the amount is shown -- the edit screen, the Invoices list, the customer profile, and PDFs.
 
-**Recording a Payment** (date, amount, method, note) against an invoice is what advances its status: no payments → Open; partial → Partially Paid; paid in full → Paid. This happens automatically every time a payment is added or removed.
+**Recording a Payment** (date, amount, method, note) against an invoice is what advances its status: no payments → Open; partial → Partially Paid; paid in full → Paid. This happens automatically every time a payment is added or removed. A "Record a Payment" link under Due Date on the edit screen, and the Record Payment link in the list's Actions column, both jump straight to this section.
 
 **Actions available once an invoice is saved:**
 - **Download PDF Invoice** — streams a PDF (company logo/accent color/footer, line items, totals, payment options).

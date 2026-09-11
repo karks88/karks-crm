@@ -29,7 +29,7 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 
 | Class | Purpose |
 |---|---|
-| `.kcrm-front` | Outer wrapper for the whole `/crm/` page — max-width, base font size/line-height. |
+| `.kcrm-front` | Outer wrapper for the whole `/crm/` page — max-width (1200px, widening to 1440px at 1600px+ and 1680px at 1920px+ viewports), base font size/line-height. |
 | `.kcrm-front-screen` | Wrapper for a single screen's content within `.kcrm-front`. |
 | `.kcrm-front-nav` | The tab bar (Company Profile/Customers/Services/Invoices/Reports/Tools/Log Out). Collapses to a dropdown (`.is-open` toggles visibility) on screens 768px and below. |
 | `.kcrm-front-nav a.is-active` | The current tab. |
@@ -57,7 +57,8 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 
 | Class | Purpose |
 |---|---|
-| `.kcrm-front-table` | Base table style used for every list (customers, services, invoices, payments). |
+| `.kcrm-front-table` | Base table style used for every list (customers, services, invoices, payments). The Invoices, Customers, and Services browse tables (`#kcrm-front-invoices-table`, `#kcrm-front-invoice-groups-table`, `#kcrm-front-customers-table`, `#kcrm-front-services-table`) progressively hide their less-essential columns and stack `.kcrm-actions` one link per line as the viewport narrows -- Invoices (8 columns) starts dropping Issue Date at 1600px and Issue Date + Total at 1024px; Customers/Services drop their secondary columns at 1024px. |
+| `.kcrm-actions` | Wraps a row's action links (Edit/PDF/Record Payment, Edit/New Invoice/Delete, etc.) in a list table's Actions column. Inline, divided by a thin left-border rule, above the relevant breakpoint above; stacks one link per line, full width, below it. |
 | `.kcrm-front-form` | Wraps a form for consistent label/input spacing. |
 | `.kcrm-pagination` / `.kcrm-pagination-status` | Prev/Next controls and the "Page X of Y" text. |
 | `.kcrm-date-range-filter` | The This Year/Last Year/All/Custom Range filter form (Invoices, Reports). |
