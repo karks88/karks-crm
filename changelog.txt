@@ -1,5 +1,8 @@
 == Changelog ==
 
+= 0.9.10.6 =
+* Added two new extension points for add-ons: `kcrm_company_export_data` (filter) and `kcrm_company_import_data` (action), fired from `KCRM_Company_Transfer::export()`/`import()`. Lets an add-on with its own per-customer/per-company data (e.g. Karks CRM Customer Notes) include it in Karks CRM's own company export/import, and transitively in backups made by Karks CRM Backups, without either of those needing to know the add-on exists. See the wiki's Hooks and Filters page.
+
 = 0.9.10.5 =
 * Improved the front-end Invoices, Customers, and Services lists on tablet and smaller screens: secondary columns (Issue Date/Total on Invoices, Contact Person/Email on Customers, Type/Taxable on Services) now hide progressively as the screen narrows instead of forcing horizontal scrolling, and the Actions column now wraps its links in a proper container that stacks one link per line with real tap targets instead of wrapping awkwardly mid-row.
 * The Invoices list's Actions column now shows a "Record Payment" link (jumping straight to that invoice's Record a Payment section) in place of Delete, which is still available from the invoice's own Actions area. Also added a matching "Record a Payment" quick link under Due Date on the invoice edit screen (wp-admin and front end).

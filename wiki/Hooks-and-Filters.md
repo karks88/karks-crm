@@ -47,7 +47,77 @@ add_action( 'kcrm_front_tools_after_sections', function () {
 } );
 ```
 
+### `kcrm_company_import_data`
+
+Fires at the end of `KCRM_Company_Transfer::import()`, after core's own data (company profile, customers, services, invoices/items/payments) has been fully imported. Use it to import your own add-on's per-customer/per-company data (e.g. a notes/tasks add-on) from the same decoded file — see `kcrm_company_export_data` below for how to get your data into that file in the first place.
+
+```php
+do_action( 'kcrm_company_import_data', $data, $company_id, $customer_id_map, $service_id_map, $target_company_id );
+```
+
+- `$data` (array) — the decoded import payload, i.e. whatever your `kcrm_company_export_data` listener returned at export time. Read your own top-level key from it.
+- `$company_id` (int) — the resolved company id: either the pre-existing company being restored into, or the newly-created company, depending on which path this import took.
+- `$customer_id_map` (array) — old customer id (as it appeared in `$data['customers']`) => newly-inserted customer id. Use this to remap any customer id your own rows reference.
+- `$service_id_map` (array) — old service id => newly-inserted service id, same idea, for anything keyed by service.
+- `$target_company_id` (int) — `0` when this import created a brand-new company (so there's nothing of yours to wipe first); otherwise the id of the existing company being restored into.
+
+**Only touch existing data when your own key is actually present in `$data`.** An import file made before your add-on existed (or exported while it happened to be inactive) simply won't have your key — treat that as "leave whatever's already there alone," not as "the backup says I have nothing." This is what keeps a restore from an old backup non-destructive toward newer add-on data that backup never knew about.
+
+Example listener (a hypothetical notes add-on, following the wipe-then-rebuild pattern core itself uses for customers/services/invoices, but scoped to its own table and its own key):
+
+```php
+add_action( 'kcrm_company_import_data', function ( $data, $company_id, $customer_id_map, $service_id_map, $target_company_id ) {
+    if ( ! isset( $data['my_addon_notes'] ) || ! is_array( $data['my_addon_notes'] ) ) {
+        return; // This export predates (or was made without) my add-on -- don't touch existing data.
+    }
+    if ( $target_company_id ) {
+        foreach ( My_Addon_Note::where( array( 'company_id' => $target_company_id ) ) as $existing ) {
+            My_Addon_Note::delete( $existing->id );
+        }
+    }
+    foreach ( $data['my_addon_notes'] as $row ) {
+        $new_customer_id = $customer_id_map[ (int) $row['customer_id'] ] ?? 0;
+        if ( ! $new_customer_id ) {
+            continue; // The customer it belonged to wasn't restored.
+        }
+        My_Addon_Note::insert( array( 'company_id' => $company_id, 'customer_id' => $new_customer_id /* ...sanitize and pass through your own fields... */ ) );
+    }
+}, 10, 5 );
+```
+
 ## Filters
+
+### `kcrm_company_export_data`
+
+Filters the fully-built export array right before `KCRM_Company_Transfer::export()` returns it. Use it to append your own top-level key with your add-on's own per-customer/per-company data, keyed by the *original* customer/service IDs already present in `$data['customers']`/`$data['services']` — those are exactly what `$customer_id_map`/`$service_id_map` remap on import (see `kcrm_company_import_data` above).
+
+```php
+$data = apply_filters( 'kcrm_company_export_data', $data, $company_id );
+```
+
+- `$data` (array) — the export array (`format_version`, `exported_at`, `company`, `customers`, `services`, `invoices`).
+- `$company_id` (int) — the company being exported.
+
+Namespace your own top-level key so it can't collide with another add-on's (e.g. `my_addon_notes`, not `notes`).
+
+Example listener:
+
+```php
+add_filter( 'kcrm_company_export_data', function ( $data, $company_id ) {
+    $rows = array();
+    foreach ( $data['customers'] as $customer ) {
+        foreach ( My_Addon_Note::for_customer( $customer['id'] ) as $note ) {
+            $rows[] = array(
+                'customer_id' => (int) $note->customer_id,
+                'body'        => $note->body,
+                // ...whatever other fields your add-on needs to restore later...
+            );
+        }
+    }
+    $data['my_addon_notes'] = $rows;
+    return $data;
+}, 10, 2 );
+```
 
 ### `kcrm_customer_profile_tabs`
 

@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.5
+Stable tag: 0.9.10.6
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,9 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 
 == Changelog ==
+
+= 0.9.10.6 =
+* Added two new extension points for add-ons: `kcrm_company_export_data` (filter) and `kcrm_company_import_data` (action), fired from `KCRM_Company_Transfer::export()`/`import()`. Lets an add-on with its own per-customer/per-company data (e.g. Karks CRM Customer Notes) include it in Karks CRM's own company export/import, and transitively in backups made by Karks CRM Backups, without either of those needing to know the add-on exists. See the wiki's Hooks and Filters page.
 
 = 0.9.10.5 =
 * Improved the front-end Invoices, Customers, and Services lists on tablet and smaller screens: secondary columns (Issue Date/Total on Invoices, Contact Person/Email on Customers, Type/Taxable on Services) now hide progressively as the screen narrows instead of forcing horizontal scrolling, and the Actions column now wraps its links in a proper container that stacks one link per line with real tap targets instead of wrapping awkwardly mid-row.

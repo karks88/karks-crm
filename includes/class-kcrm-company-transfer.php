@@ -144,7 +144,17 @@ class KCRM_Company_Transfer {
 			);
 		}
 
-		return $data;
+		/**
+		 * Filters the fully-built export array before it's returned, so add-ons
+		 * with their own per-customer/per-company data (e.g. a notes/tasks
+		 * add-on) can append their own top-level key -- keyed by the original
+		 * customer/service IDs already present in $data['customers']/$data['services']
+		 * above, since those are what import() below remaps.
+		 *
+		 * @param array $data       The export array (see the shape built above).
+		 * @param int   $company_id The company being exported.
+		 */
+		return apply_filters( 'kcrm_company_export_data', $data, $company_id );
 	}
 
 	/**
@@ -300,6 +310,28 @@ class KCRM_Company_Transfer {
 			// rather than trusting the export's own (possibly stale) cached totals.
 			KCRM_Invoice::recalculate_totals( $new_invoice_id );
 		}
+
+		/**
+		 * Fires after core's own data (company/customers/services/invoices) has
+		 * been fully imported, so add-ons with their own per-customer/per-company
+		 * data (e.g. a notes/tasks add-on) can import their own top-level key
+		 * from $data, remapped through $customer_id_map/$service_id_map.
+		 *
+		 * $target_company_id is 0 when this import created a brand-new company
+		 * (nothing of the add-on's to wipe first) and the existing company id
+		 * when this was an in-place restore -- an add-on that supports restore
+		 * should only wipe/replace its own data for that company when $data
+		 * actually contains its key, so an older export that predates the
+		 * add-on (or was made while it was inactive) never touches/deletes
+		 * data that already exists for that company.
+		 *
+		 * @param array $data              The decoded import payload.
+		 * @param int   $company_id        The resolved company id (new or restored-into).
+		 * @param array $customer_id_map   Old customer id => new customer id.
+		 * @param array $service_id_map    Old service id => new service id.
+		 * @param int   $target_company_id 0 for "create new company", else the restored-into company id.
+		 */
+		do_action( 'kcrm_company_import_data', $data, $company_id, $customer_id_map, $service_id_map, $target_company_id );
 
 		return array(
 			'company_id' => $company_id,
