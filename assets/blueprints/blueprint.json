@@ -1,0 +1,17 @@
+{
+	"landingPage": "/wp-admin/admin.php?page=karks-crm-invoices",
+	"preferredVersions": {
+		"php": "8.1",
+		"wp": "latest"
+	},
+	"phpExtensionBundles": [
+		"kitchen-sink"
+	],
+	"steps": [
+		{ "step": "login", "username": "admin", "password": "password" },
+		{
+			"step": "runPHP",
+			"code": "<?php require_once 'wordpress/wp-load.php'; require_once WP_PLUGIN_DIR . '/karks-crm/includes/class-kcrm-demo-seeder.php'; KCRM_Demo_Seeder::maybe_seed(); ?>"
+		}
+	]
+}

@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.6
+Stable tag: 0.9.10.7
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,9 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 
 == Changelog ==
+
+= 0.9.10.7 =
+* Added a WordPress.org interactive preview: `assets/blueprints/blueprint.json` boots a WordPress Playground instance with a demo company, customers, services, and invoices (paid/partial/unpaid) already seeded, so the "Preview" button on the plugin page shows a populated CRM instead of an empty one.
 
 = 0.9.10.6 =
 * Added two new extension points for add-ons: `kcrm_company_export_data` (filter) and `kcrm_company_import_data` (action), fired from `KCRM_Company_Transfer::export()`/`import()`. Lets an add-on with its own per-customer/per-company data (e.g. Karks CRM Customer Notes) include it in Karks CRM's own company export/import, and transitively in backups made by Karks CRM Backups, without either of those needing to know the add-on exists. See the wiki's Hooks and Filters page.
