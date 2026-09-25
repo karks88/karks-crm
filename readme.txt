@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.7
+Stable tag: 0.9.10.8
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,9 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 
 == Changelog ==
+
+= 0.9.10.8 =
+* Fixed the interactive preview blueprint's location: `blueprint.json` was committed inside the plugin's own `assets/` folder (deployed as part of `trunk/`), but WordPress.org requires it in the SVN repo's top-level `assets/blueprints/blueprint.json` (the shared assets folder, alongside the banner/icon/screenshots) for the "Preview" button to find it. Now sourced from `.wordpress-org/blueprints/blueprint.json` so the deploy workflow places it correctly.
 
 = 0.9.10.7 =
 * Added a WordPress.org interactive preview: `assets/blueprints/blueprint.json` boots a WordPress Playground instance with a demo company, customers, services, and invoices (paid/partial/unpaid) already seeded, so the "Preview" button on the plugin page shows a populated CRM instead of an empty one.
