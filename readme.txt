@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.10
+Stable tag: 0.9.10.11
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,9 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 
 == Changelog ==
+
+= 0.9.10.11 =
+* Fixed the interactive preview still not seeding demo data on WordPress.org's live "Preview" button (no error, just an empty CRM): WordPress.org's blueprint merger appends its own implicit `installPlugin` step to the *end* of a plugin's custom steps, after `login`/`runPHP` rather than before -- so the plugin (and the `kcrm_run_demo_seeder` action) didn't exist yet when the seeding step ran. Added our own explicit `installPlugin` step first in the blueprint so the plugin is guaranteed active before login/seeding run, regardless of WP.org's (now redundant, harmless) trailing one.
 
 = 0.9.10.10 =
 * Fixed the interactive preview's `runPHP` step still failing intermittently on the live WordPress.org preview (exit code 255) even after the `wp-load.php` path fix: it separately `require_once`'d the demo seeder class by a guessed filesystem path, which could race ahead of the preview's own plugin-install step. Now the seeder is loaded as part of the plugin's normal bootstrap (harmless -- it does nothing unless triggered) and fired via a dedicated `kcrm_run_demo_seeder` action, removing the second path lookup entirely.

@@ -1,5 +1,5 @@
 {
-	"landingPage": "/wp-admin/admin.php?page=karks-crm-invoices",
+	"landingPage": "/wp-admin/admin.php?page=karks-crm-welcome",
 	"preferredVersions": {
 		"php": "8.1",
 		"wp": "latest"
@@ -8,6 +8,11 @@
 		"kitchen-sink"
 	],
 	"steps": [
+		{
+			"step": "installPlugin",
+			"pluginZipFile": { "resource": "wordpress.org/plugins", "slug": "karks-crm" },
+			"options": { "activate": true }
+		},
 		{ "step": "login", "username": "admin", "password": "password" },
 		{
 			"step": "runPHP",
