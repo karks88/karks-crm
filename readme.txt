@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.8
+Stable tag: 0.9.10.9
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,9 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 
 == Changelog ==
+
+= 0.9.10.9 =
+* Fixed the interactive preview's `runPHP` step failing with "Could not run custom PHP code" (exit code 255): it required `wp-load.php` via a relative path (`wordpress/wp-load.php`), which depends on that step's working directory; switched to the absolute path (`/wordpress/wp-load.php`) that WordPress Playground's own runPHP examples use.
 
 = 0.9.10.8 =
 * Fixed the interactive preview blueprint's location: `blueprint.json` was committed inside the plugin's own `assets/` folder (deployed as part of `trunk/`), but WordPress.org requires it in the SVN repo's top-level `assets/blueprints/blueprint.json` (the shared assets folder, alongside the banner/icon/screenshots) for the "Preview" button to find it. Now sourced from `.wordpress-org/blueprints/blueprint.json` so the deploy workflow places it correctly.
