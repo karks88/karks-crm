@@ -6,9 +6,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Populates one demo company with sample customers, services, invoices, and
  * payments so a WordPress Playground preview (assets/blueprints/blueprint.json)
- * doesn't land on an empty CRM. Only ever invoked explicitly by that
- * blueprint's runPHP step -- never hooked into anything that runs on a real
- * install.
+ * doesn't land on an empty CRM. Only ever invoked via the 'kcrm_run_demo_seeder'
+ * action (see karks-crm.php), which that blueprint's runPHP step fires --
+ * nothing on a real install ever calls that action.
  */
 class KCRM_Demo_Seeder {
 

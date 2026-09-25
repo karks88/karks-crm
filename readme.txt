@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.9
+Stable tag: 0.9.10.10
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,9 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 
 == Changelog ==
+
+= 0.9.10.10 =
+* Fixed the interactive preview's `runPHP` step still failing intermittently on the live WordPress.org preview (exit code 255) even after the `wp-load.php` path fix: it separately `require_once`'d the demo seeder class by a guessed filesystem path, which could race ahead of the preview's own plugin-install step. Now the seeder is loaded as part of the plugin's normal bootstrap (harmless -- it does nothing unless triggered) and fired via a dedicated `kcrm_run_demo_seeder` action, removing the second path lookup entirely.
 
 = 0.9.10.9 =
 * Fixed the interactive preview's `runPHP` step failing with "Could not run custom PHP code" (exit code 255): it required `wp-load.php` via a relative path (`wordpress/wp-load.php`), which depends on that step's working directory; switched to the absolute path (`/wordpress/wp-load.php`) that WordPress Playground's own runPHP examples use.

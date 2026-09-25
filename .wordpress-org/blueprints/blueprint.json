@@ -11,7 +11,7 @@
 		{ "step": "login", "username": "admin", "password": "password" },
 		{
 			"step": "runPHP",
-			"code": "<?php require_once '/wordpress/wp-load.php'; require_once WP_PLUGIN_DIR . '/karks-crm/includes/class-kcrm-demo-seeder.php'; KCRM_Demo_Seeder::maybe_seed(); ?>"
+			"code": "<?php require_once '/wordpress/wp-load.php'; do_action( 'kcrm_run_demo_seeder' ); ?>"
 		}
 	]
 }

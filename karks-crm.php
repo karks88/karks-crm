@@ -3,7 +3,7 @@
  * Plugin Name: Karks CRM
  * Plugin URI: https://karks-crm.com
  * Description: Manage customers, services, and invoices across multiple companies.
- * Version: 0.9.10.9
+ * Version: 0.9.10.10
  * Author: Eric Karkovack
  * Author URI: https://karks.com
  * Text Domain: karks-crm
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'KCRM_VERSION', '0.9.10.9' );
+define( 'KCRM_VERSION', '0.9.10.10' );
 define( 'KCRM_DB_VERSION', '1.17.0' );
 define( 'KCRM_PLUGIN_FILE', __FILE__ );
 define( 'KCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
@@ -61,8 +61,18 @@ require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-invoices-control
 
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-front.php';
+require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-demo-seeder.php';
 
 register_activation_hook( __FILE__, array( 'KCRM_Activator', 'activate' ) );
+
+/**
+ * Only ever fired by the WordPress Playground preview's blueprint runPHP step
+ * (see .wordpress-org/blueprints/blueprint.json) -- never on a real install.
+ * Triggered via do_action() rather than the blueprint require()'ing this
+ * file's path itself, since that path isn't guaranteed to be readable yet at
+ * the moment the blueprint's runPHP step executes.
+ */
+add_action( 'kcrm_run_demo_seeder', array( 'KCRM_Demo_Seeder', 'maybe_seed' ) );
 
 /**
  * Boot the plugin.
