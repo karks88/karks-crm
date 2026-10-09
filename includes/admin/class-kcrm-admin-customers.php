@@ -289,12 +289,7 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 						<td>
 							<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $customer->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
 							|
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices&view=add&customer_id=' . $customer->id ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
-							|
-							<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $customer->id ) ), 'kcrm_delete_customer_' . $customer->id ) ); ?>"
-								onclick="return confirm('<?php echo esc_js( $jobs ? __( 'Delete this customer and all of its Jobs?', 'karks-crm' ) : __( 'Delete this customer?', 'karks-crm' ) ); ?>');">
-								<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
-							</a>
+							<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $customer->id ) ) . '#kcrm-customer-billing' ); ?>"><?php esc_html_e( 'Invoices & Payments', 'karks-crm' ); ?></a>
 						</td>
 					</tr>
 					<?php foreach ( $jobs as $job ) : ?>
@@ -314,12 +309,7 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 							<td>
 								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $job->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
 								|
-								<a href="<?php echo esc_url( admin_url( 'admin.php?page=karks-crm-invoices&view=add&customer_id=' . $job->id ) ); ?>"><?php esc_html_e( 'New Invoice', 'karks-crm' ); ?></a>
-								|
-								<a href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $job->id ) ), 'kcrm_delete_customer_' . $job->id ) ); ?>"
-									onclick="return confirm('<?php echo esc_js( __( 'Delete this Job?', 'karks-crm' ) ); ?>');">
-									<?php esc_html_e( 'Delete', 'karks-crm' ); ?>
-								</a>
+								<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $job->id ) ) . '#kcrm-customer-billing' ); ?>"><?php esc_html_e( 'Invoices & Payments', 'karks-crm' ); ?></a>
 							</td>
 						</tr>
 					<?php endforeach; ?>
@@ -475,7 +465,58 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 			<?php $this->render_revenue_section( $rollup_ids, $customer->id, ! empty( $job_ids ) ); ?>
 			<?php $this->render_invoices_section( $rollup_ids, $customer->id, ! empty( $job_ids ) ); ?>
 			<?php do_action( 'kcrm_customer_edit_after_sections', $customer, $rollup_ids ); ?>
+			<?php $this->render_delete_section( $customer, count( $job_ids ) ); ?>
 		<?php endif; ?>
+		<?php
+	}
+
+	/**
+	 * The profile's only Delete control -- deliberately kept off the list
+	 * screen so a customer can't be removed with a stray click there.
+	 */
+	private function render_delete_section( $customer, $job_count ) {
+		$is_job = ! empty( $customer->parent_customer_id );
+		if ( $is_job ) {
+			$confirm = __( 'Delete this Job?', 'karks-crm' );
+		} elseif ( $job_count ) {
+			$confirm = __( 'Delete this customer and all of its Jobs?', 'karks-crm' );
+		} else {
+			$confirm = __( 'Delete this customer?', 'karks-crm' );
+		}
+		?>
+		<h2><?php echo esc_html( $is_job ? __( 'Delete Job', 'karks-crm' ) : __( 'Delete Customer', 'karks-crm' ) ); ?></h2>
+		<div class="notice notice-warning inline">
+			<p>
+				<span class="dashicons dashicons-warning" aria-hidden="true"></span>
+				<?php
+				echo esc_html( $is_job ? __( 'Deleting this Job permanently removes it. This cannot be undone.', 'karks-crm' ) : __( 'Deleting this customer permanently removes it. This cannot be undone.', 'karks-crm' ) );
+				if ( $job_count ) {
+					echo ' ' . esc_html(
+						sprintf(
+							/* translators: %d: number of Jobs under this customer. */
+							_n( 'Its %d Job will be deleted too.', 'All %d of its Jobs will be deleted too.', $job_count, 'karks-crm' ),
+							$job_count
+						)
+					);
+				}
+				?>
+			</p>
+			<p>
+				<?php
+				printf(
+					/* translators: %s: "see above" link to the Status field. */
+					esc_html__( 'No longer working with this client? You can change their status to “Inactive” (%s) to preserve their records.', 'karks-crm' ),
+					'<a href="#status">' . esc_html__( 'see above', 'karks-crm' ) . '</a>'
+				);
+				?>
+			</p>
+		</div>
+		<p>
+			<a class="button button-link-delete" href="<?php echo esc_url( wp_nonce_url( $this->screen_url( array( 'action' => 'delete', 'id' => $customer->id ) ), 'kcrm_delete_customer_' . $customer->id ) ); ?>"
+				onclick="return confirm('<?php echo esc_js( $confirm ); ?>');">
+				<?php echo esc_html( $is_job ? __( 'Delete Job', 'karks-crm' ) : __( 'Delete Customer', 'karks-crm' ) ); ?>
+			</a>
+		</p>
 		<?php
 	}
 
@@ -522,7 +563,7 @@ class KCRM_Admin_Customers extends KCRM_Customers_Controller {
 		$lifetime_total   = KCRM_Payment::total_for_customers( $customer_ids );
 		$balance          = KCRM_Customer::balance_for_ids( $customer_ids );
 		?>
-		<h2><?php esc_html_e( 'Revenue', 'karks-crm' ); ?></h2>
+		<h2 id="kcrm-customer-billing"><?php esc_html_e( 'Revenue', 'karks-crm' ); ?></h2>
 		<?php if ( $is_rollup ) : ?>
 			<p class="description"><?php esc_html_e( 'Includes this customer and all of its Jobs.', 'karks-crm' ); ?></p>
 		<?php endif; ?>

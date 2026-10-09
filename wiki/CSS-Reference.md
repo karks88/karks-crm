@@ -45,7 +45,9 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 |---|---|
 | `.kcrm-button` | Base button/link style (outline). |
 | `.kcrm-button-primary` | Filled/primary variant. |
+| `.kcrm-button-danger` | Red outline variant for destructive actions (e.g. Delete Customer); fills red on hover/focus. Fixed color, not tied to the color scheme. |
 | `.kcrm-button-group` | Spacing wrapper around one or more buttons. |
+| `.kcrm-delete-section` / `.kcrm-delete-warning` | The Delete Customer/Job section at the bottom of a customer profile, and its warning paragraph (red `dashicons-warning` icon). |
 | `.kcrm-dashboard-cards` | Flex row wrapping a set of `.kcrm-card` stat tiles. |
 | `.kcrm-card` | A single stat tile (Company Overview, Reports overview, customer revenue summary). An `<h3>` as its first child is optional -- styled as a small uppercase title instead of inheriting the page's full-width `h3` section-divider look (see the Reports overview's Revenue/Aging/Customer Report cards). |
 | `.kcrm-card-icon` | Dashicon inside a card. |
@@ -58,7 +60,7 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 | Class | Purpose |
 |---|---|
 | `.kcrm-front-table` | Base table style used for every list (customers, services, invoices, payments). The Invoices, Customers, and Services browse tables (`#kcrm-front-invoices-table`, `#kcrm-front-invoice-groups-table`, `#kcrm-front-customers-table`, `#kcrm-front-services-table`) progressively hide their less-essential columns and stack `.kcrm-actions` one link per line as the viewport narrows -- Invoices (8 columns) starts dropping Issue Date at 1600px and Issue Date + Total at 1024px; Customers/Services drop their secondary columns at 1024px. |
-| `.kcrm-actions` | Wraps a row's action links (Edit/PDF/Record Payment, Edit/New Invoice/Delete, etc.) in a list table's Actions column. Inline, divided by a thin left-border rule, above the relevant breakpoint above; stacks one link per line, full width, below it. |
+| `.kcrm-actions` | Wraps a row's action links (Edit/PDF/Record Payment, Edit/Invoices & Payments, etc.) in a list table's Actions column. Inline, divided by a thin left-border rule, above the relevant breakpoint above; stacks one link per line, full width, below it. |
 | `.kcrm-front-form` | Wraps a form for consistent label/input spacing. |
 | `.kcrm-pagination` / `.kcrm-pagination-status` | Prev/Next controls and the "Page X of Y" text. |
 | `.kcrm-date-range-filter` | The This Year/Last Year/All/Custom Range filter form (Invoices, Reports). |

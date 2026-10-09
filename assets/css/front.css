@@ -547,6 +547,37 @@ a.kcrm-button-primary:hover, a.kcrm-button-primary:focus {
 	margin-top: -2px;
 }
 
+/* Destructive actions (e.g. Delete Customer). Fixed red rather than a scheme color so it always reads as dangerous; #b32d2e passes AA on the button's #f6f7f7 background. */
+.kcrm-button-danger,
+a.kcrm-button-danger:link,
+a.kcrm-button-danger:visited {
+	border-color: #b32d2e;
+	color: #b32d2e;
+}
+
+.kcrm-button-danger:hover,
+.kcrm-button-danger:focus {
+	background: #b32d2e;
+	color: #fff;
+}
+
+.kcrm-button-danger .dashicons {
+	vertical-align: middle;
+	margin-top: -2px;
+}
+
+.kcrm-delete-section {
+	margin-top: 3em;
+	padding-top: 1.5em;
+	border-top: 1px solid #dcdcde;
+}
+
+.kcrm-delete-warning .dashicons-warning {
+	color: #b32d2e;
+	vertical-align: middle;
+	margin-top: -2px;
+}
+
 .kcrm-overview-columns {
 	display: flex;
 	flex-direction: column;

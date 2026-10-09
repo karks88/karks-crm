@@ -1,0 +1,45 @@
+name: Sync Wiki
+
+# Mirrors the repo's wiki/ folder into the GitHub wiki (a separate git repo,
+# <repo>.wiki.git) whenever wiki/ changes on main. wiki/ is the source of
+# truth: pages edited or added only through GitHub's wiki UI are overwritten
+# or removed on the next sync. Independent of the release workflows -- wiki/
+# is already excluded from release zips via .distignore.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'wiki/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-wiki
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Push wiki/ to the GitHub wiki
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki-repo
+          rsync -a --delete --exclude='.git' wiki/ wiki-repo/
+          cd wiki-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date."
+            exit 0
+          fi
+          git commit -m "Sync wiki from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7}"
+          git push
