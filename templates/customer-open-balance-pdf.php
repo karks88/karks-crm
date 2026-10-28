@@ -14,7 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 $kcrm_currency      = $company && $company->currency ? $company->currency : 'USD';
 $kcrm_format_money  = function ( $amount ) use ( $kcrm_currency ) {
 	$amount    = round( (float) $amount, 2 );
-	$formatted = $kcrm_currency . ' ' . number_format( abs( $amount ), 2 );
+	// Non-breaking space so Dompdf's auto table layout can't wrap the currency symbol onto its own line in a narrow column.
+	$formatted = $kcrm_currency . "\u{00A0}" . number_format( abs( $amount ), 2 );
 	return $amount < 0 ? "($formatted)" : $formatted;
 };
 
@@ -91,7 +92,7 @@ $kcrm_grand_amount  = round( $kcrm_grand_amount, 2 );
 	table.items th { text-align: left; background: <?php echo esc_html( $kcrm_secondary ); ?>; padding: 5px 8px; font-size: 10px; text-transform: uppercase; color: #fff; }
 	table.items td { padding: 5px 8px; border-bottom: 1px solid #eee; text-align: left; }
 	table.items tbody tr.data-row:nth-child(even) td { background: <?php echo esc_html( $kcrm_highlight ); ?>; }
-	.text-right { text-align: right; }
+	table.items th.text-right, table.items td.text-right, .text-right { text-align: right; }
 	tr.subtotal-row td { font-weight: bold; border-top: 1px solid #ccc; }
 	table.grand-total { width: 280px; margin-left: auto; margin-top: 20px; border-collapse: collapse; }
 	table.grand-total th, table.grand-total td { padding: 6px 8px; text-align: right; }

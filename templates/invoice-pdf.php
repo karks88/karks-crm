@@ -13,7 +13,8 @@ $kcrm_statuses = KCRM_Invoice::statuses();
 
 $kcrm_format_money = function ( $amount ) use ( $kcrm_currency ) {
 	$amount    = round( (float) $amount, 2 );
-	$formatted = $kcrm_currency . ' ' . number_format( abs( $amount ), 2 );
+	// Non-breaking space so Dompdf's auto table layout can't wrap the currency symbol onto its own line in a narrow column.
+	$formatted = $kcrm_currency . "\u{00A0}" . number_format( abs( $amount ), 2 );
 	return $amount < 0 ? "($formatted)" : $formatted;
 };
 
@@ -56,7 +57,7 @@ $kcrm_accent     = $kcrm_hex_or( KCRM_Company::pdf_accent_color( $company ), $kc
 	table.items th { text-align: left; background: <?php echo esc_html( $kcrm_secondary ); ?>; padding: 6px 8px; font-size: 11px; text-transform: uppercase; color: #fff; }
 	table.items td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; }
 	table.items tbody tr:nth-child(even) td { background: <?php echo esc_html( $kcrm_highlight ); ?>; }
-	.text-right { text-align: right; }
+	table.items th.text-right, table.items td.text-right, .text-right { text-align: right; }
 	table.totals { width: 260px; margin-left: auto; margin-top: 12px; border-collapse: collapse; }
 	table.totals td { padding: 4px 8px; }
 	table.totals tr.total-row td { font-weight: bold; border-top: 2px solid <?php echo esc_html( $kcrm_accent ); ?>; color: <?php echo esc_html( $kcrm_accent ); ?>; font-size: 14px; }

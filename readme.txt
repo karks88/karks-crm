@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.12
+Stable tag: 0.9.10.13
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,10 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 
 == Changelog ==
+
+= 0.9.10.13 =
+* Fixed the currency symbol wrapping onto its own line above the amount in narrow PDF columns (e.g. the invoice Rate column). Amounts on the invoice and open-balance PDFs now use a non-breaking space between the currency and the number.
+* Fixed the Qty/Hours, Rate, and Amount columns (and their headers) on the invoice and open-balance PDFs rendering left-aligned instead of right-aligned.
 
 = 0.9.10.12 =
 * Changed the customer list's Actions column to Edit | Invoices & Payments (which opens the customer profile's Invoices & Payments tab). Removed the New Invoice and Delete links from the list.
