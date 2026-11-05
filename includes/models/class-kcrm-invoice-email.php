@@ -38,6 +38,33 @@ class KCRM_Invoice_Email extends KCRM_Model_Base {
 	}
 
 	/**
+	 * Most recent send time for each of several invoices, in one query -- for
+	 * the invoices list's "emailed" indicator, so it doesn't need a
+	 * most_recent_for_invoice() call per row.
+	 *
+	 * @return array invoice_id => sent_at ('Y-m-d H:i:s'); never-emailed invoices are simply absent.
+	 */
+	public static function last_sent_for_invoices( array $invoice_ids ) {
+		global $wpdb;
+
+		$invoice_ids = array_unique( array_filter( array_map( 'absint', $invoice_ids ) ) );
+		if ( empty( $invoice_ids ) ) {
+			return array();
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $invoice_ids ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $placeholders is only repeated %d placeholder syntax (its count matches count( $invoice_ids )), not user input; query text and args are passed to $wpdb->prepare() on this line.
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT invoice_id, MAX(sent_at) AS sent_at FROM %i WHERE invoice_id IN (' . $placeholders . ') GROUP BY invoice_id', array_merge( array( self::table() ), $invoice_ids ) ) );
+
+		$last_sent = array();
+		foreach ( $rows as $row ) {
+			$last_sent[ (int) $row->invoice_id ] = $row->sent_at;
+		}
+		return $last_sent;
+	}
+
+	/**
 	 * Email sends on/after a cutoff (a 'Y-m-d H:i:s' string) for invoices
 	 * belonging to a company -- for the company profile's Recent Actions
 	 * feed. Joins to the invoices table since this table has no company_id

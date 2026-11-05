@@ -245,6 +245,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 			$all_invoices = KCRM_Invoice::for_company_with_statuses( $company_id, $selected_statuses, $order_by_sql );
 		}
 		$balances = KCRM_Invoice::balances_for( $all_invoices );
+		$last_sent = KCRM_Invoice_Email::last_sent_for_invoices( wp_list_pluck( $all_invoices, 'id' ) );
 
 		$groups = array();
 		if ( $customer_filter ) {
@@ -387,7 +388,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 							$customer = $list_customers[ (int) $invoice->customer_id ] ?? null;
 							$is_job   = (int) $invoice->customer_id !== (int) $group_id;
 							?>
-							<?php $this->render_invoice_row( $invoice, $customer, $balances[ $invoice->id ], $statuses, $is_job, $group_id ); ?>
+							<?php $this->render_invoice_row( $invoice, $customer, $balances[ $invoice->id ], $last_sent[ $invoice->id ] ?? null, $statuses, $is_job, $group_id ); ?>
 						<?php endforeach; ?>
 					<?php endforeach; ?>
 				</tbody>
@@ -451,7 +452,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 					$customer = $list_customers[ (int) $invoice->customer_id ] ?? null;
 					$is_job   = $customer_filter && $customer && ! empty( $customer->parent_customer_id );
 					?>
-					<?php $this->render_invoice_row( $invoice, $customer, $balances[ $invoice->id ], $statuses, $is_job ); ?>
+					<?php $this->render_invoice_row( $invoice, $customer, $balances[ $invoice->id ], $last_sent[ $invoice->id ] ?? null, $statuses, $is_job ); ?>
 				<?php endforeach; ?>
 			</tbody>
 		</table>
@@ -460,7 +461,7 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 	}
 
 	/** One <tr> for the invoices list table -- shared by the flat table and the "Customers with Multiple Jobs" grouped section in render_list(). */
-	private function render_invoice_row( $invoice, $customer, $balance, array $statuses, $is_job = false, $group_id = null ) {
+	private function render_invoice_row( $invoice, $customer, $balance, $last_sent, array $statuses, $is_job = false, $group_id = null ) {
 		$attrs = array();
 		if ( $is_job ) {
 			$attrs[] = 'class="kcrm-job-row"';
@@ -487,7 +488,9 @@ class KCRM_Admin_Invoices extends KCRM_Invoices_Controller {
 			<td><?php echo esc_html( $invoice->due_date ); ?></td>
 			<td><?php echo esc_html( KCRM_Invoice::format_money( (float) $invoice->total ) ); ?></td>
 			<td><?php echo esc_html( KCRM_Invoice::format_money( $balance ) ); ?></td>
-			<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $invoice->status ); ?>"><?php echo esc_html( $statuses[ $invoice->status ] ?? $invoice->status ); ?></span></td>
+			<td><span class="kcrm-status kcrm-status-<?php echo esc_attr( $invoice->status ); ?>"><?php echo esc_html( $statuses[ $invoice->status ] ?? $invoice->status ); ?></span>
+				<?php $this->render_emailed_indicator( $last_sent ); ?>
+			</td>
 			<td>
 				<a href="<?php echo esc_url( $this->screen_url( array( 'view' => 'edit', 'id' => $invoice->id ) ) ); ?>"><?php esc_html_e( 'Edit', 'karks-crm' ); ?></a>
 				|

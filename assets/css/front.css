@@ -727,6 +727,16 @@ a.kcrm-card:focus .kcrm-card-arrow {
 .kcrm-status-active { background: #d4f4dd; color: #1a7a3a; }
 .kcrm-status-inactive { background: #f0f0f1; color: #787c82; }
 
+.kcrm-emailed-indicator {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	margin-left: 4px;
+	vertical-align: middle;
+	color: var(--kcrm-color-primary-readable);
+	cursor: help;
+}
+
 .kcrm-recent-actions {
 	margin: 0 0 1em;
 	padding: 0;

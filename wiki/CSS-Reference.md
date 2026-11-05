@@ -76,6 +76,7 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 | `.kcrm-status` | Base pill/badge style. |
 | `.kcrm-status-paid` / `-partial` / `-open` / `-void` / `-draft` | Invoice status colors. |
 | `.kcrm-status-active` / `-inactive` | Customer status colors. |
+| `.kcrm-emailed-indicator` | Envelope icon (Dashicon) after an invoice's status badge in the invoices list when it has been emailed; its `title` tooltip shows the most recent send date. Colored with `--kcrm-color-primary-readable` on the front end. |
 
 ### Reports bar chart
 

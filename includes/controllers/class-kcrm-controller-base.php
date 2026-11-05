@@ -328,6 +328,28 @@ abstract class KCRM_Controller_Base {
 	}
 
 	/**
+	 * Envelope icon next to an invoice's status badge in the invoices list
+	 * if it's ever been emailed, with the most recent send time as a hover
+	 * tooltip. aria-label rather than a .screen-reader-text span so the
+	 * label isn't picked up by the list's instant search (which matches row text).
+	 *
+	 * @param string|null $last_sent 'Y-m-d H:i:s' from KCRM_Invoice_Email::last_sent_for_invoices(), or null if never emailed.
+	 */
+	protected function render_emailed_indicator( $last_sent ) {
+		if ( ! $last_sent ) {
+			return;
+		}
+		$label = sprintf(
+			/* translators: %s: date and time the invoice was last emailed. */
+			__( 'Emailed %s', 'karks-crm' ),
+			date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $last_sent ) )
+		);
+		?>
+		<span class="dashicons dashicons-email-alt kcrm-emailed-indicator" role="img" title="<?php echo esc_attr( $label ); ?>" aria-label="<?php echo esc_attr( $label ); ?>"></span>
+		<?php
+	}
+
+	/**
 	 * Filters a customer list down to active-only unless
 	 * $_GET['kcrm_status_filter'] = all. Centralizes the active/inactive
 	 * filter shared by the Customers list and the company overview page,

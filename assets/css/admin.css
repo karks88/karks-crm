@@ -61,6 +61,16 @@
 .kcrm-status-active { background: #d4f4dd; color: #1a7a3a; }
 .kcrm-status-inactive { background: #f0f0f1; color: #787c82; }
 
+.kcrm-emailed-indicator {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	margin-left: 4px;
+	vertical-align: middle;
+	color: #50575e;
+	cursor: help;
+}
+
 #kcrm-line-items .kcrm-item-amount {
 	text-align: right;
 	font-weight: 600;
