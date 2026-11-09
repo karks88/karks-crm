@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.14
+Stable tag: 0.9.10.15
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,9 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 
 == Changelog ==
+
+= 0.9.10.15 =
+* Fixed "Implicitly marking parameter as nullable is deprecated" notices on every page load under PHP 8.4+. The bundled PDF library's CSS parser is now pinned to a release that no longer pulls in the dependency responsible (thecodingmachine/safe). PHP 7.4 remains supported.
 
 = 0.9.10.14 =
 * Added an "emailed" indicator to the invoices list (wp-admin and front end): an envelope icon next to the status badge on any invoice that has been emailed, with the most recent send date and time shown on hover.

@@ -12,7 +12,7 @@ There is no linter config or JS build step in this repo — plain PHP/CSS/JS loa
 
 ## Release process
 
-Pushing a tag matching `v*` triggers `.github/workflows/release.yml`, which stages the repo (respecting `.distignore`, which also excludes `wiki/`) into a `karks-crm/` folder and zips it, so the release asset's top-level folder name is stable across versions (unlike GitHub's auto-generated source zip). Bump `Version:` in `karks-crm.php` and `KCRM_VERSION` together before tagging, and add a changelog entry to `readme.txt`.
+Pushing a tag matching `v*` triggers `.github/workflows/release.yml`, which stages the repo (respecting `.distignore`, which also excludes `wiki/`) into a `karks-crm/` folder and zips it, so the release asset's top-level folder name is stable across versions (unlike GitHub's auto-generated source zip). Bump `Version:` in `karks-crm.php` and `KCRM_VERSION` together before tagging, and add the same changelog entry to both `readme.txt` (recent versions only; it points to the full history) and `changelog.txt` (complete history back to 0.1.0).
 
 ## Testing
 

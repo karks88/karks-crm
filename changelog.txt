@@ -1,5 +1,34 @@
 == Changelog ==
 
+= 0.9.10.15 =
+* Fixed "Implicitly marking parameter as nullable is deprecated" notices on every page load under PHP 8.4+. The bundled PDF library's CSS parser is now pinned to a release that no longer pulls in the dependency responsible (thecodingmachine/safe). PHP 7.4 remains supported.
+
+= 0.9.10.14 =
+* Added an "emailed" indicator to the invoices list (wp-admin and front end): an envelope icon next to the status badge on any invoice that has been emailed, with the most recent send date and time shown on hover.
+
+= 0.9.10.13 =
+* Fixed the currency symbol wrapping onto its own line above the amount in narrow PDF columns (e.g. the invoice Rate column). Amounts on the invoice and open-balance PDFs now use a non-breaking space between the currency and the number.
+* Fixed the Qty/Hours, Rate, and Amount columns (and their headers) on the invoice and open-balance PDFs rendering left-aligned instead of right-aligned.
+
+= 0.9.10.12 =
+* Changed the customer list's Actions column to Edit | Invoices & Payments (which opens the customer profile's Invoices & Payments tab). Removed the New Invoice and Delete links from the list.
+* Moved Delete Customer/Job to a button at the bottom of the customer profile. It warns that the deletion cannot be undone, notes how many Jobs will be deleted along with the customer, and suggests setting the Status to Inactive instead.
+
+= 0.9.10.11 =
+* Fixed the interactive preview still not seeding demo data on WordPress.org's live "Preview" button (no error, just an empty CRM): WordPress.org's blueprint merger appends its own implicit `installPlugin` step to the *end* of a plugin's custom steps, after `login`/`runPHP` rather than before -- so the plugin (and the `kcrm_run_demo_seeder` action) didn't exist yet when the seeding step ran. Added our own explicit `installPlugin` step first in the blueprint so the plugin is guaranteed active before login/seeding run, regardless of WP.org's (now redundant, harmless) trailing one.
+
+= 0.9.10.10 =
+* Fixed the interactive preview's `runPHP` step still failing intermittently on the live WordPress.org preview (exit code 255) even after the `wp-load.php` path fix: it separately `require_once`'d the demo seeder class by a guessed filesystem path, which could race ahead of the preview's own plugin-install step. Now the seeder is loaded as part of the plugin's normal bootstrap (harmless -- it does nothing unless triggered) and fired via a dedicated `kcrm_run_demo_seeder` action, removing the second path lookup entirely.
+
+= 0.9.10.9 =
+* Fixed the interactive preview's `runPHP` step failing with "Could not run custom PHP code" (exit code 255): it required `wp-load.php` via a relative path (`wordpress/wp-load.php`), which depends on that step's working directory; switched to the absolute path (`/wordpress/wp-load.php`) that WordPress Playground's own runPHP examples use.
+
+= 0.9.10.8 =
+* Fixed the interactive preview blueprint's location: `blueprint.json` was committed inside the plugin's own `assets/` folder (deployed as part of `trunk/`), but WordPress.org requires it in the SVN repo's top-level `assets/blueprints/blueprint.json` (the shared assets folder, alongside the banner/icon/screenshots) for the "Preview" button to find it. Now sourced from `.wordpress-org/blueprints/blueprint.json` so the deploy workflow places it correctly.
+
+= 0.9.10.7 =
+* Added a WordPress.org interactive preview: `assets/blueprints/blueprint.json` boots a WordPress Playground instance with a demo company, customers, services, and invoices (paid/partial/unpaid) already seeded, so the "Preview" button on the plugin page shows a populated CRM instead of an empty one.
+
 = 0.9.10.6 =
 * Added two new extension points for add-ons: `kcrm_company_export_data` (filter) and `kcrm_company_import_data` (action), fired from `KCRM_Company_Transfer::export()`/`import()`. Lets an add-on with its own per-customer/per-company data (e.g. Karks CRM Customer Notes) include it in Karks CRM's own company export/import, and transitively in backups made by Karks CRM Backups, without either of those needing to know the add-on exists. See the wiki's Hooks and Filters page.
 

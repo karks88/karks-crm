@@ -5,7 +5,8 @@
     "license": "GPL-2.0-or-later",
     "require": {
         "php": ">=7.4",
-        "dompdf/dompdf": "^3.0"
+        "dompdf/dompdf": "^3.0",
+        "sabberworm/php-css-parser": "^8.4"
     },
     "config": {
         "sort-packages": true,
