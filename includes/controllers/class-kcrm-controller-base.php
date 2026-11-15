@@ -94,6 +94,20 @@ abstract class KCRM_Controller_Base {
 		return isset( $_GET['_kcrmnav'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_kcrmnav'] ) ), $this->nav_nonce_action() );
 	}
 
+	/**
+	 * fputcsv() with every argument spelled out, for the CSV exports. PHP 8.4
+	 * deprecates leaving $escape at its default. '' disables the non-standard
+	 * backslash escape, so quotes are only ever doubled (RFC 4180, which is
+	 * what Excel and Google Sheets expect). An empty $escape works back to
+	 * PHP 7.4. KCRM_CSV_Import reads with the same settings.
+	 *
+	 * @param resource $out
+	 * @param array    $fields
+	 */
+	protected function put_csv( $out, array $fields ) {
+		fputcsv( $out, $fields, ',', '"', '' );
+	}
+
 	/** Merges a fresh nav nonce onto $args for a GET link/form this screen generates, so links it renders keep working once nav_nonce_valid() is required to read them back. */
 	protected function nav_nonce_args( array $args = array() ) {
 		$args['_kcrmnav'] = wp_create_nonce( $this->nav_nonce_action() );

@@ -76,6 +76,14 @@ class KCRM_CSV_Import {
 		}
 	}
 
+	/*
+	 * fgetcsv() calls below spell out every argument: PHP 8.4 deprecates
+	 * leaving $escape at its default. '' (no backslash escape, quotes only
+	 * doubled) matches how Excel/Google Sheets write CSVs and how
+	 * KCRM_Controller_Base::put_csv() writes our exports. A length of 0 means
+	 * no line-length limit, the same as the default.
+	 */
+
 	/** @return array First row of the CSV (raw header labels). */
 	public static function read_header( $path ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- fgetcsv() needs a real stream handle to correctly parse quoted multi-line fields; WP_Filesystem has no CSV-safe equivalent.
@@ -83,7 +91,7 @@ class KCRM_CSV_Import {
 		if ( ! $handle ) {
 			return array();
 		}
-		$header = fgetcsv( $handle );
+		$header = fgetcsv( $handle, 0, ',', '"', '' );
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		return is_array( $header ) ? $header : array();
 	}
@@ -98,8 +106,8 @@ class KCRM_CSV_Import {
 		if ( ! $handle ) {
 			return $rows;
 		}
-		fgetcsv( $handle ); // Skip header.
-		while ( ( $row = fgetcsv( $handle ) ) !== false ) {
+		fgetcsv( $handle, 0, ',', '"', '' ); // Skip header.
+		while ( ( $row = fgetcsv( $handle, 0, ',', '"', '' ) ) !== false ) {
 			$rows[] = $row;
 		}
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose

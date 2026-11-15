@@ -107,10 +107,10 @@ abstract class KCRM_Services_Controller extends KCRM_Controller_Base {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
 		$out = fopen( 'php://output', 'w' );
-		fputcsv( $out, array( __( 'Name', 'karks-crm' ), __( 'Description', 'karks-crm' ), __( 'Type', 'karks-crm' ), __( 'Rate', 'karks-crm' ), __( 'Taxable', 'karks-crm' ), __( 'Active', 'karks-crm' ) ) );
+		$this->put_csv( $out, array( __( 'Name', 'karks-crm' ), __( 'Description', 'karks-crm' ), __( 'Type', 'karks-crm' ), __( 'Rate', 'karks-crm' ), __( 'Taxable', 'karks-crm' ), __( 'Active', 'karks-crm' ) ) );
 
 		foreach ( $services as $service ) {
-			fputcsv(
+			$this->put_csv(
 				$out,
 				array(
 					$service->name,

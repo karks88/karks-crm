@@ -226,7 +226,7 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
 		$out = fopen( 'php://output', 'w' );
-		fputcsv( $out, array( __( 'Customer', 'karks-crm' ), __( 'Type', 'karks-crm' ), __( 'Date', 'karks-crm' ), __( 'Num', 'karks-crm' ), __( 'Due Date', 'karks-crm' ), __( 'Open Balance', 'karks-crm' ), __( 'Amount', 'karks-crm' ) ) );
+		$this->put_csv( $out, array( __( 'Customer', 'karks-crm' ), __( 'Type', 'karks-crm' ), __( 'Date', 'karks-crm' ), __( 'Num', 'karks-crm' ), __( 'Due Date', 'karks-crm' ), __( 'Open Balance', 'karks-crm' ), __( 'Amount', 'karks-crm' ) ) );
 
 		$total_balance = 0.0;
 		$total_amount  = 0.0;
@@ -243,7 +243,7 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 				$balance        = $balances[ $invoice->id ];
 				$total_balance += $balance;
 				$total_amount  += (float) $invoice->total;
-				fputcsv(
+				$this->put_csv(
 					$out,
 					array(
 						$group_customer->company_name,
@@ -257,7 +257,7 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 				);
 			}
 		}
-		fputcsv( $out, array( '', '', '', '', __( 'Total', 'karks-crm' ), number_format( $total_balance, 2, '.', '' ), number_format( $total_amount, 2, '.', '' ) ) );
+		$this->put_csv( $out, array( '', '', '', '', __( 'Total', 'karks-crm' ), number_format( $total_balance, 2, '.', '' ), number_format( $total_amount, 2, '.', '' ) ) );
 
 		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output stream handle opened above, not a real file.
 		exit;
@@ -327,7 +327,7 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
 		$out = fopen( 'php://output', 'w' );
-		fputcsv(
+		$this->put_csv(
 			$out,
 			array(
 				__( 'Company Name', 'karks-crm' ),
@@ -373,10 +373,10 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 		};
 
 		foreach ( $top_level as $customer ) {
-			fputcsv( $out, $customer_row( $customer, '', $top_level_balances[ (int) $customer->id ] ) );
+			$this->put_csv( $out, $customer_row( $customer, '', $top_level_balances[ (int) $customer->id ] ) );
 
 			foreach ( $jobs_by_parent[ $customer->id ] ?? array() as $job ) {
-				fputcsv( $out, $customer_row( $job, $customer->company_name, $job_balances[ (int) $job->id ] ) );
+				$this->put_csv( $out, $customer_row( $job, $customer->company_name, $job_balances[ (int) $job->id ] ) );
 			}
 		}
 

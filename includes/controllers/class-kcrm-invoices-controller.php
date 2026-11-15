@@ -368,11 +368,11 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
 		$out = fopen( 'php://output', 'w' );
-		fputcsv( $out, array( __( 'Invoice #', 'karks-crm' ), __( 'Customer', 'karks-crm' ), __( 'Issue Date', 'karks-crm' ), __( 'Due Date', 'karks-crm' ), __( 'Total', 'karks-crm' ), __( 'Balance Due', 'karks-crm' ), __( 'Status', 'karks-crm' ) ) );
+		$this->put_csv( $out, array( __( 'Invoice #', 'karks-crm' ), __( 'Customer', 'karks-crm' ), __( 'Issue Date', 'karks-crm' ), __( 'Due Date', 'karks-crm' ), __( 'Total', 'karks-crm' ), __( 'Balance Due', 'karks-crm' ), __( 'Status', 'karks-crm' ) ) );
 
 		foreach ( $invoices as $invoice ) {
 			$customer = $customers[ (int) $invoice->customer_id ] ?? null;
-			fputcsv(
+			$this->put_csv(
 				$out,
 				array(
 					$invoice->invoice_number,

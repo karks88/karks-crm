@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.15
+Stable tag: 0.9.10.16
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,10 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 
 == Changelog ==
+
+= 0.9.10.16 =
+* Added the `kcrm_reports_views` filter so add-ons can add their own report to the front-end Reports screen, with an overview card and a `?view=<slug>` page. See wiki/Hooks-and-Filters.md.
+* Fixed "fputcsv(): the $escape parameter must be provided" deprecation notices under PHP 8.4+, which could end up inside downloaded CSV files. This affected the Revenue, Customer and Aging report exports and the customer, invoice, service and open-balance CSV exports. The same fix applies to the matching `fgetcsv()` notice in the customer CSV importer. CSVs now use standard quote-doubling (RFC 4180) with no backslash escaping.
 
 = 0.9.10.15 =
 * Fixed "Implicitly marking parameter as nullable is deprecated" notices on every page load under PHP 8.4+. The bundled PDF library's CSS parser is now pinned to a release that no longer pulls in the dependency responsible (thecodingmachine/safe). PHP 7.4 remains supported.

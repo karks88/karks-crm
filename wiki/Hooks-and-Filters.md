@@ -148,6 +148,36 @@ add_filter( 'kcrm_customer_profile_tabs', function ( $tabs, $customer, $rollup_i
 
 Each tab's URL is a plain `tab=<slug>` query arg (e.g. `&tab=packages`) on the customer profile link, so it's a real bookmarkable/shareable page state, not JS-driven show/hide — link directly to `tab=packages` from elsewhere in your add-on rather than always landing on Home.
 
+### `kcrm_reports_views`
+
+Front-end only. Filters the add-on reports on the Reports screen (`/crm/reports/`). Each entry adds a card to the Reports overview (after the built-in Revenue, Aging and Customer Report cards) and its own page at `?view=<slug>`, with the heading "Reports: <label>". The built-in slugs (`overview`, `revenue`, `customer`, `aging`) can't be overridden.
+
+```php
+$views = apply_filters( 'kcrm_reports_views', array(), $company_id );
+```
+
+- `$views` (array) — `slug => array( 'label' => string, 'icon' => string, 'card_number' => string, 'card_label' => string, 'render' => callable( int $company_id ): void )`. `icon` is a dashicons class (e.g. `dashicons-clock`) and defaults to `dashicons-chart-bar`. `card_number` is the large figure on the overview card, and `card_label` is the text under it (it defaults to `label`). `render` is called with the current company's ID and should `echo` the report's HTML. An entry without a usable `label`/`render` is silently dropped.
+- `$company_id` (int) — the current company's ID.
+
+Example listener:
+
+```php
+add_filter( 'kcrm_reports_views', function ( $views, $company_id ) {
+    $views['my-report'] = array(
+        'label'       => __( 'My Report', 'my-addon' ),
+        'icon'        => 'dashicons-clock',
+        'card_number' => '42',
+        'card_label'  => __( 'Things Counted', 'my-addon' ),
+        'render'      => function ( $company_id ) {
+            // ... echo your own cards/table using karks-crm's .kcrm-dashboard-cards / .kcrm-front-table classes ...
+        },
+    );
+    return $views;
+}, 10, 2 );
+```
+
+The filter can run more than once per request but is memoized per company, so keep the `card_number` calculation cheap.
+
 If you need to customize behavior beyond what the [Appearance](User-Guide#appearance) settings, [CSS classes](CSS-Reference), and the hooks above already allow, that currently requires a code change to the plugin itself (a child customization or a fork). Worth opening an issue describing the specific use case if you hit one of these; targeted `do_action()`/`apply_filters()` calls can be added at the relevant point rather than building out speculative hooks nobody's using yet.
 
 This page will be updated as more hooks are added.

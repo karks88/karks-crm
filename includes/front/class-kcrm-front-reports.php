@@ -17,19 +17,25 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 
 	const ENDPOINT = 'reports';
 
+	/** @var array company_id => filtered kcrm_reports_views result; see extra_views(). */
+	private $extra_views = array();
+
 	public function render() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view-routing param, no state change.
 		$view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'overview';
 
 		echo '<div class="kcrm-front-screen">';
 		$this->render_company_header();
-		$this->render_heading( $view );
 
 		$company_id = $this->current_company_id();
+		$this->render_heading( $view, $company_id );
+
 		if ( ! $company_id ) {
 			echo '<p>' . esc_html__( 'Create a company first under Companies.', 'karks-crm' ) . '</p></div>';
 			return;
 		}
+
+		$extra = $this->extra_views( $company_id );
 
 		if ( 'revenue' === $view ) {
 			$this->render_revenue_report( $company_id );
@@ -37,6 +43,8 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 			$this->render_customer_report( $company_id );
 		} elseif ( 'aging' === $view ) {
 			$this->render_aging_report( $company_id );
+		} elseif ( isset( $extra[ $view ] ) ) {
+			call_user_func( $extra[ $view ]['render'], $company_id );
 		} else {
 			$this->render_overview( $company_id );
 		}
@@ -45,7 +53,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 	}
 
 	/** Renders the H2 -- linked back to the Reports overview once off it, with the specific report name appended. */
-	private function render_heading( $view ) {
+	private function render_heading( $view, $company_id ) {
 		$label = __( 'Reports', 'karks-crm' );
 
 		if ( 'overview' === $view ) {
@@ -58,6 +66,9 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 			'customer' => __( 'Customer Report', 'karks-crm' ),
 			'aging'    => __( 'Aging', 'karks-crm' ),
 		);
+		foreach ( $this->extra_views( $company_id ) as $slug => $extra_view ) {
+			$sub_labels[ $slug ] = $extra_view['label'];
+		}
 
 		$link = sprintf( '<a href="%s">%s</a>', esc_url( $this->screen_url() ), esc_html( $label ) );
 
@@ -106,8 +117,53 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 				<span class="kcrm-card-number"><?php echo esc_html( $customer_count ); ?></span>
 				<span class="kcrm-card-label"><?php esc_html_e( 'Run a Customer Report', 'karks-crm' ); ?> <span class="dashicons dashicons-arrow-right-alt2 kcrm-card-arrow"></span></span>
 			</a>
+			<?php foreach ( $this->extra_views( $company_id ) as $slug => $extra_view ) : ?>
+				<a class="kcrm-card" href="<?php echo esc_url( $this->screen_url( array( 'view' => $slug ) ) ); ?>">
+					<h3><?php echo esc_html( $extra_view['label'] ); ?></h3>
+					<span class="dashicons <?php echo esc_attr( $extra_view['icon'] ?? 'dashicons-chart-bar' ); ?> kcrm-card-icon"></span>
+					<span class="kcrm-card-number"><?php echo esc_html( $extra_view['card_number'] ?? '' ); ?></span>
+					<span class="kcrm-card-label"><?php echo esc_html( $extra_view['card_label'] ?? $extra_view['label'] ); ?> <span class="dashicons dashicons-arrow-right-alt2 kcrm-card-arrow"></span></span>
+				</a>
+			<?php endforeach; ?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Add-on report views contributed via the kcrm_reports_views filter,
+	 * memoized per company since render() asks for them up to three times
+	 * per request (heading, dispatch, overview cards).
+	 *
+	 * @return array slug => array( 'label', 'icon', 'card_number', 'card_label', 'render' ).
+	 */
+	private function extra_views( $company_id ) {
+		if ( ! $company_id ) {
+			return array();
+		}
+		if ( isset( $this->extra_views[ $company_id ] ) ) {
+			return $this->extra_views[ $company_id ];
+		}
+
+		/**
+		 * Filters the add-on reports shown on the front-end Reports screen --
+		 * lets an add-on (e.g. Karks CRM Packages) contribute its own report
+		 * card on the overview and its own ?view= page. Built-in report slugs
+		 * can't be overridden. See wiki/Hooks-and-Filters.md.
+		 *
+		 * @param array $views      slug => array( 'label' => string, 'icon' => string (dashicons class), 'card_number' => string, 'card_label' => string, 'render' => callable( int $company_id ): void ).
+		 * @param int   $company_id The current company's ID.
+		 */
+		$views = apply_filters( 'kcrm_reports_views', array(), $company_id );
+		$views = is_array( $views ) ? $views : array();
+		unset( $views['overview'], $views['revenue'], $views['customer'], $views['aging'] );
+
+		$this->extra_views[ $company_id ] = array_filter(
+			$views,
+			static function ( $view ) {
+				return is_array( $view ) && ! empty( $view['label'] ) && is_callable( $view['render'] ?? null );
+			}
+		);
+		return $this->extra_views[ $company_id ];
 	}
 
 	private function render_revenue_report( $company_id ) {
@@ -506,7 +562,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
 		$out = fopen( 'php://output', 'w' );
-		fputcsv( $out, array( __( 'Date', 'karks-crm' ), __( 'Customer', 'karks-crm' ), __( 'Invoice #', 'karks-crm' ), __( 'Amount', 'karks-crm' ), __( 'Method', 'karks-crm' ) ) );
+		$this->put_csv( $out, array( __( 'Date', 'karks-crm' ), __( 'Customer', 'karks-crm' ), __( 'Invoice #', 'karks-crm' ), __( 'Amount', 'karks-crm' ), __( 'Method', 'karks-crm' ) ) );
 
 		$csv_customers = KCRM_Customer::find_many( wp_list_pluck( $payments, 'customer_id' ) );
 		$csv_invoices  = KCRM_Invoice::find_many( wp_list_pluck( $payments, 'invoice_id' ) );
@@ -514,7 +570,7 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 		foreach ( $payments as $payment ) {
 			$customer = $csv_customers[ (int) $payment->customer_id ] ?? null;
 			$invoice  = $csv_invoices[ (int) $payment->invoice_id ] ?? null;
-			fputcsv(
+			$this->put_csv(
 				$out,
 				array(
 					$payment->payment_date,
@@ -548,13 +604,13 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
 		$out = fopen( 'php://output', 'w' );
-		fputcsv( $out, array( __( 'Date', 'karks-crm' ), __( 'Invoice #', 'karks-crm' ), __( 'Amount', 'karks-crm' ), __( 'Method', 'karks-crm' ), __( 'Note', 'karks-crm' ) ) );
+		$this->put_csv( $out, array( __( 'Date', 'karks-crm' ), __( 'Invoice #', 'karks-crm' ), __( 'Amount', 'karks-crm' ), __( 'Method', 'karks-crm' ), __( 'Note', 'karks-crm' ) ) );
 
 		$csv_invoices = KCRM_Invoice::find_many( wp_list_pluck( $payments, 'invoice_id' ) );
 
 		foreach ( $payments as $payment ) {
 			$invoice = $csv_invoices[ (int) $payment->invoice_id ] ?? null;
-			fputcsv(
+			$this->put_csv(
 				$out,
 				array(
 					$payment->payment_date,
@@ -578,10 +634,10 @@ class KCRM_Front_Reports extends KCRM_Controller_Base {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming a CSV download to php://output, not a real file; WP_Filesystem has no equivalent.
 		$out = fopen( 'php://output', 'w' );
-		fputcsv( $out, array( __( 'Invoice #', 'karks-crm' ), __( 'Customer', 'karks-crm' ), __( 'Due Date', 'karks-crm' ), __( 'Days Overdue', 'karks-crm' ), __( 'Bucket', 'karks-crm' ), __( 'Balance Due', 'karks-crm' ) ) );
+		$this->put_csv( $out, array( __( 'Invoice #', 'karks-crm' ), __( 'Customer', 'karks-crm' ), __( 'Due Date', 'karks-crm' ), __( 'Days Overdue', 'karks-crm' ), __( 'Bucket', 'karks-crm' ), __( 'Balance Due', 'karks-crm' ) ) );
 
 		foreach ( $rows as $row ) {
-			fputcsv(
+			$this->put_csv(
 				$out,
 				array(
 					$row['invoice']->invoice_number,
