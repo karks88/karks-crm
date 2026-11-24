@@ -3,7 +3,7 @@
  * Plugin Name: Karks CRM
  * Plugin URI: https://karks-crm.com
  * Description: Manage customers, services, and invoices across multiple companies.
- * Version: 0.9.10.16
+ * Version: 0.9.10.17
  * Author: Eric Karkovack
  * Author URI: https://karks.com
  * Text Domain: karks-crm
@@ -17,8 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'KCRM_VERSION', '0.9.10.16' );
-define( 'KCRM_DB_VERSION', '1.17.0' );
+define( 'KCRM_VERSION', '0.9.10.17' );
+define( 'KCRM_DB_VERSION', '1.18.0' );
 define( 'KCRM_PLUGIN_FILE', __FILE__ );
 define( 'KCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'KCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -47,23 +47,29 @@ require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice-type.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice-item.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-payment.php';
 require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-invoice-email.php';
+require_once KCRM_PLUGIN_DIR . 'includes/models/class-kcrm-activity.php';
 
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-context.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-company-transfer.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-colors.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-countries.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-merge-tags.php';
+require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-activity-feed.php';
 require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-controller-base.php';
 require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-companies-controller.php';
 require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-customers-controller.php';
 require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-services-controller.php';
 require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-invoices-controller.php';
+require_once KCRM_PLUGIN_DIR . 'includes/controllers/class-kcrm-activity-controller.php';
 
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-front.php';
 require_once KCRM_PLUGIN_DIR . 'includes/class-kcrm-demo-seeder.php';
 
 register_activation_hook( __FILE__, array( 'KCRM_Activator', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'KCRM_Activator', 'deactivate' ) );
+
+add_action( KCRM_Activity::PRUNE_HOOK, array( 'KCRM_Activity', 'prune_expired' ) );
 
 /**
  * Only ever fired by the WordPress Playground preview's blueprint runPHP step

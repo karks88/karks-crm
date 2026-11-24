@@ -158,3 +158,86 @@
 	height: 16px;
 	vertical-align: text-bottom;
 }
+
+/* Activity Log (Karks CRM → Activity Log) */
+
+.kcrm-activity-screen .kcrm-activity-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 1em 0;
+}
+
+.kcrm-activity-screen .kcrm-activity-chip {
+	display: inline-block;
+	padding: 2px 12px;
+	border: 1px solid #2271b1;
+	border-radius: 999px;
+	color: #2271b1;
+	background: #fff;
+	text-decoration: none;
+	line-height: 1.8;
+}
+
+.kcrm-activity-screen .kcrm-activity-chip:hover,
+.kcrm-activity-screen .kcrm-activity-chip:focus {
+	color: #135e96;
+	border-color: #135e96;
+}
+
+.kcrm-activity-screen .kcrm-activity-chip.is-active {
+	background: #2271b1;
+	color: #fff;
+}
+
+.kcrm-activity-screen .kcrm-activity-filters,
+.kcrm-activity-screen .kcrm-activity-customer-filter,
+.kcrm-activity-screen .kcrm-date-range-filter,
+.kcrm-activity-screen .kcrm-pagination {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+	margin: 0 0 1em;
+}
+
+.kcrm-activity-screen .kcrm-activity-day {
+	margin: 1.5em 0 0.25em;
+	padding-bottom: 4px;
+	border-bottom: 1px solid #c3c4c7;
+	font-size: 14px;
+}
+
+.kcrm-activity-screen .kcrm-recent-actions {
+	max-width: 960px;
+	margin: 0 0 1em;
+	padding: 0;
+	list-style: none;
+}
+
+.kcrm-activity-screen .kcrm-recent-actions li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	padding: 6px 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.kcrm-activity-screen .kcrm-recent-actions .dashicons {
+	color: #646970;
+	flex-shrink: 0;
+}
+
+.kcrm-activity-screen .kcrm-recent-actions-time {
+	margin-left: auto;
+	color: #646970;
+	font-size: 12px;
+	white-space: nowrap;
+}
+
+.kcrm-activity-screen .kcrm-activity-settings-heading {
+	margin-top: 2em;
+	padding-top: 1em;
+	border-top: 1px solid #c3c4c7;
+}

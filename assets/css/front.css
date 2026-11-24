@@ -777,6 +777,73 @@ a.kcrm-card:focus .kcrm-card-arrow {
 	vertical-align: middle;
 }
 
+.kcrm-activity-log-link .dashicons {
+	vertical-align: middle;
+}
+
+/* Activity Log screen */
+
+.kcrm-activity-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0 0 1em;
+}
+
+.kcrm-activity-chip {
+	display: inline-block;
+	padding: 4px 14px;
+	border: 1px solid var(--kcrm-color-primary);
+	border-radius: 999px;
+	color: var(--kcrm-color-primary-readable);
+	font-size: 13px;
+	line-height: 1.6;
+	text-decoration: none;
+}
+
+.kcrm-activity-chip:hover,
+.kcrm-activity-chip:focus {
+	text-decoration: underline;
+}
+
+.kcrm-activity-chip.is-active {
+	background: var(--kcrm-color-primary);
+	color: var(--kcrm-color-primary-text);
+}
+
+.kcrm-activity-filters {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0 24px;
+}
+
+.kcrm-activity-customer-filter {
+	margin: 0 0 1em;
+}
+
+.kcrm-activity-customer-filter label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+}
+
+.kcrm-activity-customer-filter select {
+	max-width: 100%;
+}
+
+.kcrm-activity-day {
+	margin: 1.5em 0 0.25em;
+	padding-bottom: 4px;
+	border-bottom: 2px solid var(--kcrm-color-primary);
+	font-size: 15px;
+}
+
+.kcrm-activity-retention-note {
+	margin-top: 2em;
+}
+
 .kcrm-front #kcrm-line-items .kcrm-item-amount {
 	text-align: right;
 	font-weight: 600;

@@ -9,6 +9,7 @@ require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-services.php';
 require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-invoices.php';
 require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-reports.php';
 require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-tools.php';
+require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-activity.php';
 
 /**
  * Front-end counterpart to KCRM_Plugin: a [karks_crm] shortcode, placed by
@@ -19,7 +20,7 @@ require_once KCRM_PLUGIN_DIR . 'includes/front/class-kcrm-front-tools.php';
 class KCRM_Front {
 
 	/** Rewrite endpoints registered under the CRM page, in nav order. */
-	const ENDPOINTS = array( 'companies', 'customers', 'services', 'invoices', 'reports', 'tools' );
+	const ENDPOINTS = array( 'companies', 'customers', 'services', 'invoices', 'reports', 'tools', 'activity' );
 
 	/** @var array<string,KCRM_Controller_Base> */
 	private $screens = array();
@@ -32,6 +33,7 @@ class KCRM_Front {
 			'invoices'  => new KCRM_Front_Invoices(),
 			'reports'   => new KCRM_Front_Reports(),
 			'tools'     => new KCRM_Front_Tools(),
+			'activity'  => new KCRM_Front_Activity(),
 		);
 
 		add_action( 'init', array( $this, 'register_endpoints' ) );
@@ -264,7 +266,7 @@ class KCRM_Front {
 		</button>
 		<nav class="kcrm-front-nav" id="kcrm-front-nav">
 			<?php if ( $current_company_id ) : ?>
-				<a href="<?php echo esc_url( self::endpoint_url( 'companies', array( 'view' => 'overview', 'id' => $current_company_id ) ) ); ?>" class="<?php echo 'companies' === $current ? 'is-active' : ''; ?>"><span class="dashicons dashicons-building"></span> <?php esc_html_e( 'Company Profile', 'karks-crm' ); ?></a>
+				<a href="<?php echo esc_url( self::endpoint_url( 'companies', array( 'view' => 'overview', 'id' => $current_company_id ) ) ); ?>" class="<?php echo in_array( $current, array( 'companies', 'activity' ), true ) ? 'is-active' : ''; ?>"><span class="dashicons dashicons-building"></span> <?php esc_html_e( 'Company Profile', 'karks-crm' ); ?></a>
 			<?php endif; ?>
 			<?php foreach ( $labels as $endpoint => $label ) : ?>
 				<a href="<?php echo esc_url( self::endpoint_url( $endpoint ) ); ?>" class="<?php echo $current === $endpoint ? 'is-active' : ''; ?>"><span class="dashicons dashicons-<?php echo esc_attr( $icons[ $endpoint ] ); ?>"></span> <?php echo esc_html( $label ); ?></a>

@@ -11,6 +11,7 @@ require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-dashboard.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-appearance.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-welcome.php';
 require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-invoice-types.php';
+require_once KCRM_PLUGIN_DIR . 'includes/admin/class-kcrm-admin-activity.php';
 require_once KCRM_PLUGIN_DIR . 'includes/pdf/class-kcrm-pdf.php';
 
 class KCRM_Plugin {
@@ -41,6 +42,7 @@ class KCRM_Plugin {
 			'customers' => new KCRM_Admin_Customers(),
 			'services'  => new KCRM_Admin_Services(),
 			'invoices'  => new KCRM_Admin_Invoices(),
+			'activity'  => new KCRM_Admin_Activity(),
 		);
 		$this->appearance    = new KCRM_Admin_Appearance();
 		$this->welcome       = new KCRM_Admin_Welcome();
@@ -80,6 +82,7 @@ class KCRM_Plugin {
 		add_submenu_page( 'karks-crm', __( 'Services', 'karks-crm' ), __( 'Services', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-services', array( $this->screens['services'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Invoices', 'karks-crm' ), __( 'Invoices', 'karks-crm' ), KCRM_CAPABILITY, 'karks-crm-invoices', array( $this->screens['invoices'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Invoice Types', 'karks-crm' ), __( 'Invoice Types', 'karks-crm' ), KCRM_CAPABILITY, KCRM_Admin_Invoice_Types::PAGE, array( $this->invoice_types, 'render' ) );
+		add_submenu_page( 'karks-crm', __( 'Activity Log', 'karks-crm' ), __( 'Activity Log', 'karks-crm' ), KCRM_CAPABILITY, KCRM_Admin_Activity::PAGE, array( $this->screens['activity'], 'render' ) );
 		add_submenu_page( 'karks-crm', __( 'Appearance', 'karks-crm' ), __( 'Appearance', 'karks-crm' ), KCRM_CAPABILITY, KCRM_Admin_Appearance::PAGE, array( $this->appearance, 'render' ) );
 	}
 

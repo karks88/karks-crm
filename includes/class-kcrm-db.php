@@ -47,4 +47,9 @@ class KCRM_DB {
 		global $wpdb;
 		return $wpdb->prefix . 'karkscrm_invoice_types';
 	}
+
+	public static function activity() {
+		global $wpdb;
+		return $wpdb->prefix . 'karkscrm_activity';
+	}
 }

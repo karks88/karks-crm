@@ -117,6 +117,11 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		$this->save_line_items( $id );
 		KCRM_Invoice::recalculate_totals( $id );
 
+		KCRM_Activity::log_invoice( $existing ? 'invoice.updated' : 'invoice.created', KCRM_Invoice::find( $id ) );
+		if ( $existing ) {
+			KCRM_Activity::log_status_change( $id, $existing->status );
+		}
+
 		$this->redirect( array( 'view' => 'edit', 'id' => $id, 'kcrm_notice' => 'saved' ) );
 	}
 
@@ -197,7 +202,7 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 
 		$amount = isset( $_POST['amount'] ) ? (float) $_POST['amount'] : 0;
 		if ( $amount > 0 ) {
-			KCRM_Payment::create(
+			$payment_id = KCRM_Payment::create(
 				array(
 					'invoice_id'   => $invoice_id,
 					'customer_id'  => $invoice->customer_id,
@@ -209,6 +214,11 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 					'note'         => sanitize_text_field( wp_unslash( $_POST['note'] ?? '' ) ),
 				)
 			);
+
+			if ( $payment_id ) {
+				KCRM_Activity::log_payment( 'payment.created', $payment_id, $amount, $invoice );
+				KCRM_Activity::log_status_change( $invoice_id, $invoice->status );
+			}
 		}
 
 		$this->redirect( array( 'view' => 'edit', 'id' => $invoice_id, 'kcrm_notice' => 'saved' ) );
@@ -311,6 +321,8 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 					'sent_by'       => get_current_user_id(),
 				)
 			);
+			// Recipient's name only -- the log deliberately doesn't keep email addresses.
+			KCRM_Activity::log_invoice( 'invoice.emailed', $invoice, array( 'recipient_name' => $to_name ) );
 		}
 
 		$this->redirect(
@@ -326,7 +338,13 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		check_admin_referer( 'kcrm_delete_payment_' . $payment_id );
 
 		$payment = KCRM_Payment::find( $payment_id );
+		$invoice = $payment ? KCRM_Invoice::find( $payment->invoice_id ) : null;
 		KCRM_Payment::delete_and_refresh( $payment_id );
+
+		if ( $payment && $invoice ) {
+			KCRM_Activity::log_payment( 'payment.deleted', $payment_id, $payment->amount, $invoice );
+			KCRM_Activity::log_status_change( $invoice->id, $invoice->status );
+		}
 
 		$this->redirect( array( 'view' => 'edit', 'id' => $payment ? $payment->invoice_id : 0, 'kcrm_notice' => 'deleted' ) );
 	}
@@ -392,9 +410,23 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 
 	private function delete( $invoice_id ) {
 		check_admin_referer( 'kcrm_delete_invoice_' . $invoice_id );
+		$invoice = KCRM_Invoice::find( $invoice_id );
+		// Snapshot taken before the delete -- afterward there's nothing left to read the number/customer from.
+		$details = $invoice ? KCRM_Activity::invoice_details( $invoice ) : array();
 		KCRM_Invoice_Item::delete_for_invoice( $invoice_id );
 		KCRM_Payment::delete_for_invoice( $invoice_id );
 		KCRM_Invoice::delete( $invoice_id );
+		if ( $invoice ) {
+			KCRM_Activity::log(
+				'invoice.deleted',
+				array(
+					'company_id'  => $invoice->company_id,
+					'customer_id' => $invoice->customer_id,
+					'object_id'   => $invoice->id,
+					'details'     => $details,
+				)
+			);
+		}
 		$this->redirect( array( 'kcrm_notice' => 'deleted' ) );
 	}
 
@@ -668,6 +700,10 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 
 		KCRM_CSV_Import::delete( $token );
 
+		if ( $imported ) {
+			KCRM_Activity::log( 'import.invoices', array( 'company_id' => $company_id, 'details' => array( 'count' => $imported ) ) );
+		}
+
 		$this->redirect(
 			array(
 				'view'                => 'import_invoices',
@@ -783,6 +819,10 @@ abstract class KCRM_Invoices_Controller extends KCRM_Controller_Base {
 		}
 
 		KCRM_CSV_Import::delete( $token );
+
+		if ( $imported ) {
+			KCRM_Activity::log( 'import.payments', array( 'company_id' => $company_id, 'details' => array( 'count' => $imported ) ) );
+		}
 
 		$this->redirect(
 			array(

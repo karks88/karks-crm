@@ -101,6 +101,8 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 			$id = KCRM_Customer::create( $data );
 		}
 
+		KCRM_Activity::log_customer( $existing ? 'customer.updated' : 'customer.created', KCRM_Customer::find( $id ) );
+
 		$this->redirect( array( 'view' => 'edit', 'id' => $id, 'kcrm_notice' => 'saved' ) );
 	}
 
@@ -172,7 +174,7 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 
 		$batch_id = wp_generate_uuid4();
 		foreach ( $rows as $row ) {
-			KCRM_Payment::create(
+			$payment_id = KCRM_Payment::create(
 				array(
 					'invoice_id'   => $row['invoice']->id,
 					'customer_id'  => $row['invoice']->customer_id,
@@ -184,6 +186,11 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 					'batch_id'     => $batch_id,
 				)
 			);
+
+			if ( $payment_id ) {
+				KCRM_Activity::log_payment( 'payment.created', $payment_id, $row['amount'], $row['invoice'] );
+				KCRM_Activity::log_status_change( $row['invoice']->id, $row['invoice']->status );
+			}
 		}
 
 		$this->redirect( array( 'view' => 'edit', 'id' => $customer_id, 'kcrm_notice' => 'saved' ) );
@@ -387,7 +394,14 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 	private function delete( $id ) {
 		check_admin_referer( 'kcrm_delete_customer_' . $id );
 
-		foreach ( KCRM_Customer::jobs_for( $id ) as $job ) {
+		$customer = KCRM_Customer::find( $id );
+		$jobs     = KCRM_Customer::jobs_for( $id );
+		if ( $customer ) {
+			// Logged before the delete -- log_customer() needs the row (and, for a Job, its parent) to build the display name.
+			KCRM_Activity::log_customer( 'customer.deleted', $customer, array( 'jobs' => count( $jobs ) ) );
+		}
+
+		foreach ( $jobs as $job ) {
 			KCRM_Customer::delete( $job->id );
 		}
 		KCRM_Customer::delete( $id );
@@ -525,6 +539,10 @@ abstract class KCRM_Customers_Controller extends KCRM_Controller_Base {
 		}
 
 		KCRM_CSV_Import::delete( $token );
+
+		if ( $imported ) {
+			KCRM_Activity::log( 'import.customers', array( 'company_id' => $company_id, 'details' => array( 'count' => $imported ) ) );
+		}
 
 		$this->redirect(
 			array(

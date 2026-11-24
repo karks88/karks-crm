@@ -103,6 +103,29 @@ Front-end only (`/crm/reports/`) — a per-company **Reports** tab with three vi
 
 The Reports overview page also links directly from the Company Overview hub's "Outstanding Balance" and "Revenue" stat cards.
 
+## Activity Log
+
+On the front end at `/crm/activity/`, and in wp-admin under **Karks CRM → Activity Log**. On the front end, open it from **View full activity log** under **Recent Actions** on the Company Profile, or from a customer profile's **Activity** tab. It shows everything done in the current company's CRM, newest first and grouped by day (Today, Yesterday, then dates):
+
+- **Invoices** — created, edited, deleted, emailed (with the recipient's name), and status changes (e.g. "Open to Paid", including changes caused by recording or deleting a payment).
+- **Payments** — recorded (from an invoice or from Receive Payment) and deleted.
+- **Customers, Jobs and Services** — added, edited and deleted.
+- **Imports and the company** — one summary entry per CSV import (e.g. "12 invoices imported from CSV"), company profile edits, and company JSON imports and exports.
+
+Filter with the type buttons (All / Invoices / Payments / Emails / Customers / Services / Company), the **Customer** dropdown (a customer includes its Jobs) and the date range. Each entry links to the invoice, customer or service it describes. Entries for records that have since been deleted keep their text but no longer link anywhere.
+
+The log records **what** happened, never **who** did it, and it doesn't keep email addresses. It starts empty when you upgrade to the version that added it; older history isn't backfilled. Company export/import doesn't carry the log over either.
+
+**Recent Actions** on the Company Profile shows the last 2 days of this same log. Each customer profile's **Activity** tab shows that customer's (and its Jobs') latest 25 entries, with a link to the full log filtered to them.
+
+**Settings** live at the bottom of **Karks CRM → Activity Log** in wp-admin. Anyone with CRM access can view the log there, but **only administrators** see and can save the settings:
+
+- **Activity Logging** — a site-wide on/off switch (on by default). When it's off, nothing new is recorded, and Recent Actions, the Activity tab, and the "View full activity log" link are hidden on the front end. `/crm/activity/` just says the log is turned off. Existing entries are kept and still listed in wp-admin.
+- **Keep Activity For** — 6, 12 or 24 months, or Forever (default 24 months). A daily scheduled job deletes older entries for every company.
+- **Clear This Company's Activity Log** — permanently deletes the current company's entries. If logging is on, it leaves a single "Activity log cleared" entry behind.
+
+The front-end log screen only shows how long activity is kept; it has no settings.
+
 ## Company Export/Import
 
 **Karks CRM → Companies** (wp-admin only) — each row has an **Export** link; an **Import Company** button sits next to "Add New".

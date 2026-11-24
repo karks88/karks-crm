@@ -388,6 +388,22 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 			},
 		);
 
+		if ( KCRM_Activity::is_enabled() ) {
+			$tabs['activity'] = array(
+				'label'  => __( 'Activity', 'karks-crm' ),
+				'badge'  => KCRM_Activity::count_query(
+					$customer->company_id,
+					array(
+						'customer_ids' => $rollup_ids,
+						'since'        => gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 30 * DAY_IN_SECONDS ),
+					)
+				) ?: null,
+				'render' => function () use ( $rollup_ids, $customer ) {
+					$this->render_activity_section( $rollup_ids, $customer );
+				},
+			);
+		}
+
 		/**
 		 * Filters the tabs shown on the front-end customer profile screen --
 		 * lets an add-on (e.g. Karks CRM Packages) contribute its own tab
@@ -406,16 +422,63 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 			}
 		);
 
-		$this->render_profile_tabs( $tabs, $id );
+		$active_tab = $this->render_profile_tabs( $tabs, $id );
 
 		do_action( 'kcrm_customer_edit_after_sections', $customer, $rollup_ids );
 
-		$this->render_delete_section( $customer, count( $job_ids ) );
+		// Home tab only -- it's where the Status field (the suggested alternative to deleting) lives.
+		if ( 'home' === $active_tab ) {
+			$this->render_delete_section( $customer, count( $job_ids ) );
+		}
+	}
+
+	/**
+	 * Activity tab: this customer's (and its Jobs') most recent log entries,
+	 * linking to the full Activity Log pre-filtered to them. A Job links to
+	 * its parent's filter, since the log's customer filter is top-level only.
+	 */
+	private function render_activity_section( array $rollup_ids, $customer ) {
+		$limit = 25;
+		$rows  = KCRM_Activity::query( $customer->company_id, array( 'customer_ids' => $rollup_ids ), $limit );
+		$total = KCRM_Activity::count_query( $customer->company_id, array( 'customer_ids' => $rollup_ids ) );
+
+		$filter_id = $customer->parent_customer_id ? (int) $customer->parent_customer_id : (int) $customer->id;
+		$log_url   = KCRM_Front::endpoint_url(
+			'activity',
+			KCRM_Front::nav_nonce_args(
+				array(
+					KCRM_Front_Activity::CUSTOMER_ARG            => $filter_id,
+					KCRM_Front_Activity::RANGE_PREFIX . '_range' => 'all',
+				)
+			)
+		);
+		?>
+		<h3><?php esc_html_e( 'Activity', 'karks-crm' ); ?></h3>
+		<?php if ( empty( $rows ) ) : ?>
+			<p><?php esc_html_e( 'No activity recorded for this customer yet.', 'karks-crm' ); ?></p>
+		<?php else : ?>
+			<?php KCRM_Activity_Feed::render_list( KCRM_Activity_Feed::describe_rows( $rows ) ); ?>
+			<p class="kcrm-activity-log-link">
+				<a href="<?php echo esc_url( $log_url ); ?>">
+					<?php
+					echo esc_html(
+						$total > $limit
+							/* translators: %d: total number of activity entries for this customer. */
+							? sprintf( __( 'View all %d entries in the activity log', 'karks-crm' ), $total )
+							: __( 'View in the activity log', 'karks-crm' )
+					);
+					?>
+					<span class="dashicons dashicons-arrow-right-alt2" aria-hidden="true"></span>
+				</a>
+			</p>
+		<?php endif; ?>
+		<?php
 	}
 
 	/**
 	 * The profile's only Delete control -- deliberately kept off the list
-	 * screen so a customer can't be removed with a stray click there.
+	 * screen so a customer can't be removed with a stray click there, and
+	 * shown only under the Home tab.
 	 */
 	private function render_delete_section( $customer, $job_count ) {
 		$is_job = ! empty( $customer->parent_customer_id );
@@ -446,11 +509,11 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 			</p>
 			<p>
 				<?php
-				// Links to the Home tab (where the Status field lives) rather than a bare #status anchor, since this section shows under every tab.
+				// A bare #status anchor is enough -- this section only renders under the Home tab, alongside the Status field.
 				printf(
 					/* translators: %s: "see above" link to the Status field. */
 					esc_html__( 'No longer working with this client? You can change their status to “Inactive” (%s) to preserve their records.', 'karks-crm' ),
-					'<a href="' . esc_url( $this->screen_url( $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $customer->id, 'tab' => 'home' ) ) ) . '#status' ) . '">' . esc_html__( 'see above', 'karks-crm' ) . '</a>'
+					'<a href="#status">' . esc_html__( 'see above', 'karks-crm' ) . '</a>'
 				);
 				?>
 			</p>
@@ -471,6 +534,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 	 * tab survives a reload/bookmark for free since it lives in the URL.
 	 *
 	 * @param array $tabs tab_slug => array( 'label' => string, 'badge' => int|string|null, 'render' => callable(): void ).
+	 * @return string The slug of the tab that was rendered.
 	 */
 	private function render_profile_tabs( array $tabs, $id ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab-routing param, no state change.
@@ -495,6 +559,7 @@ class KCRM_Front_Customers extends KCRM_Customers_Controller {
 			</div>
 		</div>
 		<?php
+		return $active;
 	}
 
 	/**

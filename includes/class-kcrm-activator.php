@@ -25,6 +25,19 @@ class KCRM_Activator {
 		self::add_role_and_caps();
 		self::create_front_page();
 		self::maybe_flush_rewrite_rules();
+		self::schedule_activity_prune();
+	}
+
+	/** Clears the daily activity-log cleanup event so it doesn't fire against a deactivated plugin. */
+	public static function deactivate() {
+		wp_clear_scheduled_hook( KCRM_Activity::PRUNE_HOOK );
+	}
+
+	/** Daily KCRM_Activity::prune_expired() run. Safe to call on every request -- wp_next_scheduled() reads the already-autoloaded cron option. */
+	private static function schedule_activity_prune() {
+		if ( ! wp_next_scheduled( KCRM_Activity::PRUNE_HOOK ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', KCRM_Activity::PRUNE_HOOK );
+		}
 	}
 
 	public static function maybe_upgrade() {
@@ -44,6 +57,7 @@ class KCRM_Activator {
 		self::add_role_and_caps();
 		self::create_front_page();
 		self::maybe_flush_rewrite_rules();
+		self::schedule_activity_prune();
 	}
 
 	/**
@@ -293,6 +307,7 @@ class KCRM_Activator {
 		$payments       = KCRM_DB::payments();
 		$invoice_emails = KCRM_DB::invoice_emails();
 		$invoice_types  = KCRM_DB::invoice_types();
+		$activity       = KCRM_DB::activity();
 
 		$sql = array();
 
@@ -449,6 +464,23 @@ class KCRM_Activator {
 			label VARCHAR(255) NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY type_key (type_key)
+		) $charset_collate;";
+
+		// One row per logged action (see KCRM_Activity). Deliberately no user
+		// column -- the log records what happened, not who did it.
+		$sql[] = "CREATE TABLE $activity (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			company_id BIGINT UNSIGNED NOT NULL,
+			customer_id BIGINT UNSIGNED NULL,
+			event VARCHAR(50) NOT NULL,
+			object_type VARCHAR(30) NOT NULL,
+			object_id BIGINT UNSIGNED NULL,
+			details LONGTEXT NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY company_created (company_id,created_at),
+			KEY customer_created (customer_id,created_at),
+			KEY created_at (created_at)
 		) $charset_collate;";
 
 		// dbDelta() doesn't return or throw on a failed query -- it just moves on -- so

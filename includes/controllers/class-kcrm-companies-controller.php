@@ -82,6 +82,7 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 
 		if ( $id ) {
 			KCRM_Company::save( $id, $data );
+			KCRM_Activity::log( 'company.updated', array( 'company_id' => $id ) );
 		} else {
 			$id = KCRM_Company::create( $data );
 			update_user_meta( get_current_user_id(), KCRM_Context::META_KEY, $id );
@@ -136,6 +137,18 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 			);
 		}
 
+		KCRM_Activity::log(
+			'company.imported',
+			array(
+				'company_id' => $result['company_id'],
+				'details'    => array(
+					'customers' => (int) $result['customers'],
+					'invoices'  => (int) $result['invoices'],
+					'payments'  => (int) $result['payments'],
+				),
+			)
+		);
+
 		$this->redirect(
 			array(
 				'view'       => 'import_company',
@@ -171,6 +184,7 @@ abstract class KCRM_Companies_Controller extends KCRM_Controller_Base {
 		}
 
 		$data = KCRM_Company_Transfer::export( $id );
+		KCRM_Activity::log( 'company.exported', array( 'company_id' => $id ) );
 
 		nocache_headers();
 		header( 'Content-Type: application/json; charset=utf-8' );

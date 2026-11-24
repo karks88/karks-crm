@@ -440,6 +440,7 @@ abstract class KCRM_Controller_Base {
 			'email_sent' => array( 'success', __( 'Invoice emailed successfully.', 'karks-crm' ) ),
 			'email_error' => array( 'error', __( 'Could not send the email. Please check the recipient address and try again.', 'karks-crm' ) ),
 			'overpay'    => array( 'error', __( 'One or more amounts exceeded that invoice\'s balance due. No payment was recorded.', 'karks-crm' ) ),
+			'activity_cleared' => array( 'success', __( 'Activity log cleared.', 'karks-crm' ) ),
 		);
 
 		if ( isset( $messages[ $notice ] ) ) {

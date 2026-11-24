@@ -147,9 +147,11 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 
 			</div>
 
-			<div class="kcrm-overview-actions-col">
-				<?php $this->render_recent_actions( $id ); ?>
-			</div>
+			<?php if ( KCRM_Activity::is_enabled() ) : ?>
+				<div class="kcrm-overview-actions-col">
+					<?php $this->render_recent_actions( $id ); ?>
+				</div>
+			<?php endif; ?>
 		</div>
 
 		
@@ -157,101 +159,22 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 	}
 
 	/**
-	 * "What happened lately" feed for the company profile -- invoices
-	 * created, invoices emailed, payments received, and customers added in
-	 * the last 2 days, merged into one reverse-chronological list.
+	 * "What happened lately" feed for the company profile -- the last 2
+	 * days of this company's activity log (KCRM_Activity), with a link to
+	 * the full, filterable Activity Log screen underneath.
 	 */
 	private function render_recent_actions( $company_id ) {
-		$since   = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 2 * DAY_IN_SECONDS );
-		$actions = array();
-
-		foreach ( KCRM_Invoice::created_since( $company_id, $since ) as $invoice ) {
-			$customer   = KCRM_Customer::find( $invoice->customer_id );
-			$actions[] = array(
-				'time'  => $invoice->created_at,
-				'icon'  => 'dashicons-portfolio',
-				'label' => $customer
-					? sprintf(
-						/* translators: 1: invoice number, 2: customer name. */
-						__( 'Invoice %1$s created for %2$s', 'karks-crm' ),
-						$invoice->invoice_number,
-						KCRM_Customer::display_name( $customer )
-					)
-					: sprintf(
-						/* translators: %s: invoice number. */
-						__( 'Invoice %s created', 'karks-crm' ),
-						$invoice->invoice_number
-					),
-				'url'   => KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'edit', 'id' => $invoice->id ) ),
-			);
-		}
-
-		foreach ( KCRM_Invoice_Email::recent_for_company( $company_id, $since ) as $email ) {
-			$recipient  = $email->sent_to_name ? $email->sent_to_name : $email->sent_to_email;
-			$actions[] = array(
-				'time'  => $email->sent_at,
-				'icon'  => 'dashicons-email',
-				'label' => sprintf(
-					/* translators: 1: invoice number, 2: recipient name or email. */
-					__( 'Invoice %1$s emailed to %2$s', 'karks-crm' ),
-					$email->invoice_number,
-					$recipient
-				),
-				'url'   => KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'edit', 'id' => $email->invoice_id ) ),
-			);
-		}
-
-		foreach ( KCRM_Payment::created_since( $company_id, $since ) as $payment ) {
-			$customer  = KCRM_Customer::find( $payment->customer_id );
-			$actions[] = array(
-				'time'  => $payment->created_at,
-				'icon'  => 'dashicons-money-alt',
-				'label' => $customer
-					? sprintf(
-						/* translators: 1: payment amount, 2: invoice number, 3: customer name. */
-						__( 'Payment of %1$s received for Invoice %2$s from %3$s', 'karks-crm' ),
-						number_format_i18n( (float) $payment->amount, 2 ),
-						$payment->invoice_number,
-						KCRM_Customer::display_name( $customer )
-					)
-					: sprintf(
-						/* translators: 1: payment amount, 2: invoice number. */
-						__( 'Payment of %1$s received for Invoice %2$s', 'karks-crm' ),
-						number_format_i18n( (float) $payment->amount, 2 ),
-						$payment->invoice_number
-					),
-				'url'   => KCRM_Front::endpoint_url( 'invoices', array( 'view' => 'edit', 'id' => $payment->invoice_id ) ),
-			);
-		}
-
-		foreach ( KCRM_Customer::created_since( $company_id, $since ) as $customer ) {
-			$actions[] = array(
-				'time'  => $customer->created_at,
-				'icon'  => 'dashicons-groups',
-				'label' => sprintf(
-					/* translators: %s: customer/company name. */
-					__( 'New customer added: %s', 'karks-crm' ),
-					KCRM_Customer::display_name( $customer )
-				),
-				'url'   => KCRM_Front::endpoint_url( 'customers', $this->nav_nonce_args( array( 'view' => 'edit', 'id' => $customer->id ) ) ),
-			);
-		}
-
-		usort(
-			$actions,
-			function ( $a, $b ) {
-				return strtotime( $b['time'] ) <=> strtotime( $a['time'] );
-			}
-		);
+		$since = gmdate( 'Y-m-d H:i:s', current_time( 'timestamp' ) - 2 * DAY_IN_SECONDS );
+		$items = KCRM_Activity_Feed::describe_rows( KCRM_Activity::query( $company_id, array( 'since' => $since ), 50 ) );
 		?>
 		<h3 id="kcrm-recent-actions"><?php esc_html_e( 'Recent Actions', 'karks-crm' ); ?></h3>
 		<p class="description"><?php esc_html_e( 'Activity from the past 2 days.', 'karks-crm' ); ?></p>
-		<?php if ( empty( $actions ) ) : ?>
+		<?php if ( empty( $items ) ) : ?>
 			<p><?php esc_html_e( 'No recent activity.', 'karks-crm' ); ?></p>
 		<?php else : ?>
 			<?php
 			$visible_limit = 10;
-			$hidden_count  = max( 0, count( $actions ) - $visible_limit );
+			$hidden_count  = max( 0, count( $items ) - $visible_limit );
 			$more_label    = sprintf(
 				/* translators: %d: number of additional recent actions hidden by default. */
 				__( 'Show %d more', 'karks-crm' ),
@@ -259,19 +182,7 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 			);
 			?>
 			<div class="kcrm-recent-actions-wrap">
-				<ul class="kcrm-recent-actions">
-					<?php foreach ( $actions as $index => $action ) : ?>
-						<li<?php echo $index >= $visible_limit ? ' class="kcrm-recent-actions-extra"' : ''; ?>>
-							<span class="dashicons <?php echo esc_attr( $action['icon'] ); ?>"></span>
-							<?php if ( $action['url'] ) : ?>
-								<a href="<?php echo esc_url( $action['url'] ); ?>"><?php echo esc_html( $action['label'] ); ?></a>
-							<?php else : ?>
-								<?php echo esc_html( $action['label'] ); ?>
-							<?php endif; ?>
-							<span class="kcrm-recent-actions-time"><?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $action['time'] ) ) ); ?></span>
-						</li>
-					<?php endforeach; ?>
-				</ul>
+				<?php KCRM_Activity_Feed::render_list( $items, $visible_limit ); ?>
 				<?php if ( $hidden_count > 0 ) : ?>
 					<p>
 						<a href="#" class="kcrm-recent-actions-toggle" data-kcrm-more-label="<?php echo esc_attr( $more_label ); ?>" data-kcrm-less-label="<?php esc_attr_e( 'Show less', 'karks-crm' ); ?>">
@@ -281,7 +192,11 @@ class KCRM_Front_Companies extends KCRM_Companies_Controller {
 					</p>
 				<?php endif; ?>
 			</div>
-		<?php endif;
+		<?php endif; ?>
+		<p class="kcrm-activity-log-link">
+			<a href="<?php echo esc_url( KCRM_Context::switch_company_url( $company_id, KCRM_Front::endpoint_url( 'activity' ) ) ); ?>"><?php esc_html_e( 'View full activity log', 'karks-crm' ); ?> <span class="dashicons dashicons-arrow-right-alt2" aria-hidden="true"></span></a>
+		</p>
+		<?php
 	}
 
 

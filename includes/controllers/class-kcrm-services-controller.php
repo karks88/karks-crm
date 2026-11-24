@@ -76,6 +76,8 @@ abstract class KCRM_Services_Controller extends KCRM_Controller_Base {
 			$id = KCRM_Service::create( $data );
 		}
 
+		KCRM_Activity::log_service( $existing ? 'service.updated' : 'service.created', KCRM_Service::find( $id ) );
+
 		$this->redirect( array( 'view' => 'edit', 'id' => $id, 'kcrm_notice' => 'saved' ) );
 	}
 
@@ -129,7 +131,9 @@ abstract class KCRM_Services_Controller extends KCRM_Controller_Base {
 
 	private function delete( $id ) {
 		check_admin_referer( 'kcrm_delete_service_' . $id );
+		$service = KCRM_Service::find( $id );
 		KCRM_Service::delete( $id );
+		KCRM_Activity::log_service( 'service.deleted', $service );
 		$this->redirect( array( 'kcrm_notice' => 'deleted' ) );
 	}
 
@@ -235,6 +239,10 @@ abstract class KCRM_Services_Controller extends KCRM_Controller_Base {
 		}
 
 		KCRM_CSV_Import::delete( $token );
+
+		if ( $imported ) {
+			KCRM_Activity::log( 'import.services', array( 'company_id' => $company_id, 'details' => array( 'count' => $imported ) ) );
+		}
 
 		$this->redirect(
 			array(

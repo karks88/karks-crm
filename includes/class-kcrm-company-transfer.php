@@ -16,7 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * attachment, not row data -- re-upload it manually on the new site) and
  * the cached subtotal/tax_amount/total on each invoice (recomputed fresh
  * on import from the imported line items/payments instead of trusting a
- * possibly-stale export).
+ * possibly-stale export). The activity log (KCRM_Activity) is left out
+ * too, on both export and import, so an imported company never starts
+ * with history that didn't happen on this site.
  *
  * Import creates a new company by default, even if the name matches one
  * already on this site (auto-suffixing the name on collision), rather than

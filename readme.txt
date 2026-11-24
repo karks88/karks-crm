@@ -4,7 +4,7 @@ Tags: crm, invoicing, customers, invoices, billing
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.9.10.16
+Stable tag: 0.9.10.17
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,14 @@ It’s all about security and ease of maintenance. Building connections to payme
 
 
 == Changelog ==
+
+= 0.9.10.17 =
+* Added an Activity Log for each company. The new `/crm/activity/` screen, linked from under Recent Actions on the Company Profile, lists everything done in the CRM: invoices created, edited, deleted, emailed or changing status; payments recorded or deleted; customers, Jobs and services added, edited or deleted; CSV imports; and company profile edits, imports and exports. It can be filtered by type, customer and date range, and entries are grouped by day. Entries for deleted records stay readable but no longer link anywhere. The log does not record which user performed an action, and it does not keep email addresses.
+* Added an Activity tab to the front-end customer profile, showing the customer's (and its Jobs') most recent entries with a link to the full log filtered to that customer.
+* Recent Actions on the Company Profile now reads from the activity log, so it also shows edits, deletions and status changes. It starts empty after upgrading and fills as new activity happens.
+* Added Karks CRM → Activity Log in wp-admin. It shows the same log with the same filters, and links point to the wp-admin edit screens. Anyone with CRM access can view it.
+* Added a site-wide switch to turn activity logging off, on the wp-admin Activity Log screen. While it's off, nothing new is recorded and the front-end activity UI is hidden, but existing entries are kept.
+* The log settings (the on/off switch, the retention period, and clearing the current company's log) live only on the wp-admin screen, and only administrators can see or save them. Retention can be 6, 12 or 24 months, or forever; the default is 24 months, and a daily scheduled job removes older entries.
 
 = 0.9.10.16 =
 * Added the `kcrm_reports_views` filter so add-ons can add their own report to the front-end Reports screen, with an overview card and a `?view=<slug>` page. See wiki/Hooks-and-Filters.md.

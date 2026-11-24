@@ -69,6 +69,21 @@ Plus five computed pairings (see `KCRM_Colors::inline_css()`) that keep text rea
 | `.kcrm-invoice-group-header` | The customer/subtotal header row above each "Customers with Multiple Jobs" group. |
 | `.kcrm-invoice-group-toggle` | The collapse/expand link inside a `.kcrm-invoice-group-header` row. |
 
+### Activity log
+
+| Class | Purpose |
+|---|---|
+| `.kcrm-recent-actions` | The icon / label / time list used by Recent Actions on the Company Profile, the Activity Log screen, and the customer profile's Activity tab. `.kcrm-recent-actions-time` is the right-aligned timestamp; `.kcrm-recent-actions-extra` rows are hidden until "Show N more" is clicked. |
+| `.kcrm-activity-log-link` | The "View full activity log" / "View in the activity log" link paragraph. |
+| `.kcrm-activity-screen` | Wrapper for the Activity Log screen. |
+| `.kcrm-activity-chips` / `.kcrm-activity-chip` | The type filter buttons; `.is-active` marks the current one (filled with the Primary color). |
+| `.kcrm-activity-filters` | Row holding the customer filter (`.kcrm-activity-customer-filter`) and the date range filter. |
+| `.kcrm-activity-day` | The Today / Yesterday / date heading above each day's entries. |
+| `.kcrm-activity-empty` | The "no activity" message. |
+| `.kcrm-activity-retention-note` | The read-only "Activity is kept for…" note at the bottom of the front-end log. |
+
+The wp-admin Activity Log screen reuses the chip, filter, day-heading and list classes, scoped under `.kcrm-activity-screen` in `admin.css` with wp-admin colors instead of the color variables.
+
 ### Status badges
 
 | Class | Purpose |
